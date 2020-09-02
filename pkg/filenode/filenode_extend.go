@@ -1,5 +1,9 @@
 package filenode
 
+import (
+	"path/filepath"
+)
+
 /// READONLY ///
 
 // get names of all ancestor nodes (includes the node itself).
@@ -24,6 +28,7 @@ func nameOfAncestors(node fileNodeGetter) []string {
 	return path
 }
 
+// don't modify during visiting.
 func visitAllChildNodes(node fileNodeCore, f func(fileNodeGetter) bool) {
 	node.traverseChildNodes(func(_ string, node fileNodeCore) (goon bool) {
 		if goon = f(node); goon {
@@ -33,52 +38,68 @@ func visitAllChildNodes(node fileNodeCore, f func(fileNodeGetter) bool) {
 	})
 }
 
-// find a node by path.
+// find a node by path. (note: "." and ".." is not supported.)
+//
+//  - the node of divergence if not found.
 //  - itself if path is nil or empty.
-//  - nil if not found.
-func findNodeByPath(node fileNodeCore, path []string) fileNodeCore {
+//  - nil if node is empty.
+func findNodeByPath(node fileNodeCore, path []string) (fileNodeCore, []string) {
 
-	for _, name := range path {
-		node = node.child(name)
-		if node == nil {
-			break
+	switch {
+
+	case len(path) == 0:
+		path = nil
+
+	case len(path) == 1 && len(path[0]) == 1 && path[0][0] == '.':
+		path = nil
+
+	case node == nil || node.root() == nil:
+		node = nil
+
+	default:
+		if filepath.IsAbs(path[0]) {
+			node = node.root()
 		}
+
+		for len(path) != 0 {
+			if next := node.child(path[0]); next != nil {
+				node = next
+				path = path[1:]
+			} else {
+				break
+			}
+		}
+
 	}
 
-	return node
+	return node, path
 }
 
 /// READWRITE ///
 
-// find a node or create it if not found.
-func findOrCreateNodeByPath(node fileNodeCore, path []string) (
-	it fileNodeCore, find bool,
-) {
+// find a node or make it if not found.
+// return the node and isFound.
+func findOrMakeNodeByPath(node fileNodeCore, path []string) (fileNodeCore, bool) {
 
-	it, find = node, true
-	for _, name := range path {
-		var next fileNodeCore
+	node, path = findNodeByPath(node, path)
 
-		if find {
-			next = it.child(name)
-			find = next != nil
+	switch {
+	case node == nil || isStringInSet(".", path) || isStringInSet("..", path):
+		return nil, false
+
+	case len(path) == 0:
+		return node, true
+
+	default:
+		for _, name := range path {
+			node = node.createChildNode(name)
 		}
-
-		if find {
-			it = next
-		} else {
-			it = it.createChildNode(name)
-		}
+		node.setUsing(true)
+		return node, false
 	}
-
-	if !find {
-		it.setUsing(true)
-	}
-
-	return
 }
 
-func noLongerUseThisNode(node fileNodeCore) {
+func disuseThisNode(node fileNodeCore) {
 	// mark this node won't be used any more.
 	node.setUsing(false)
 
@@ -108,7 +129,64 @@ func removeAllChildNodes(node fileNodeCore) {
 	node.deleteChildNodes()
 }
 
-func deleteNode(node fileNodeCore) {
+func removeNode(node fileNodeCore) {
 	removeAllChildNodes(node)
-	noLongerUseThisNode(node)
+	disuseThisNode(node)
+}
+
+func moveNode(node fileNodeCore, path []string) (code MoveResult) {
+
+	// maybe node is unmovable
+	if node == nil || node.root() == nil || node.parent() == nil {
+		code = MoveResultNodeUnmovable
+	}
+
+	var lhs, rhs []string
+	if code == MoveResultDone {
+		lhs = nameOfAncestors(node)
+		rhs = path
+	}
+
+	// maybe target is child
+	if code == MoveResultDone && len(lhs) < len(rhs) {
+		hit := false
+
+		for i := range lhs {
+			hit = hit || lhs[i] != rhs[i]
+		}
+
+		if hit == false {
+			code = MoveResultTargetIsChild
+		}
+	}
+
+	// may exist or be invalid
+	var dst fileNodeCore
+	if code == MoveResultDone {
+		var hit bool
+		dst, hit = findOrMakeNodeByPath(node, path)
+		switch {
+		case dst == nil || dst.root() != node.root() || dst.parent() == nil:
+			code = MoveResultTargetInvalid
+		case hit:
+			code = MoveResultTargetExists
+		}
+	}
+
+	// maybe move
+	if code == MoveResultDone {
+		oldname := node.name()
+		newname := dst.name()
+
+		that := dst.parent()
+		that.deleteChildNode(newname)
+		that.putChildNode(node)
+		node.parent().deleteChildNode(oldname)
+		node.setParent(that)
+
+		dst.setName("")
+		dst.setParent(nil)
+	}
+
+	return
 }

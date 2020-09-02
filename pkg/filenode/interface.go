@@ -1,45 +1,49 @@
 package filenode
 
-// FileNode is a basic element of a FileTree.
-// type FileNode interface {
-// fileNodeGetter
-// fileNodeSetter
+// MoveResult is the result of the move operations.
+type MoveResult uint8
 
-// Name of this file or directory.
-// Name() string
+// Enums for MoveResult
+const (
+	MoveResultDone MoveResult = iota
+	MoveResultTargetExists
+	MoveResultTargetIsChild
+	MoveResultNodeUnmovable
+	MoveResultTargetInvalid
+)
 
-// Full path of this file or directory.
-// Path() string
+// FileNode used to maintain a tree of files and directories.
+type FileNode interface {
 
-// Dir is the parent directory of this `FileNode`.
-//  - empty if no parent.
-// Dir() string
+	// Name of file or directory.
+	Name() string
 
-// DirAndName return both dir and name of this node.
-// DirAndName() (dir string, name string)
+	// Full path of this file or directory.
+	Path() string
 
-// Put a filepath into current FileTree. Return the FileNode and whether
-// it is inserted.
-//  - return old `FileNode` and false if it already exists.
-// Put(path string) (FileNode, bool)
+	// Dir is the parent directory of this FileNode.
+	//  - empty if no parent.
+	Dir() string
 
-// Move the `old` path to 'new` path.
-//  - If `new` already exists, it and all child nodes will be purged.
-//  - If `old` do not exist, an empty and active `FileNode` will be
-//    placed to `new`.
-//  - If `old` is an ancestor of `new`, do nothing.
-// Move(old, new string) (FileNode, bool)
+	// DirAndName return both dir and name of this node.
+	DirAndName() (dir string, name string)
 
-// Remove a FileNode by filepath.
-//  - return true if done, otherwise false.
-// Remove(path string) bool
+	// Find a child node by path.
+	Find(path string) (node FileNode)
 
-// Discard this `FileNode`.
-// There is a situation when a `FileNode` is not used by outside, but may
-// be still used by other `FileNode`. If so, this node will be marked as
-// inactive and still here, instead of deleted.
-// Discard()
-// }
+	// Put a new node by path. Return the node and whether it is created.
+	//  - return old node and false if it exists.
+	Put(path string) (node FileNode, created bool)
+
+	// Move this node to target path.
+	Move(path string) MoveResult
+
+	// Disuse this node.
+	// There is a situation when a node is not used by outside, but may still
+	// be used by other nodes. If so, this node will be marked as unused and
+	// still here, instead of deleted.
+	Disuse()
+}
 
 // Only the most basic functions are included.
 type fileNodeCore interface {
@@ -85,6 +89,10 @@ type fileNodeSetter interface {
 
 	// set parent node.
 	setParent(node fileNodeCore)
+
+	// put a node as its child node.
+	//  - false if node has a different root or node is nil or name conflict.
+	putChildNode(node fileNodeCore) bool
 
 	// create a child node.
 	createChildNode(name string) (it fileNodeCore)

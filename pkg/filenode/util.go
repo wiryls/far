@@ -1,6 +1,7 @@
 package filenode
 
 import (
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,12 +23,12 @@ func splite(path string) []string {
 	const sep = string(os.PathSeparator)
 
 	buf := []string{}
-	cur := path
+	cur := filepath.Clean(path)
 	vol := len(filepath.VolumeName(cur))
 	if vol != 0 {
 		vol = vol + 1
 		buf = append(buf, cur[:vol])
-		cur = path[vol:]
+		cur = cur[vol:]
 	}
 
 	for cur != "" {
@@ -42,4 +43,41 @@ func splite(path string) []string {
 	}
 
 	return buf
+}
+
+func isStringInSet(str string, set []string) bool {
+	for i := range set {
+		if str == set[i] {
+			return true
+		}
+	}
+	return false
+}
+
+func makeRandomPath(nameL, nameR, deepthL, deepthR int, set []rune) []rune {
+
+	size := (nameR + 1) * deepthR
+	buff := make([]rune, 0, size)
+	name := make([]rune, nameR)
+
+	n := deepthL
+	if deepthL < deepthR {
+		n += rand.Intn(deepthR - deepthL)
+	}
+
+	for i := 0; i < n; i++ {
+		m := nameL
+		if nameL < nameR {
+			m += rand.Intn(nameR - nameL)
+		}
+
+		for j := range name[:m] {
+			name[j] = set[rand.Intn(len(set))]
+		}
+
+		buff = append(buff, '\\')
+		buff = append(buff, name[:m]...)
+	}
+
+	return buff
 }

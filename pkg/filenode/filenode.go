@@ -1,154 +1,134 @@
 package filenode
 
-type fileNode struct {
-	isUsing    bool
-	fileName   string
-	rootNode   fileNodeCore
-	parentNode fileNodeCore
-	childNodes map[string]fileNodeCore // should never contains nil node.
+import (
+	"path/filepath"
+	"sync"
+)
+
+// NewFileTree create a root FileNode.
+func NewFileTree() FileNode {
+	tree := &wrapper{lock: &sync.RWMutex{}}
+	tree.fileNodeCore = &fileNode{isUsing: true, rootNode: tree}
+	return tree
 }
+
+/////////////////////////////////////////////////////////////////////////////
+
+type wrapper struct {
+	lock *sync.RWMutex
+	fileNodeCore
+}
+
+/// other ///
+
+func (n *wrapper) toFileNode(core fileNodeCore) FileNode {
+	if node, ok := core.(FileNode); ok {
+		return node
+	}
+	return &wrapper{lock: n.lock, fileNodeCore: core}
+}
+
+/// override ///
+
+func (n *wrapper) createChildNode(name string) (it fileNodeCore) {
+
+	it = &wrapper{
+		lock: n.lock,
+		fileNodeCore: &fileNode{
+			fileName:   name,
+			rootNode:   n.root(),
+			parentNode: n,
+		},
+	}
+
+	n.putChildNode(it)
+	return
+}
+
+// Note; wrapper:
+// All public methods should use lock to ensure concurrent safe.
+// All private methods should NOT use lock, they will be used by public
+// methods.
 
 /// GETTERS ///
 
-func (n *fileNode) name() string {
-	return n.fileName
+func (n *wrapper) Name() string {
+	/*_*/ n.lock.RLock()
+	defer n.lock.RUnlock()
+
+	return n.name()
 }
 
-func (n *fileNode) using() bool {
-	return n.isUsing
+func (n *wrapper) Path() string {
+	/*_*/ n.lock.RLock()
+	defer n.lock.RUnlock()
+
+	return filepath.Join(nameOfAncestors(n)...)
 }
 
-func (n *fileNode) root() fileNodeCore {
-	return n.rootNode
-}
+func (n *wrapper) Dir() string {
+	/*_*/ n.lock.RLock()
+	defer n.lock.RUnlock()
 
-func (n *fileNode) parent() fileNodeCore {
-	return n.parentNode
-}
-
-func (n *fileNode) child(name string) fileNodeCore {
-	if n.childNodes == nil {
-		return nil
+	path := nameOfAncestors(n)
+	if n := len(path); n != 0 {
+		path = path[:n-1]
 	}
 
-	if node, find := n.childNodes[name]; find {
-		return node
+	return filepath.Join(path...)
+}
+
+func (n *wrapper) DirAndName() (dir string, name string) {
+	/*_*/ n.lock.RLock()
+	defer n.lock.RUnlock()
+
+	path := nameOfAncestors(n)
+	if n := len(path); len(path) != 0 {
+		name = path[n-1]
+		dir = filepath.Join(path[:n-1]...)
+	}
+
+	return
+}
+
+func (n *wrapper) Find(path string) FileNode {
+	/*_*/ n.lock.RLock()
+	defer n.lock.RUnlock()
+
+	core, rest := findNodeByPath(n, splite(path))
+	if core != nil && len(rest) == 0 {
+		return n.toFileNode(core)
 	}
 
 	return nil
 }
 
-func (n *fileNode) countChildNodes() int {
-	return len(n.childNodes)
-}
-
-func (n *fileNode) traverseChildNodes(f func(string, fileNodeCore) bool) {
-	for name, node := range n.childNodes {
-		if !f(name, node) {
-			return
-		}
-	}
-}
-
 /// SETTERS ///
 
-func (n *fileNode) setName(name string) {
-	n.fileName = name
-}
+func (n *wrapper) Put(path string) (node FileNode, created bool) {
+	/*_*/ n.lock.Lock()
+	defer n.lock.Unlock()
 
-func (n *fileNode) setUsing(using bool) {
-	n.isUsing = using
-}
-
-func (n *fileNode) setParent(parent fileNodeCore) {
-	n.parentNode = parent
-}
-
-func (n *fileNode) createChildNode(name string) (it fileNodeCore) {
-
-	it = &fileNode{
-		fileName:   name,
-		rootNode:   n.rootNode,
-		parentNode: n.parentNode,
+	core, find := findOrMakeNodeByPath(n, splite(path))
+	if core != nil {
+		core.setUsing(true)
+		node = n.toFileNode(core)
+		created = !find
 	}
 
-	if n.childNodes == nil {
-		n.childNodes = make(map[string]fileNodeCore)
-	}
-
-	n.childNodes[name] = it
 	return
 }
 
-func (n *fileNode) deleteChildNode(name string) {
-	// it's ok to delete nil map.
-	delete(n.childNodes, name)
+func (n *wrapper) Move(path string) MoveResult {
+	/*_*/ n.lock.Lock()
+	defer n.lock.Unlock()
+
+	return moveNode(n, splite(path))
 }
 
-func (n *fileNode) deleteChildNodes() {
-	n.childNodes = nil
+func (n *wrapper) Disuse() {
+	/*_*/ n.lock.Lock()
+	defer n.lock.Unlock()
+
+	disuseThisNode(n)
 }
-
-// func (n *fileNode) Name() string {
-// 	return ""
-// }
-
-// func (n *fileNode) Path() string {
-// 	return filepath.Join(n.ancestors()...)
-// }
-
-// func (n *fileNode) Dir() string {
-// 	path := n.ancestors()
-// 	if n := len(path); n != 0 {
-// 		path = path[:n-1]
-// 	}
-
-// 	return filepath.Join(path...)
-// }
-
-// func (n *fileNode) DirAndName() (dir string, name string) {
-// 	path := n.ancestors()
-// 	if n := len(path); len(path) != 0 {
-// 		name = path[n-1]
-// 		dir = filepath.Join(path[:n-1]...)
-// 	}
-
-// 	return
-// }
-
-// func (n *fileNode) IsUsing() bool {
-// 	return n.using
-// }
-
-// func (n *fileNode) Parent() FileNode {
-// 	return n.owner
-// }
-
-// func (n *fileNode) Get(path string) FileNode {
-// 	return nil
-// }
-
-// func (n *fileNode) GetNodesInUse() []FileNode {
-// 	return nil
-// }
-
-// func (n *fileNode) Put(path string) (FileNode, bool) {
-// 	return nil, false
-// }
-
-// func (n *fileNode) Move(old, new string) (FileNode, bool) {
-// 	return nil, false
-// }
-
-// func (n *fileNode) Remove(path string) bool {
-// 	return false
-// }
-
-// func (n *fileNode) Discard() {
-// 	n.inactive()
-// }
-
-// Note; defaultFileNode:
-// All public methods should use lock to ensure concurrent safe.
-// All private methods should NOT use lock, they will be used by public
-// methods.
