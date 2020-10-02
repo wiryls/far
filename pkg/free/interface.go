@@ -1,4 +1,4 @@
-package filenode
+package free
 
 // MoveResult is the result of the move operations.
 type MoveResult uint8
