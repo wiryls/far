@@ -1,5 +1,7 @@
 package free
 
+import "strconv"
+
 // MoveResult is the result of the move operations.
 type MoveResult uint8
 
@@ -11,6 +13,23 @@ const (
 	MoveResultNodeUnmovable
 	MoveResultTargetInvalid
 )
+
+func (r MoveResult) String() string {
+	switch r {
+	case MoveResultDone:
+		return "Done"
+	case MoveResultTargetExists:
+		return "TargetExists"
+	case MoveResultTargetIsChild:
+		return "TargetIsChild"
+	case MoveResultNodeUnmovable:
+		return "NodeUnmovable"
+	case MoveResultTargetInvalid:
+		return "TargetInvalid"
+	default:
+		return "Unkonwn(" + strconv.Itoa(int(r)) + ")"
+	}
+}
 
 // FileNode used to maintain a tree of files and directories.
 type FileNode interface {

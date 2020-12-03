@@ -15,8 +15,10 @@ func TestSplite(t *testing.T) {
 	// is not same in different OS. It may need a new test for for that.
 	for i, src := range [][2]string{
 		{``, `.`},
+		{`\\\`, ``},
 		{`C:\`, `C:\`},
 		{`C:\Hello`, `C:\Hello`},
+		{`C:\Hello\`, `C:\Hello`},
 		{`C:\Hello\World`, `C:\Hello\World`},
 		{`C:\Hello\World\..\..\`, `C:\`},
 	} {

@@ -1,7 +1,9 @@
 package free
 
 import (
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -123,7 +125,12 @@ func (n *wrapper) Move(path string) MoveResult {
 	/*_*/ n.lock.Lock()
 	defer n.lock.Unlock()
 
-	return moveNode(n, splite(path))
+	isdir := strings.HasSuffix(path, string(os.PathSeparator))
+	if !filepath.IsAbs(path) {
+		vec := append(nameOfAncestors(n), "..", path)
+		path = filepath.Join(vec...)
+	}
+	return moveNode(n, splite(path), isdir)
 }
 
 func (n *wrapper) Disuse() {

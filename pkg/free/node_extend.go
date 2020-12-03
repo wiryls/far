@@ -134,10 +134,14 @@ func removeNode(node fileNodeCore) {
 	disuseThisNode(node)
 }
 
-func moveNode(node fileNodeCore, path []string) (code MoveResult) {
+func moveNode(node fileNodeCore, path []string, putin bool) (code MoveResult) {
 
-	// maybe node is unmovable
-	if node == nil || node.root() == nil || node.parent() == nil {
+	switch {
+	case len(path) == 0 || path[0] == "." || path[0] == "..":
+		code = MoveResultTargetInvalid
+	case node == nil || node.root() == nil || node.parent() == nil:
+		code = MoveResultNodeUnmovable
+	case node.root() == node || node.parent() == node:
 		code = MoveResultNodeUnmovable
 	}
 
@@ -145,47 +149,59 @@ func moveNode(node fileNodeCore, path []string) (code MoveResult) {
 	if code == MoveResultDone {
 		lhs = nameOfAncestors(node)
 		rhs = path
+		if putin {
+			rhs = append(rhs, lhs[len(lhs)-1])
+		}
 	}
 
-	// maybe target is child
-	if code == MoveResultDone && len(lhs) < len(rhs) {
-		hit := false
-
-		for i := range lhs {
-			hit = hit || lhs[i] != rhs[i]
+	done := code == MoveResultDone && len(lhs) <= len(rhs)
+	if done {
+		i, n := 0, len(lhs)
+		for ; i < n; i++ {
+			if lhs[i] != rhs[i] {
+				break
+			}
 		}
 
-		if hit == false {
+		if i == n-1 && n == len(rhs) {
+			this := lhs[len(lhs)-1]
+			that := rhs[len(rhs)-1]
+			next := node.parent()
+			if next.child(that) == nil {
+				node.setName(that)
+				if next.putChildNode(node) {
+					next.deleteChildNode(this)
+				} else {
+					node.setName(this)
+					code = MoveResultNodeUnmovable
+				}
+			} else {
+				code = MoveResultTargetExists
+			}
+		} else if i == n && n < len(rhs) {
 			code = MoveResultTargetIsChild
+		} else {
+			done = false
 		}
 	}
 
-	// may exist or be invalid
-	var dst fileNodeCore
-	if code == MoveResultDone {
-		var hit bool
-		dst, hit = findOrMakeNodeByPath(node, path)
-		switch {
-		case dst == nil || dst.root() != node.root() || dst.parent() == nil:
-			code = MoveResultTargetInvalid
-		case hit:
+	if !done {
+		this := lhs[len(lhs)-1]
+		that := rhs[len(rhs)-1]
+		next, find := findOrMakeNodeByPath(node, rhs[:len(rhs)-1])
+		if find && next.child(that) != nil {
 			code = MoveResultTargetExists
+		} else {
+			last := node.parent()
+			node.setName(that)
+			if next.putChildNode(node) {
+				node.setParent(next)
+				last.deleteChildNode(this)
+			} else {
+				node.setName(this)
+				code = MoveResultNodeUnmovable
+			}
 		}
-	}
-
-	// maybe move
-	if code == MoveResultDone {
-		oldname := node.name()
-		newname := dst.name()
-
-		that := dst.parent()
-		that.deleteChildNode(newname)
-		that.putChildNode(node)
-		node.parent().deleteChildNode(oldname)
-		node.setParent(that)
-
-		dst.setName("")
-		dst.setParent(nil)
 	}
 
 	return
