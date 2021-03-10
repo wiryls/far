@@ -62,7 +62,7 @@ func TestFileTree(t *testing.T) {
 			{`C:\Program Files\Git`, false, true, true},
 			{`D:\Workspace\go`, false, false, true},
 			{`C:\Program Files (x86)\GOG Galaxy`, false, true, true},
-			{`.\..\X`, true, false, false},
+			{`.\..\X`, false, true, true},
 		} {
 			node, created := root.Put(o.Path)
 			assert.Equal(o.IsNodeNil, node == nil, "case #%d", i)
@@ -109,41 +109,40 @@ func TestFileTree(t *testing.T) {
 	}
 
 	{ // TODO: more test needed.
-
 	}
 }
 
 func TestNodeMove(t *testing.T) {
 	assert := assert.New(t)
 
-	// {
-	// 	root := NewFileTree()
-	// 	assert.NotNil(root)
+	{
+		root := NewFileTree()
+		assert.NotNil(root)
 
-	// 	foo, create := root.Put("X:\\opt\\foo\\")
-	// 	assert.NotNil(foo)
-	// 	assert.True(create)
+		foo, create := root.Put("X:\\opt\\foo\\")
+		assert.NotNil(foo)
+		assert.True(create)
 
-	// 	node, create := root.Put("X:\\opt\\node\\")
-	// 	assert.NotNil(node)
-	// 	assert.True(create)
+		node, create := root.Put("X:\\opt\\node\\")
+		assert.NotNil(node)
+		assert.True(create)
 
-	// 	result := node.Move("X:\\opt\\node\\what")
-	// 	assert.Equal(MoveResultTargetIsChild, result)
+		result := node.Move("X:\\opt\\node\\what")
+		assert.Equal(MoveResultTargetIsChild, result)
 
-	// 	result = node.Move("X:\\opt\\foo")
-	// 	assert.Equal(MoveResultTargetExists, result)
+		result = node.Move("X:\\opt\\foo")
+		assert.Equal(MoveResultTargetExists, result)
 
-	// 	result = node.Move("X:\\opt\\foo\\bar")
-	// 	assert.Equal(MoveResultDone, result)
+		result = node.Move("X:\\opt\\foo\\bar")
+		assert.Equal(MoveResultDone, result)
 
-	// 	assert.Equal("X:\\opt\\foo\\bar", node.Path())
-	// 	assert.Equal("bar", node.Name())
+		assert.Equal("X:\\opt\\foo\\bar", node.Path())
+		assert.Equal("bar", node.Name())
 
-	// 	result = node.Move("Y:\\")
-	// 	assert.Equal(MoveResultDone, result)
-	// 	assert.Equal("Y:\\bar", node.Path())
-	// }
+		result = node.Move("Y:\\")
+		assert.Equal(MoveResultDone, result)
+		assert.Equal("Y:\\bar", node.Path())
+	}
 
 	{
 		root := NewFileTree()
@@ -163,6 +162,30 @@ func TestNodeMove(t *testing.T) {
 		result = node.Move("node\\next")
 		assert.Equal(MoveResultTargetIsChild, result)
 		assert.Equal("X:\\node", node.Path())
+	}
+
+	{
+		root := NewFileTree()
+
+		file, put := root.Put("there\\is\\no\\file")
+		assert.NotNil(file)
+		assert.True(put)
+
+		res := file.Move("game")
+		assert.Equal(MoveResultDone, res)
+
+		is, put := file.Put("..\\..\\..\\is")
+		assert.NotNil(is)
+		assert.False(put)
+
+		no, put := is.Put("no")
+		assert.NotNil(no)
+		assert.False(put)
+
+		res = no.Move("a")
+		assert.Equal(MoveResultDone, res)
+
+		assert.Equal("there\\is\\a\\game", file.Path())
 	}
 }
 

@@ -12,42 +12,56 @@ type fileNode struct {
 
 /// GETTERS ///
 
-func (n *fileNode) name() string {
-	return n.fileName
-}
-
-func (n *fileNode) using() bool {
-	return n.isUsing
-}
-
-func (n *fileNode) root() fileNodeCore {
-	return n.rootNode
-}
-
-func (n *fileNode) parent() fileNodeCore {
-	return n.parentNode
-}
-
-func (n *fileNode) child(name string) fileNodeCore {
-	if n.childNodes == nil {
-		return nil
+func (n *fileNode) name() (r string) {
+	if n != nil {
+		r = n.fileName
 	}
-
-	if node, find := n.childNodes[name]; find {
-		return node
-	}
-
-	return nil
+	return
 }
 
-func (n *fileNode) countChildNodes() int {
-	return len(n.childNodes)
+func (n *fileNode) using() (r bool) {
+	if n != nil {
+		r = n.isUsing
+	}
+	return
+}
+
+func (n *fileNode) root() (r fileNodeCore) {
+	if n != nil {
+		r = n.rootNode
+	}
+	return
+}
+
+func (n *fileNode) parent() (r fileNodeCore) {
+	if n != nil {
+		r = n.parentNode
+	}
+	return
+}
+
+func (n *fileNode) child(name string) (r fileNodeCore) {
+	if n != nil && n.childNodes != nil {
+		if node, find := n.childNodes[name]; find {
+			r = node
+		}
+	}
+	return
+}
+
+func (n *fileNode) countChildNodes() (r int) {
+	if n != nil {
+		r = len(n.childNodes)
+	}
+	return
 }
 
 func (n *fileNode) traverseChildNodes(f func(string, fileNodeCore) bool) {
-	for name, node := range n.childNodes {
-		if !f(name, node) {
-			return
+	if n != nil && f != nil {
+		for name, node := range n.childNodes {
+			if !f(name, node) {
+				return
+			}
 		}
 	}
 }
@@ -55,20 +69,25 @@ func (n *fileNode) traverseChildNodes(f func(string, fileNodeCore) bool) {
 /// SETTERS ///
 
 func (n *fileNode) setName(name string) {
-	n.fileName = name
+	if n != nil {
+		n.fileName = name
+	}
 }
 
 func (n *fileNode) setUsing(using bool) {
-	n.isUsing = using
+	if n != nil {
+		n.isUsing = using
+	}
 }
 
 func (n *fileNode) setParent(parent fileNodeCore) {
-	n.parentNode = parent
+	if n != nil {
+		n.parentNode = parent
+	}
 }
 
 func (n *fileNode) putChildNode(m fileNodeCore) bool {
-	if m != nil && n != nil && m.root() == n.root() {
-
+	if n != nil && m != nil && n.root() == m.root() {
 		if n.childNodes == nil {
 			n.childNodes = map[string]fileNodeCore{}
 		}
@@ -83,26 +102,32 @@ func (n *fileNode) putChildNode(m fileNodeCore) bool {
 }
 
 func (n *fileNode) createChildNode(name string) (it fileNodeCore) {
+	if n != nil {
+		it = &fileNode{
+			fileName:   name,
+			rootNode:   n.rootNode,
+			parentNode: n,
+		}
 
-	it = &fileNode{
-		fileName:   name,
-		rootNode:   n.rootNode,
-		parentNode: n,
+		if n.childNodes == nil {
+			n.childNodes = make(map[string]fileNodeCore)
+		}
+
+		n.childNodes[name] = it
 	}
-
-	if n.childNodes == nil {
-		n.childNodes = make(map[string]fileNodeCore)
-	}
-
-	n.childNodes[name] = it
 	return
 }
 
 func (n *fileNode) deleteChildNode(name string) {
-	// it's ok to delete nil map.
-	delete(n.childNodes, name)
+	if n != nil {
+		// it's ok to delete nil map.
+		delete(n.childNodes, name)
+	}
+
 }
 
 func (n *fileNode) deleteChildNodes() {
-	n.childNodes = nil
+	if n != nil {
+		n.childNodes = nil
+	}
 }

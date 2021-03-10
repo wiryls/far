@@ -9,8 +9,13 @@ import (
 
 // NewFileTree create a root FileNode.
 func NewFileTree() FileNode {
-	tree := &wrapper{lock: &sync.RWMutex{}}
-	tree.fileNodeCore = &fileNode{isUsing: true, rootNode: tree}
+	node := &fileNode{
+		isUsing: true}
+	node.rootNode = node
+	node.parentNode = node
+	tree := &wrapper{
+		lock:         &sync.RWMutex{},
+		fileNodeCore: node}
 	return tree
 }
 
@@ -30,23 +35,6 @@ func (n *wrapper) toFileNode(core fileNodeCore) FileNode {
 	return &wrapper{lock: n.lock, fileNodeCore: core}
 }
 
-/// override ///
-
-func (n *wrapper) createChildNode(name string) (it fileNodeCore) {
-
-	it = &wrapper{
-		lock: n.lock,
-		fileNodeCore: &fileNode{
-			fileName:   name,
-			rootNode:   n.root(),
-			parentNode: n,
-		},
-	}
-
-	n.putChildNode(it)
-	return
-}
-
 // Note; wrapper:
 // All public methods should use lock to ensure concurrent safe.
 // All private methods should NOT use lock, they will be used by public
@@ -58,21 +46,21 @@ func (n *wrapper) Name() string {
 	/*_*/ n.lock.RLock()
 	defer n.lock.RUnlock()
 
-	return n.name()
+	return n.fileNodeCore.name()
 }
 
 func (n *wrapper) Path() string {
 	/*_*/ n.lock.RLock()
 	defer n.lock.RUnlock()
 
-	return filepath.Join(nameOfAncestors(n)...)
+	return filepath.Join(nameOfAncestors(n.fileNodeCore)...)
 }
 
 func (n *wrapper) Dir() string {
 	/*_*/ n.lock.RLock()
 	defer n.lock.RUnlock()
 
-	path := nameOfAncestors(n)
+	path := nameOfAncestors(n.fileNodeCore)
 	if n := len(path); n != 0 {
 		path = path[:n-1]
 	}
@@ -84,7 +72,7 @@ func (n *wrapper) DirAndName() (dir string, name string) {
 	/*_*/ n.lock.RLock()
 	defer n.lock.RUnlock()
 
-	path := nameOfAncestors(n)
+	path := nameOfAncestors(n.fileNodeCore)
 	if n := len(path); len(path) != 0 {
 		name = path[n-1]
 		dir = filepath.Join(path[:n-1]...)
@@ -97,9 +85,14 @@ func (n *wrapper) Find(path string) FileNode {
 	/*_*/ n.lock.RLock()
 	defer n.lock.RUnlock()
 
-	core, rest := findNodeByPath(n, splite(path))
-	if core != nil && len(rest) == 0 {
-		return n.toFileNode(core)
+	node := n.fileNodeCore
+	if filepath.IsAbs(path) {
+		node = node.root()
+	}
+
+	node, rest := findNodeByPath(node, splite(path))
+	if node != nil && len(rest) == 0 {
+		return n.toFileNode(node)
 	}
 
 	return nil
@@ -107,35 +100,85 @@ func (n *wrapper) Find(path string) FileNode {
 
 /// SETTERS ///
 
-func (n *wrapper) Put(path string) (node FileNode, created bool) {
+func (n *wrapper) Put(path string) (out FileNode, put bool) {
 	/*_*/ n.lock.Lock()
 	defer n.lock.Unlock()
 
-	core, find := findOrMakeNodeByPath(n, splite(path))
-	if core != nil {
-		core.setUsing(true)
-		node = n.toFileNode(core)
-		created = !find
+	node := n.fileNodeCore
+	if filepath.IsAbs(path) {
+		node = node.root()
+	}
+
+	node, find := findOrMakeNodeByPath(node, splite(path))
+	if node != nil {
+		node.setUsing(true)
+		out = n.toFileNode(node)
+		put = !find
 	}
 
 	return
 }
 
-func (n *wrapper) Move(path string) MoveResult {
+func (n *wrapper) Move(path string) (code MoveResult) {
 	/*_*/ n.lock.Lock()
 	defer n.lock.Unlock()
 
-	isdir := strings.HasSuffix(path, string(os.PathSeparator))
-	if !filepath.IsAbs(path) {
-		vec := append(nameOfAncestors(n), "..", path)
-		path = filepath.Join(vec...)
+	switch {
+	case n.fileNodeCore.root() == n.fileNodeCore:
+		code = MoveResultNodeUnmovable
+	case path == "":
+		code = MoveResultTargetInvalid
+	case path == ".":
+		code = MoveResultDone
+	case !strings.ContainsRune(path, filepath.Separator):
+		if renameNode(n.fileNodeCore, path) {
+			code = MoveResultDone
+		} else {
+			code = MoveResultTargetExists
+		}
+	default:
+		this := nameOfAncestors(n.fileNodeCore)
+		{
+			that := []string{}
+			if !filepath.IsAbs(path) {
+				that = append(this, "..", path)
+			} else {
+				that = append(that, path)
+			}
+			if strings.HasSuffix(path, string(os.PathSeparator)) {
+				that = append(that, n.fileNodeCore.name())
+			}
+			path = filepath.Join(that...)
+		}
+		head := filepath.Join(this...)
+
+		switch {
+		case path == head:
+			code = MoveResultDone
+		case len(path) > len(head) && strings.HasPrefix(path, head):
+			code = MoveResultTargetIsChild
+		default:
+			node, find := findOrMakeNodeByPath(n.fileNodeCore.root(), splite(path))
+			switch {
+			case find:
+				code = MoveResultTargetExists
+			case node == nil:
+				code = MoveResultTargetInvalid
+			case !swapNodes(n.fileNodeCore, node):
+				code = MoveResultNodeUnmovable
+			default:
+				removeNode(node)
+				code = MoveResultDone
+			}
+		}
 	}
-	return moveNode(n, splite(path), isdir)
+
+	return
 }
 
 func (n *wrapper) Disuse() {
 	/*_*/ n.lock.Lock()
 	defer n.lock.Unlock()
 
-	disuseThisNode(n)
+	disuseThisNode(n.fileNodeCore)
 }

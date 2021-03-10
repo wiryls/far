@@ -1,9 +1,5 @@
 package free
 
-import (
-	"path/filepath"
-)
-
 /// READONLY ///
 
 // get names of all ancestor nodes (includes the node itself).
@@ -13,7 +9,7 @@ func nameOfAncestors(node fileNodeGetter) []string {
 	root := fileNodeGetter(node.root())
 	for ; node != root; node = node.parent() {
 		if node == nil {
-			path = nil
+			path = path[:]
 			break
 		}
 		path = append(path, node.name())
@@ -38,7 +34,7 @@ func visitAllChildNodes(node fileNodeCore, f func(fileNodeGetter) bool) {
 	})
 }
 
-// find a node by path. (note: "." and ".." is not supported.)
+// find a node based on current path.
 //
 //  - the node of divergence if not found.
 //  - itself if path is nil or empty.
@@ -50,26 +46,32 @@ func findNodeByPath(node fileNodeCore, path []string) (fileNodeCore, []string) {
 	case len(path) == 0:
 		path = nil
 
-	case len(path) == 1 && len(path[0]) == 1 && path[0][0] == '.':
-		path = nil
-
 	case node == nil || node.root() == nil:
 		node = nil
 
 	default:
-		if filepath.IsAbs(path[0]) {
-			node = node.root()
-		}
+		root := node.root()
+		next := node
+		for len(path) != 0 && next != nil {
+			switch {
+			case path[0] == "." || len(path[0]) == 0:
+				// do nothing
+			case path[0] == "..":
+				next = node.parent()
+			default:
+				next = node.child(path[0])
+			}
 
-		for len(path) != 0 {
-			if next := node.child(path[0]); next != nil {
+			switch {
+			case next == nil:
+				// do nothing
+			case next != root:
 				node = next
+				fallthrough
+			default:
 				path = path[1:]
-			} else {
-				break
 			}
 		}
-
 	}
 
 	return node, path
@@ -97,6 +99,21 @@ func findOrMakeNodeByPath(node fileNodeCore, path []string) (fileNodeCore, bool)
 		node.setUsing(true)
 		return node, false
 	}
+}
+
+func renameNode(node fileNodeCore, name string) bool {
+	n := node.name()
+	p := node.parent()
+
+	node.setName(name)
+	ok := p.putChildNode(node)
+	if !ok {
+		node.setName(n)
+	} else {
+		p.deleteChildNode(n)
+	}
+
+	return ok
 }
 
 func disuseThisNode(node fileNodeCore) {
@@ -134,75 +151,29 @@ func removeNode(node fileNodeCore) {
 	disuseThisNode(node)
 }
 
-func moveNode(node fileNodeCore, path []string, putin bool) (code MoveResult) {
-
-	switch {
-	case len(path) == 0 || path[0] == "." || path[0] == "..":
-		code = MoveResultTargetInvalid
-	case node == nil || node.root() == nil || node.parent() == nil:
-		code = MoveResultNodeUnmovable
-	case node.root() == node || node.parent() == node:
-		code = MoveResultNodeUnmovable
+func swapNodes(l, r fileNodeCore) bool {
+	if l == nil || r == nil || l == r ||
+		l.root() == nil || l.root() != r.root() ||
+		l.root() == l || r.root() == r {
+		return false
 	}
 
-	var lhs, rhs []string
-	if code == MoveResultDone {
-		lhs = nameOfAncestors(node)
-		rhs = path
-		if putin {
-			rhs = append(rhs, lhs[len(lhs)-1])
-		}
+	lp, rp := l.parent(), r.parent()
+	lp.deleteChildNode(l.name())
+	rp.deleteChildNode(r.name())
+
+	{
+		using := l.using()
+		l.setUsing(r.using())
+		r.setUsing(using)
+	}
+	{
+		name := l.name()
+		l.setName(r.name())
+		r.setName(name)
 	}
 
-	done := code == MoveResultDone && len(lhs) <= len(rhs)
-	if done {
-		i, n := 0, len(lhs)
-		for ; i < n; i++ {
-			if lhs[i] != rhs[i] {
-				break
-			}
-		}
-
-		if i == n-1 && n == len(rhs) {
-			this := lhs[len(lhs)-1]
-			that := rhs[len(rhs)-1]
-			next := node.parent()
-			if next.child(that) == nil {
-				node.setName(that)
-				if next.putChildNode(node) {
-					next.deleteChildNode(this)
-				} else {
-					node.setName(this)
-					code = MoveResultNodeUnmovable
-				}
-			} else {
-				code = MoveResultTargetExists
-			}
-		} else if i == n && n < len(rhs) {
-			code = MoveResultTargetIsChild
-		} else {
-			done = false
-		}
-	}
-
-	if !done {
-		this := lhs[len(lhs)-1]
-		that := rhs[len(rhs)-1]
-		next, find := findOrMakeNodeByPath(node, rhs[:len(rhs)-1])
-		if find && next.child(that) != nil {
-			code = MoveResultTargetExists
-		} else {
-			last := node.parent()
-			node.setName(that)
-			if next.putChildNode(node) {
-				node.setParent(next)
-				last.deleteChildNode(this)
-			} else {
-				node.setName(this)
-				code = MoveResultNodeUnmovable
-			}
-		}
-	}
-
-	return
+	l.setParent(rp)
+	r.setParent(lp)
+	return lp.putChildNode(r) && rp.putChildNode(l)
 }
