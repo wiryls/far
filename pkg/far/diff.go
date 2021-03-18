@@ -29,7 +29,7 @@ func (ds Diffs) String() string {
 	return ds.New()
 }
 
-// New string of this diff result.
+// New string.
 func (ds Diffs) New() string {
 	o := bytes.Buffer{}
 	for d := range ds {

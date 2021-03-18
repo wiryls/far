@@ -32,7 +32,6 @@ func makeViewFromViewModel(vm *farViewModel) (vr *farView) {
 	return &farView{
 		closer: &win,
 		runner: &ui.MainWindow{
-
 			AssignTo: &win,
 			Title:    "FAR",
 			MinSize:  ui.Size{Width: 640, Height: 480},
@@ -64,6 +63,7 @@ func makeViewFromViewModel(vm *farViewModel) (vr *farView) {
 			},
 			Children: []ui.Widget{
 				ui.Composite{
+					Border: false,
 					Layout: ui.Grid{
 						Rows:        2,
 						MarginsZero: true,
@@ -72,21 +72,22 @@ func makeViewFromViewModel(vm *farViewModel) (vr *farView) {
 						ui.LineEdit{
 							AssignTo:      &lef,
 							CueBanner:     "Find",
-							ToolTipText:   "?",
-							OnTextChanged: func() { vm.SetPattern(lef) },
+							Text:          ui.Bind("Pattern"),
+							ToolTipText:   ui.Bind("PatternTips"),
+							OnTextChanged: func() {},
 						},
 						ui.LineEdit{
 							ColumnSpan:    2,
 							AssignTo:      &ler,
 							CueBanner:     "Replace",
 							ToolTipText:   "?",
-							OnTextChanged: func() { vm.SetTemplate(ler) },
+							OnTextChanged: func() {},
 						},
 						ui.PushButton{
 							Alignment: ui.AlignHFarVFar,
 							Text:      "Rename",
 							AssignTo:  &pbr,
-							OnClicked: vm.Rename,
+							OnClicked: func() {},
 						},
 					},
 				},
@@ -97,13 +98,12 @@ func makeViewFromViewModel(vm *farViewModel) (vr *farView) {
 						ui.Action{
 							Text: "&Delete",
 							OnTriggered: func() {
-								vm.Delete(tvm.SelectedIndexes())
 							},
 						},
 						ui.Separator{},
 						ui.Action{
 							Text:        "&Clear",
-							OnTriggered: vm.ResetRows,
+							OnTriggered: func() {},
 						},
 					},
 					Columns: []ui.TableViewColumn{
@@ -113,7 +113,7 @@ func makeViewFromViewModel(vm *farViewModel) (vr *farView) {
 					},
 				},
 			},
-			OnDropFiles: func(files []string) { vm.Import(files, true) },
+			OnDropFiles: func(files []string) {},
 		},
 	}
 }
