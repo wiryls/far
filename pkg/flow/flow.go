@@ -2,32 +2,37 @@ package flow
 
 import (
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"time"
 )
 
 // New create a flow to process some tasks.
 func New() *Flow {
-	stream := make(chan []func(), 1)
-	stream <- []func(){}
 	return &Flow{
-		stream: stream,
-		count:  0,
-		limit:  int32(runtime.NumCPU()),
+		count: 0,
+		limit: int32(runtime.NumCPU()),
+		mutex: sync.RWMutex{},
+		tasks: []func(){},
 	}
 }
 
 // Flow process something.
 type Flow struct {
-	stream chan []func()
-	count  int32
-	limit  int32
+	count int32
+	limit int32
+	mutex sync.RWMutex
+	tasks []func()
 }
 
 // Append a task to the executor.
 func (f *Flow) Append(task func()) {
-	if f != nil && f.stream != nil {
-		f.stream <- append(<-f.stream, task)
+	if f != nil && f.tasks != nil && task != nil {
+		{
+			f.mutex.Lock()
+			f.tasks = append(f.tasks, task)
+			f.mutex.Unlock()
+		}
 		if atomic.AddInt32(&f.count, 1) > f.limit {
 			atomic.AddInt32(&f.count, -1)
 		} else {
@@ -46,22 +51,19 @@ func (f *Flow) Wait() {
 func (f *Flow) low() {
 	defer atomic.AddInt32(&f.count, -1)
 	var task func()
-	var list []func()
 loop:
 	for {
-		list = <-f.stream
-		switch len(list) {
-		case 0:
-			f.stream <- nil
+		f.mutex.RLock()
+		gotcha := len(f.tasks) > 0
+		if gotcha {
+			task, f.tasks = f.tasks[0], f.tasks[1:]
+		}
+		f.mutex.RUnlock()
+
+		if gotcha {
+			task()
+		} else {
 			break loop
-
-		default:
-			f.stream <- list[1:]
-
-			task = list[0]
-			if task != nil {
-				task()
-			}
 		}
 	}
 }
