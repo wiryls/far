@@ -3,7 +3,6 @@ package flow
 import (
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -28,14 +27,12 @@ type Flow struct {
 // Append a task to the executor.
 func (f *Flow) Append(task func()) {
 	if f != nil && f.tasks != nil && task != nil {
-		{
-			f.mutex.Lock()
-			f.tasks = append(f.tasks, task)
-			f.mutex.Unlock()
-		}
-		if atomic.AddInt32(&f.count, 1) > f.limit {
-			atomic.AddInt32(&f.count, -1)
-		} else {
+		defer f.mutex.Unlock()
+		/*_*/ f.mutex.Lock()
+
+		f.tasks = append(f.tasks, task)
+		if f.count < f.limit {
+			f.count++
 			go f.low()
 		}
 	}
@@ -43,27 +40,46 @@ func (f *Flow) Append(task func()) {
 
 // Wait until all task done.
 func (f *Flow) Wait() {
-	for atomic.LoadInt32(&f.count) != 0 {
-		time.Sleep(time.Millisecond)
+	for {
+		f.mutex.RLock()
+		running := f.count > 0
+		f.mutex.RUnlock()
+		if running {
+			time.Sleep(time.Millisecond)
+		} else {
+			break
+		}
 	}
 }
 
 func (f *Flow) low() {
-	defer atomic.AddInt32(&f.count, -1)
-	var task func()
-loop:
 	for {
+		// fast-check if any task exists
 		f.mutex.RLock()
-		gotcha := len(f.tasks) > 0
-		if gotcha {
-			task, f.tasks = f.tasks[0], f.tasks[1:]
-		}
+		todo := f.etch()
 		f.mutex.RUnlock()
 
-		if gotcha {
-			task()
+		if todo == nil {
+			// slow-check if no task exists
+			f.mutex.Lock()
+			todo = f.etch()
+			if todo == nil {
+				f.count--
+			}
+			f.mutex.Unlock()
+		}
+
+		if todo != nil {
+			todo()
 		} else {
-			break loop
+			break
 		}
 	}
+}
+
+func (f *Flow) etch() (fun func()) {
+	if len(f.tasks) > 0 {
+		fun, f.tasks = f.tasks[0], f.tasks[1:]
+	}
+	return
 }
