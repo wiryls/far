@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"log"
+	"sort"
 
 	"github.com/lxn/walk"
 
@@ -103,13 +104,14 @@ func (a *ViewModel) RowCount() (count int) {
 
 func (a *ViewModel) Value(row, col int) (v interface{}) {
 	a.fall.ReadonlyAccess(func(is []*fall.Item) {
+		item := is[row].Load()
 		switch col {
 		case 0:
-			v = is[row].Stat
+			v = item.Stat
 		case 1:
-			v = is[row].Base
+			v = item.Base
 		case 2:
-			v = is[row].Path
+			v = item.Path
 		}
 	})
 	return
@@ -120,7 +122,30 @@ func (a *ViewModel) StyleCell(style *walk.CellStyle) {
 }
 
 func (a *ViewModel) Sort(col int, order walk.SortOrder) error {
-	return nil
+	a.fall.WritableAccess(func(list []*fall.Item) {
+		comp := (func(i int, j int) bool)(nil)
+		switch col {
+		default:
+			fallthrough
+		case 1:
+			comp = func(i int, j int) bool {
+				return (order == walk.SortAscending) !=
+					(list[i].Load().Base < list[j].Load().Base)
+			}
+		case 0:
+			comp = func(i int, j int) bool {
+				return (order == walk.SortAscending) !=
+					(list[i].Load().Stat < list[j].Load().Stat)
+			}
+		case 2:
+			comp = func(i int, j int) bool {
+				return (order == walk.SortAscending) !=
+					(list[i].Load().Path < list[j].Load().Path)
+			}
+		}
+		sort.SliceStable(list, comp)
+	})
+	return a.SorterBase.Sort(col, order)
 }
 
 func (a *ViewModel) ResetRows() {

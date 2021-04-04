@@ -72,7 +72,10 @@ loop:
 		case k < 0:
 
 		case k < len(f.output):
-			f.output[k].Stat = 0
+			item := f.output[k].Load()
+			item.Stat = StatIgnored
+			f.output[k].Store(item)
+
 		default:
 			some = some[:i]
 			break loop
@@ -84,7 +87,7 @@ loop:
 
 	// remove from source
 	f.source = RemoveItemByCondition(f.source, func(i *Item) bool {
-		return i.Stat == 0
+		return i.Load().Stat == 0
 	})
 
 	f.keeper.Unlock()
@@ -168,15 +171,20 @@ func (f *Fall) diffing(list []*Item) {
 	f.feed.Push((&TaskFromItemsToItems{
 		Source: list,
 		Splite: Limited(32),
-		Action: func(item *Item) *Item {
-			if item.Stat == 0 {
-				return nil
-			}
+		Action: func(src *Item) (dst *Item) {
+			item := src.Load()
 			item.Diff = f.farr.See(item.Base)
-			if !f.farr.Empty() && item.Diff.IsSame() {
-				return nil
+			switch {
+			case item.Stat == StatIgnored:
+			case f.farr.Empty():
+				item.Stat = StatDiffer
+				dst = src
+			case item.Diff.IsSame():
+				item.Stat = StatImport
+			default:
+				dst = src
 			}
-			return item
+			return
 		},
 		Output: func(list []*Item) {
 			f.keeper.Lock()

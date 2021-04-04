@@ -99,13 +99,20 @@ func TestRemoveItems(t *testing.T) {
 	assert := assert.New(t)
 
 	_0, _1, _2, _3, _4, _5, _6, _7 :=
-		&Item{Stat: 0}, &Item{Stat: 1}, &Item{Stat: 2}, &Item{Stat: 3},
-		&Item{Stat: 4}, &Item{Stat: 5}, &Item{Stat: 6}, &Item{Stat: 7}
+		&Item{}, &Item{}, &Item{}, &Item{}, &Item{}, &Item{}, &Item{}, &Item{}
+	_0.Store(Data{Stat: 0})
+	_1.Store(Data{Stat: 1})
+	_2.Store(Data{Stat: 2})
+	_3.Store(Data{Stat: 3})
+	_4.Store(Data{Stat: 4})
+	_5.Store(Data{Stat: 5})
+	_6.Store(Data{Stat: 6})
+	_7.Store(Data{Stat: 7})
 
 	RemoveItemByConditionAdapter := func(items []*Item, indexes []int) []*Item {
 		in := func(item *Item) bool {
 			for _, k := range indexes {
-				if k == int(item.Stat) {
+				if k == int(item.Load().Stat) {
 					return true
 				}
 			}
