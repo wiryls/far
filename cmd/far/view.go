@@ -101,6 +101,8 @@ func BindCallbackToView(v *View, c Callback) interface{ Run() error } {
 				ColumnsOrderable:    true,
 				LastColumnStretched: true,
 				MultiSelection:      true,
+				Persistent:          true,
+
 				ContextMenuItems: []ui.MenuItem{
 					ui.Action{
 						Text:        "&Delete",

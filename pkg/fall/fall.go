@@ -1,6 +1,7 @@
 package fall
 
 import (
+	"sort"
 	"sync"
 
 	"github.com/wiryls/far/pkg/far"
@@ -32,8 +33,8 @@ type Fall struct {
 
 	// items
 	keeper sync.RWMutex
-	source []Item
-	output []Item
+	source []*Item
+	output []*Item
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -41,7 +42,7 @@ type Fall struct {
 
 // ReadonlyAccess access the result list.
 // Please do not do anything may block.
-func (f *Fall) ReadonlyAccess(access func([]Item)) {
+func (f *Fall) ReadonlyAccess(access func([]*Item)) {
 	defer f.keeper.RUnlock()
 	/*_*/ f.keeper.RLock()
 	access(f.output)
@@ -49,10 +50,49 @@ func (f *Fall) ReadonlyAccess(access func([]Item)) {
 
 // WritableAccess access the result list.
 // Please do not do anything may block.
-func (f *Fall) WritableAccess(access func([]Item)) {
+func (f *Fall) WritableAccess(access func([]*Item)) {
 	defer f.keeper.Unlock()
 	/*_*/ f.keeper.Lock()
 	access(f.output)
+}
+
+func (f *Fall) Delete(some []int) {
+	f.keeper.Lock()
+
+	// standardise some
+	if !sort.IntsAreSorted(some) {
+		sort.Ints(some)
+	}
+	some = IntsUnique(some)
+
+	// mark item stat as deleted
+loop:
+	for i, k := range some {
+		switch {
+		case k < 0:
+
+		case k < len(f.output):
+			f.output[k].Stat = 0
+		default:
+			some = some[:i]
+			break loop
+		}
+	}
+
+	// remove from output
+	f.output = RemoveItemByIndexes(f.output, some)
+
+	// remove from source
+	f.source = RemoveItemByCondition(f.source, func(i *Item) bool {
+		return i.Stat == 0
+	})
+
+	f.keeper.Unlock()
+
+	// notify
+	for _, i := range IntsPairs(some) {
+		f.call.OnItemsDelete(i[0], i[1])
+	}
 }
 
 // Reset all
@@ -76,12 +116,12 @@ func (f *Fall) Reset() {
 func (f *Fall) Input(source []string) {
 	f.flow.Push((&TaskFromStringsToItems{
 		Source: source,
-		Splite: fixedSplitter(32),
-		Action: func(s string) (Item, bool) {
-			item, err := FromPathToItem(s)
-			return item, err == nil
+		Splite: Limited(32),
+		Action: func(s string) *Item {
+			item, _ := FromPathToItem(s)
+			return item
 		},
-		Output: func(list []Item) {
+		Output: func(list []*Item) {
 			defer f.keeper.Unlock()
 			/*_*/ f.keeper.Lock()
 			f.source = append(f.source, list...)
@@ -94,8 +134,8 @@ func (f *Fall) Input(source []string) {
 // Far performs FaR on the list.
 func (f *Fall) Far(pattern, template string) (err error) {
 
-	f.keeper.Lock()
-	var list []Item
+	f.keeper.RLock()
+	var list []*Item
 	if template != f.farr.Template() {
 		list = f.output
 		err = f.farr.SetTemplate(template)
@@ -104,7 +144,7 @@ func (f *Fall) Far(pattern, template string) (err error) {
 		list = f.source
 		err = f.farr.SetPattern(pattern)
 	}
-	f.keeper.Unlock()
+	f.keeper.RUnlock()
 
 	if err == nil {
 		// stop the last FaR task.
@@ -124,15 +164,21 @@ func (f *Fall) Far(pattern, template string) (err error) {
 	return
 }
 
-func (f *Fall) diffing(list []Item) {
+func (f *Fall) diffing(list []*Item) {
 	f.feed.Push((&TaskFromItemsToItems{
 		Source: list,
-		Splite: fixedSplitter(32),
-		Action: func(item Item) (Item, bool) {
+		Splite: Limited(32),
+		Action: func(item *Item) *Item {
+			if item.Stat == 0 {
+				return nil
+			}
 			item.Diff = f.farr.See(item.Base)
-			return item, f.farr.Empty() || !item.Diff.IsSame()
+			if !f.farr.Empty() && item.Diff.IsSame() {
+				return nil
+			}
+			return item
 		},
-		Output: func(list []Item) {
+		Output: func(list []*Item) {
 			f.keeper.Lock()
 			from, delta := len(f.output), len(list)
 			f.output = append(f.output, list...)
@@ -143,13 +189,4 @@ func (f *Fall) diffing(list []Item) {
 		Runner: f.feed.Push,
 		Runnin: 1,
 	}).Execute)
-}
-
-func fixedSplitter(limit int) func(int) int {
-	return func(size int) int {
-		if size > limit {
-			return limit
-		}
-		return size
-	}
 }

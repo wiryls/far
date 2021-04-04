@@ -8,8 +8,8 @@ import (
 type TaskFromStringsToItems struct {
 	Source []string
 	Splite func(int) int
-	Action func(string) (Item, bool)
-	Output func([]Item)
+	Action func(string) *Item
+	Output func([]*Item)
 	Runner func(func())
 }
 
@@ -32,9 +32,9 @@ func (t *TaskFromStringsToItems) Execute() {
 		task.Runner(task.Execute)
 	}
 
-	result := make([]Item, 0, len(t.Source))
+	result := make([]*Item, 0, len(t.Source))
 	for _, input := range todo {
-		if output, ok := t.Action(input); ok {
+		if output := t.Action(input); output != nil {
 			result = append(result, output)
 		}
 	}
@@ -44,10 +44,10 @@ func (t *TaskFromStringsToItems) Execute() {
 
 // I reaaaaaaaaly need GENERIC.
 type TaskFromItemsToItems struct {
-	Source []Item
+	Source []*Item
 	Splite func(int) int
-	Action func(Item) (Item, bool)
-	Output func([]Item)
+	Action func(*Item) *Item
+	Output func([]*Item)
 	Runner func(func(*uint32))
 	Runnin uint32
 }
@@ -73,9 +73,9 @@ func (t *TaskFromItemsToItems) Execute(sync *uint32) {
 		task.Runner(task.Execute)
 	}
 
-	result := make([]Item, 0, len(t.Source))
+	result := make([]*Item, 0, len(t.Source))
 	for _, input := range todo {
-		if output, ok := t.Action(input); ok {
+		if output := t.Action(input); output != nil {
 			result = append(result, output)
 		}
 	}

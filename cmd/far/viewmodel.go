@@ -81,7 +81,7 @@ func (a *ViewModel) OnImport(list []string) {
 }
 
 func (a *ViewModel) OnDelete() {
-
+	a.fall.Delete(a.view.preview.SelectedIndexes())
 }
 
 func (a *ViewModel) OnClear() {
@@ -97,12 +97,12 @@ func (a *ViewModel) OnExit() {
 //// Callbacks Table View
 
 func (a *ViewModel) RowCount() (count int) {
-	a.fall.ReadonlyAccess(func(is []fall.Item) { count = len(is) })
+	a.fall.ReadonlyAccess(func(is []*fall.Item) { count = len(is) })
 	return count
 }
 
 func (a *ViewModel) Value(row, col int) (v interface{}) {
-	a.fall.ReadonlyAccess(func(is []fall.Item) {
+	a.fall.ReadonlyAccess(func(is []*fall.Item) {
 		switch col {
 		case 0:
 			v = is[row].Stat

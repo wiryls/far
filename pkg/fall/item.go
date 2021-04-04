@@ -16,7 +16,7 @@ type Item struct {
 }
 
 // FromPathToItem create an item from
-func FromPathToItem(path string) (item Item, err error) {
+func FromPathToItem(path string) (item *Item, err error) {
 	if err == nil {
 		path, err = filepath.Abs(path)
 	}
@@ -25,7 +25,8 @@ func FromPathToItem(path string) (item Item, err error) {
 	}
 	if err == nil {
 		base := filepath.Base(path)
-		item = Item{
+		item = &Item{
+			Stat: 1,
 			Base: base,
 			Path: path,
 		}
