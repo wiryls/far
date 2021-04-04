@@ -8,9 +8,7 @@ type app struct {
 
 // New app, init this application.
 func (a *app) New() error {
-	// model := &farModel{}
-	viewmodel := makeViewModel()
-	a.main = makeViewFromViewModel(viewmodel)
+	a.main = NewViewModel()
 	return nil
 }
 

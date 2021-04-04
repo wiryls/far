@@ -8,6 +8,38 @@ import (
 	"github.com/wiryls/far/pkg/far"
 )
 
+func TestEmpty(t *testing.T) {
+	assert := assert.New(t)
+	{
+		far := &far.Faregex{}
+		assert.True(far.Empty())
+		assert.Equal(far.Pattern(), "")
+		assert.Equal(far.Template(), "")
+
+		src := "hello"
+		dst := far.See(src)
+		assert.Len(dst, 1)
+		assert.True(dst.IsSame())
+		assert.Equal(src, dst.Old())
+		assert.Equal(src, dst.New())
+		assert.Equal(src, dst.String())
+	}
+	{
+		far := &far.Faregex{}
+		far.SetPattern("a")
+		far.SetTemplate("b")
+		assert.False(far.Empty())
+
+		src := "hello"
+		dst := far.See(src)
+		assert.Len(dst, 1)
+		assert.True(dst.IsSame())
+		assert.Equal(src, dst.Old())
+		assert.Equal(src, dst.New())
+		assert.Equal(src, dst.String())
+	}
+}
+
 func TestRegexpFindAndReplace(t *testing.T) {
 	assert := assert.New(t)
 
@@ -124,7 +156,7 @@ func TestRegexpFindAndReplace(t *testing.T) {
 		},
 	}
 
-	far := far.New()
+	far := &far.Farsafe{Inner: &far.Faregex{}}
 	for i := range cases {
 		c := cases[i]
 		m := "CASE " + strconv.Itoa(i)

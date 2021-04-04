@@ -5,115 +5,127 @@ import (
 	ui "github.com/lxn/walk/declarative"
 )
 
-type farView struct {
-	closer **walk.MainWindow
-	runner *ui.MainWindow
+type View struct {
+	window   *walk.MainWindow
+	rename   *walk.PushButton
+	pattern  *walk.LineEdit
+	template *walk.LineEdit
+	preview  *walk.TableView
 }
 
-func (v *farView) Run() (err error) {
-	_, err = v.runner.Run()
-	return
+type Callback interface {
+
+	// for TableView
+	RowCount() int
+	Value(row, col int) interface{}
+	StyleCell(style *walk.CellStyle)
+	Sort(col int, order walk.SortOrder) error
+	ResetRows()
+
+	// for Other View
+	OnTextReplaceChanged()
+	OnTextTemplateChanged()
+	OnRename()
+	OnImport([]string)
+	OnDelete()
+	OnClear()
+	OnExit()
 }
 
-func (v *farView) Close() (err error) {
-	(*v.closer).Synchronize(func() { err = (*v.closer).Close() })
-	return
-}
-
-func makeViewFromViewModel(vm *farViewModel) (vr *farView) {
-	var (
-		win *walk.MainWindow
-		lef *walk.LineEdit
-		ler *walk.LineEdit
-		pbr *walk.PushButton
-		tvm *walk.TableView
-	)
-
-	return &farView{
-		closer: &win,
-		runner: &ui.MainWindow{
-			AssignTo: &win,
-			Title:    "FAR",
-			MinSize:  ui.Size{Width: 640, Height: 480},
-			Layout:   ui.VBox{},
-			MenuItems: []ui.MenuItem{
-				ui.Menu{
-					Text: "&File",
-					Items: []ui.MenuItem{
-						ui.Action{
-							Text:        "&Open",
-							OnTriggered: func() {},
-						},
-						ui.Separator{},
-						ui.Action{
-							Text:        "&Exit",
-							OnTriggered: func() { win.Close() },
-						},
-					},
-				},
-				ui.Menu{
-					Text: "&Help",
-					Items: []ui.MenuItem{
-						ui.Action{
-							Text:        "About",
-							OnTriggered: func() {},
-						},
-					},
-				},
-			},
-			Children: []ui.Widget{
-				ui.Composite{
-					Border: false,
-					Layout: ui.Grid{
-						Rows:        2,
-						MarginsZero: true,
-					},
-					Children: []ui.Widget{
-						ui.LineEdit{
-							AssignTo:      &lef,
-							CueBanner:     "Find",
-							Text:          ui.Bind("Pattern"),
-							ToolTipText:   ui.Bind("PatternTips"),
-							OnTextChanged: func() {},
-						},
-						ui.LineEdit{
-							ColumnSpan:    2,
-							AssignTo:      &ler,
-							CueBanner:     "Replace",
-							ToolTipText:   "?",
-							OnTextChanged: func() {},
-						},
-						ui.PushButton{
-							Alignment: ui.AlignHFarVFar,
-							Text:      "Rename",
-							AssignTo:  &pbr,
-							OnClicked: func() {},
-						},
-					},
-				},
-				ui.TableView{
-					AssignTo:            &tvm,
-					LastColumnStretched: true,
-					ContextMenuItems: []ui.MenuItem{
-						ui.Action{
-							Text: "&Delete",
-							OnTriggered: func() {
-							},
-						},
-						ui.Separator{},
-						ui.Action{
-							Text:        "&Clear",
-							OnTriggered: func() {},
-						},
-					},
-					Columns: []ui.TableViewColumn{
-						{Title: "Stat", Width: 32},
-						{Title: "Name", Width: 256},
-						{Title: "Path", Alignment: ui.AlignDefault},
-					},
-				},
-			},
-			OnDropFiles: func(files []string) {},
-		},
+func BindCallbackToView(v *View, c Callback) interface{ Run() error } {
+	if v == nil || c == nil {
+		return nil
 	}
+	return (*WindowToRunnerAdapter)(&ui.MainWindow{
+		AssignTo:    &v.window,
+		Title:       "FAR",
+		Layout:      ui.VBox{},
+		MinSize:     ui.Size{Width: 640, Height: 480},
+		OnDropFiles: c.OnImport,
+		MenuItems: []ui.MenuItem{
+			ui.Menu{
+				Text: "&File",
+				Items: []ui.MenuItem{
+					ui.Action{
+						Text:        "&Open",
+						OnTriggered: func() {},
+					},
+					ui.Separator{},
+					ui.Action{
+						Text:        "&Exit",
+						OnTriggered: c.OnExit,
+					},
+				},
+			},
+			ui.Menu{
+				Text: "&Help",
+				Items: []ui.MenuItem{
+					ui.Action{
+						Text:        "About",
+						OnTriggered: func() {},
+					},
+				},
+			},
+		},
+		Children: []ui.Widget{
+			ui.Composite{
+				Border: false,
+				Layout: ui.Grid{
+					Rows:        2,
+					MarginsZero: true,
+				},
+				Children: []ui.Widget{
+					ui.LineEdit{
+						AssignTo:      &v.template,
+						CueBanner:     "Find",
+						OnTextChanged: c.OnTextTemplateChanged,
+					},
+					ui.LineEdit{
+						ColumnSpan:    2,
+						AssignTo:      &v.pattern,
+						CueBanner:     "Replace",
+						OnTextChanged: c.OnTextReplaceChanged,
+					},
+					ui.PushButton{
+						Alignment: ui.AlignHFarVFar,
+						Text:      "Rename",
+						AssignTo:  &v.rename,
+						OnClicked: c.OnRename,
+					},
+				},
+			},
+			ui.TableView{
+				Model:               c,
+				AssignTo:            &v.preview,
+				AlternatingRowBG:    true,
+				ColumnsOrderable:    true,
+				LastColumnStretched: true,
+				MultiSelection:      true,
+				ContextMenuItems: []ui.MenuItem{
+					ui.Action{
+						Text:        "&Delete",
+						OnTriggered: c.OnDelete,
+					},
+					ui.Separator{},
+					ui.Action{
+						Text:        "&Clear",
+						OnTriggered: c.OnClear,
+					},
+				},
+				Columns: []ui.TableViewColumn{
+					{Title: "Stat", Width: 32},
+					{Title: "Name", Width: 256},
+					{Title: "Path", Alignment: ui.AlignDefault},
+				},
+				StyleCell: c.StyleCell,
+			},
+		},
+	})
+}
+
+type WindowToRunnerAdapter ui.MainWindow
+
+func (w *WindowToRunnerAdapter) Run() error {
+	_, err := (*ui.MainWindow)(w).Run()
+	return err
 }
