@@ -9,32 +9,10 @@ import (
 	"github.com/wiryls/far/pkg/fall"
 )
 
-// Errors of this application.
-var (
-	ErrSeparatorInTemplate = errors.New("separator should not be here")
-	ErrInvalidPattern      = errors.New("pattern is invalid")
-	ErrUnavailable         = errors.New("method unavailable")
-)
-
-/////////////////////////////////////////////////////////////////////////////
-
-func NewViewModel() *ViewModel {
-	a := &ViewModel{
-		view: View{},
-		fall: fall.New(nil), // TODO: callback
-		text: texts{},
-	}
-
-	// a.fall.SetItemResetListener(func() {
-	// 	a.view.window.Synchronize(a.PublishRowsReset)
-	// })
-	// a.fall.SetItemsInsertListener(func(from, to int) {
-	// 	a.view.window.Synchronize(func() {
-	// 		log.Println("Insert", from, "to", to)
-	// 		a.PublishRowsInserted(from, to)
-	// 	})
-	// })
-	return a
+func NewViewModel() (m *ViewModel) {
+	m = &ViewModel{}
+	m.fall = fall.New(m)
+	return
 }
 
 type ViewModel struct {
@@ -47,7 +25,7 @@ type ViewModel struct {
 	fall *fall.Fall
 
 	// ui
-	text texts
+	// text texts
 	// uiPatternErrorInfo  string
 	// uiTemplateErrorInfo string
 }
@@ -73,14 +51,24 @@ func (a *ViewModel) Close() error {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-//// Callbacks
+//// Callbacks GUI
 
-func (a *ViewModel) OnTextReplaceChanged() {
-	a.fall.Far(a.view.pattern.Text(), a.view.template.Text())
+func (a *ViewModel) OnTextPatternChanged() {
+	switch err := a.fall.Far(a.view.pattern.Text(), a.view.template.Text()); {
+	case err != nil:
+		a.view.pattern.SetToolTipText(err.Error())
+	case a.view.pattern.ToolTipText() != "":
+		a.view.pattern.SetToolTipText("")
+	}
 }
 
 func (a *ViewModel) OnTextTemplateChanged() {
-	a.fall.Far(a.view.pattern.Text(), a.view.template.Text())
+	switch err := a.fall.Far(a.view.pattern.Text(), a.view.template.Text()); {
+	case err != nil:
+		a.view.template.SetToolTipText(err.Error())
+	case a.view.template.ToolTipText() != "":
+		a.view.template.SetToolTipText("")
+	}
 }
 
 func (a *ViewModel) OnRename() {
@@ -88,7 +76,7 @@ func (a *ViewModel) OnRename() {
 }
 
 func (a *ViewModel) OnImport(list []string) {
-	log.Println("input", list)
+	log.Println("OnImport", list)
 	a.fall.Input(list)
 }
 
@@ -97,12 +85,16 @@ func (a *ViewModel) OnDelete() {
 }
 
 func (a *ViewModel) OnClear() {
-
+	a.fall.Reset()
 }
 
 func (a *ViewModel) OnExit() {
+	a.fall.Reset()
 	a.view.window.Close()
 }
+
+/////////////////////////////////////////////////////////////////////////////
+//// Callbacks Table View
 
 func (a *ViewModel) RowCount() (count int) {
 	a.fall.ReadonlyAccess(func(is []fall.Item) { count = len(is) })
@@ -132,5 +124,46 @@ func (a *ViewModel) Sort(col int, order walk.SortOrder) error {
 }
 
 func (a *ViewModel) ResetRows() {
+	a.fall.Reset()
+}
 
+/////////////////////////////////////////////////////////////////////////////
+//// Callbacks Fall
+
+func (a *ViewModel) OnItemUpdate(index int) {
+	if a.view.window != nil {
+		a.view.window.Synchronize(func() {
+			a.PublishRowChanged(index)
+		})
+	}
+}
+
+func (a *ViewModel) OnItemsUpdate(from, to int) {
+	if a.view.window != nil {
+		a.view.window.Synchronize(func() {
+			a.PublishRowsChanged(from, to)
+		})
+	}
+}
+
+func (a *ViewModel) OnItemsInsert(from, to int) {
+	if a.view.window != nil {
+		a.view.window.Synchronize(func() {
+			a.PublishRowsInserted(from, to)
+		})
+	}
+}
+
+func (a *ViewModel) OnItemsDelete(from, to int) {
+	if a.view.window != nil {
+		a.view.window.Synchronize(func() {
+			a.PublishRowsRemoved(from, to)
+		})
+	}
+}
+
+func (a *ViewModel) OnItemsReset() {
+	if a.view.window != nil {
+		a.view.window.Synchronize(a.PublishRowsReset)
+	}
 }

@@ -23,7 +23,7 @@ type Callback interface {
 	ResetRows()
 
 	// for Other View
-	OnTextReplaceChanged()
+	OnTextPatternChanged()
 	OnTextTemplateChanged()
 	OnRename()
 	OnImport([]string)
@@ -76,15 +76,15 @@ func BindCallbackToView(v *View, c Callback) interface{ Run() error } {
 				},
 				Children: []ui.Widget{
 					ui.LineEdit{
-						AssignTo:      &v.template,
+						AssignTo:      &v.pattern,
 						CueBanner:     "Find",
-						OnTextChanged: c.OnTextTemplateChanged,
+						OnTextChanged: c.OnTextPatternChanged,
 					},
 					ui.LineEdit{
 						ColumnSpan:    2,
-						AssignTo:      &v.pattern,
+						AssignTo:      &v.template,
 						CueBanner:     "Replace",
-						OnTextChanged: c.OnTextReplaceChanged,
+						OnTextChanged: c.OnTextTemplateChanged,
 					},
 					ui.PushButton{
 						Alignment: ui.AlignHFarVFar,

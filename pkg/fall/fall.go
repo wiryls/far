@@ -55,42 +55,6 @@ func (f *Fall) WritableAccess(access func([]Item)) {
 	access(f.output)
 }
 
-// // sort by what
-// const (
-// 	ByStat = iota
-// 	ByPath
-// 	ByName
-// )
-
-// // Sort the list.
-// func (f *Fall) Sort(isAscending bool, by int) {
-// 	defer f.keeper.RUnlock()
-// 	/*_*/ f.keeper.RLock()
-
-// 	list := f.output
-// 	comp := (func(i int, j int) bool)(nil)
-// 	switch by {
-// 	default:
-// 		fallthrough
-// 	case ByStat:
-// 		comp = func(i int, j int) bool {
-// 			return isAscending !=
-// 				(list[i].Stat < list[j].Stat)
-// 		}
-// 	case ByPath:
-// 		comp = func(i int, j int) bool {
-// 			return isAscending !=
-// 				(list[i].Path < list[j].Path)
-// 		}
-// 	case ByName:
-// 		comp = func(i int, j int) bool {
-// 			return isAscending !=
-// 				(list[i].Base < list[j].Base)
-// 		}
-// 	}
-// 	sort.SliceStable(list, comp)
-// }
-
 // Reset all
 func (f *Fall) Reset() {
 	f.feed.Send(0)
@@ -101,6 +65,7 @@ func (f *Fall) Reset() {
 	/*_*/ f.keeper.Lock()
 	f.source = nil
 	f.output = nil
+	f.feed.Wait()
 	f.feed.Send(1)
 }
 
@@ -111,12 +76,7 @@ func (f *Fall) Reset() {
 func (f *Fall) Input(source []string) {
 	f.flow.Push((&TaskFromStringsToItems{
 		Source: source,
-		Splite: func(size int) int {
-			if size > 32 {
-				return 32
-			}
-			return size
-		},
+		Splite: fixedSplitter(32),
 		Action: func(s string) (Item, bool) {
 			item, err := FromPathToItem(s)
 			return item, err == nil
@@ -133,19 +93,18 @@ func (f *Fall) Input(source []string) {
 
 // Far performs FaR on the list.
 func (f *Fall) Far(pattern, template string) (err error) {
-	defer f.call.OnItemsReset()
-	defer f.keeper.Unlock()
-	/*_*/ f.keeper.Lock()
 
+	f.keeper.Lock()
 	var list []Item
 	if template != f.farr.Template() {
 		list = f.output
 		err = f.farr.SetTemplate(template)
 	}
 	if pattern != f.farr.Pattern() {
-		list, f.source = f.source, nil
+		list = f.source
 		err = f.farr.SetPattern(pattern)
 	}
+	f.keeper.Unlock()
 
 	if err == nil {
 		// stop the last FaR task.
@@ -153,7 +112,12 @@ func (f *Fall) Far(pattern, template string) (err error) {
 		f.feed.Wait()
 
 		// start a new FaR task.
+		defer f.call.OnItemsReset()
+		defer f.keeper.Unlock()
+		/*_*/ f.keeper.Lock()
+		f.feed.Wait()
 		f.feed.Send(1)
+		f.output = nil
 		f.diffing(list)
 	}
 
@@ -163,12 +127,7 @@ func (f *Fall) Far(pattern, template string) (err error) {
 func (f *Fall) diffing(list []Item) {
 	f.feed.Push((&TaskFromItemsToItems{
 		Source: list,
-		Splite: func(size int) int {
-			if size > 32 {
-				return 32
-			}
-			return size
-		},
+		Splite: fixedSplitter(32),
 		Action: func(item Item) (Item, bool) {
 			item.Diff = f.farr.See(item.Base)
 			return item, f.farr.Empty() || !item.Diff.IsSame()
@@ -182,6 +141,15 @@ func (f *Fall) diffing(list []Item) {
 			f.call.OnItemsInsert(from, from+delta)
 		},
 		Runner: f.feed.Push,
-		Runnin: 0,
+		Runnin: 1,
 	}).Execute)
+}
+
+func fixedSplitter(limit int) func(int) int {
+	return func(size int) int {
+		if size > limit {
+			return limit
+		}
+		return size
+	}
 }
