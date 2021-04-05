@@ -7,9 +7,9 @@ type app struct {
 }
 
 // New app, init this application.
-func (a *app) New() error {
-	a.main = NewViewModel()
-	return nil
+func (a *app) New() (err error) {
+	a.main, err = NewViewModel()
+	return
 }
 
 // Run this application.

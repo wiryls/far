@@ -137,17 +137,12 @@ func (f *Fall) Input(source []string) {
 // Far performs FaR on the list.
 func (f *Fall) Far(pattern, template string) (err error) {
 
-	f.keeper.RLock()
-	var list []*Item
 	if template != f.farr.Template() {
-		list = f.output
 		err = f.farr.SetTemplate(template)
 	}
 	if pattern != f.farr.Pattern() {
-		list = f.source
 		err = f.farr.SetPattern(pattern)
 	}
-	f.keeper.RUnlock()
 
 	if err == nil {
 		// stop the last FaR task.
@@ -161,7 +156,7 @@ func (f *Fall) Far(pattern, template string) (err error) {
 		f.feed.Wait()
 		f.feed.Send(1)
 		f.output = nil
-		f.diffing(list)
+		f.diffing(f.source)
 	}
 
 	return
@@ -175,14 +170,18 @@ func (f *Fall) diffing(list []*Item) {
 			item := src.Load()
 			item.Diff = f.farr.See(item.Base)
 			switch {
+			default:
 			case item.Stat == StatIgnored:
+				// ignore it
 			case f.farr.Empty():
+				item.Stat = StatImport
+				dst = src
+			case !item.Diff.IsSame():
 				item.Stat = StatDiffer
 				dst = src
-			case item.Diff.IsSame():
-				item.Stat = StatImport
-			default:
-				dst = src
+			}
+			if dst != nil {
+				dst.Store(item)
 			}
 			return
 		},

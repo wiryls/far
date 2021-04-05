@@ -40,7 +40,8 @@ func BindCallbackToView(v *View, c Callback) interface{ Run() error } {
 		AssignTo:    &v.window,
 		Title:       "FAR",
 		Layout:      ui.VBox{},
-		MinSize:     ui.Size{Width: 640, Height: 480},
+		MinSize:     ui.Size{Width: 480, Height: 320},
+		Persistent:  false,
 		OnDropFiles: c.OnImport,
 		MenuItems: []ui.MenuItem{
 			ui.Menu{
@@ -97,12 +98,9 @@ func BindCallbackToView(v *View, c Callback) interface{ Run() error } {
 			ui.TableView{
 				Model:               c,
 				AssignTo:            &v.preview,
-				AlternatingRowBG:    true,
 				ColumnsOrderable:    true,
 				LastColumnStretched: true,
 				MultiSelection:      true,
-				Persistent:          true,
-
 				ContextMenuItems: []ui.MenuItem{
 					ui.Action{
 						Text:        "&Delete",

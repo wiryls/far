@@ -8,9 +8,10 @@ import (
 	"github.com/lxn/walk"
 
 	"github.com/wiryls/far/pkg/fall"
+	"github.com/wiryls/far/pkg/far"
 )
 
-func NewViewModel() (m *ViewModel) {
+func NewViewModel() (m *ViewModel, err error) {
 	m = &ViewModel{}
 	m.fall = fall.New(m)
 	return
@@ -118,7 +119,67 @@ func (a *ViewModel) Value(row, col int) (v interface{}) {
 }
 
 func (a *ViewModel) StyleCell(style *walk.CellStyle) {
+	var item fall.Data
+	a.fall.ReadonlyAccess(func(i []*fall.Item) { item = i[style.Row()].Load() })
+	switch style.Col() {
+	case 0:
+	case 1:
+		if item.Diff.IsSame() {
+			break
+		}
 
+		canvas := style.Canvas()
+		if canvas == nil {
+			break
+		}
+
+		dash, err := walk.NewCosmeticPen(walk.PenSolid, style.TextColor)
+		if err != nil {
+			log.Println(err)
+			break
+		}
+
+		colour := [3]walk.Color{style.TextColor, RGB2BGR(0x007947), RGB2BGR(0xDC143C)}
+		bounds := style.Bounds()
+		font := a.view.preview.Font()
+		rect := bounds
+
+		for _, d := range item.Diff {
+			var err error
+			if int(d.Type) >= len(colour) {
+				err = errors.New("unknown text color when drawing diff")
+			}
+
+			if err == nil {
+				err = canvas.DrawTextPixels(d.Text, font, colour[d.Type], rect, walk.TextLeft)
+			}
+
+			var calc walk.Rectangle
+			if err == nil {
+				flag := walk.TextLeft | walk.TextSingleLine | walk.TextCalcRect
+				calc, _, err = canvas.MeasureTextPixels(d.Text, font, rect, flag)
+			}
+
+			if err == nil && d.Type == far.DiffDelete {
+				l := walk.Point{Y: calc.Y + calc.Height/2 + 1, X: calc.X}
+				r := walk.Point{Y: calc.Y + calc.Height/2 + 1, X: calc.X + calc.Width}
+				canvas.DrawLinePixels(dash, l, r)
+			}
+
+			if err == nil {
+				rect.X += calc.Width
+				rect.Width -= calc.Width
+				if rect.Width <= 0 {
+					break
+				}
+			}
+			if err != nil {
+				log.Println(err)
+				break
+			}
+		}
+	case 2:
+	}
 }
 
 func (a *ViewModel) Sort(col int, order walk.SortOrder) error {
