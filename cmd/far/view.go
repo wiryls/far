@@ -12,7 +12,7 @@ type View struct {
 	template *walk.LineEdit
 	preview  *walk.TableView
 
-	actionDragRecursively *walk.Action
+	actionImportRecursively *walk.Action
 }
 
 type Callback interface {
@@ -20,9 +20,9 @@ type Callback interface {
 	// for TableView
 	RowCount() int
 	Value(row, col int) interface{}
-	StyleName(style *walk.CellStyle)
 	Sort(col int, order walk.SortOrder) error
 	ResetRows()
+	StyleName(style *walk.CellStyle)
 
 	// for Other View
 	OnTextPatternChanged()
@@ -34,7 +34,7 @@ type Callback interface {
 	OnExit()
 
 	// settings
-	OnSettingDragRecursively()
+	OnSettingImportRecursively()
 }
 
 func BindCallbackToView(v *View, c Callback) interface{ Run() error } {
@@ -45,8 +45,9 @@ func BindCallbackToView(v *View, c Callback) interface{ Run() error } {
 		AssignTo:    &v.window,
 		Title:       "FAR",
 		Layout:      ui.VBox{},
-		MinSize:     ui.Size{Width: 480, Height: 320},
-		Persistent:  false,
+		Size:        ui.Size{Width: 720, Height: 480},
+		MinSize:     ui.Size{Width: 320, Height: 240},
+		Persistent:  true,
 		OnDropFiles: c.OnImport,
 		MenuItems: []ui.MenuItem{
 			ui.Menu{
@@ -68,11 +69,11 @@ func BindCallbackToView(v *View, c Callback) interface{ Run() error } {
 				Text: "&Settings",
 				Items: []ui.MenuItem{
 					ui.Action{
-						AssignTo:    &v.actionDragRecursively,
-						Text:        "Drag &recursively",
+						AssignTo:    &v.actionImportRecursively,
+						Text:        "Import &recursively",
 						Checkable:   true,
 						Checked:     true,
-						OnTriggered: c.OnSettingDragRecursively,
+						OnTriggered: c.OnSettingImportRecursively,
 					},
 				},
 			},
@@ -118,10 +119,12 @@ func BindCallbackToView(v *View, c Callback) interface{ Run() error } {
 			ui.TableView{
 				Model:                    c,
 				AssignTo:                 &v.preview,
-				ColumnsOrderable:         false,
-				NotSortableByHeaderClick: true,
-				MultiSelection:           true,
 				Persistent:               true,
+				MultiSelection:           true,
+				AlwaysConsumeSpace:       true,
+				LastColumnStretched:      true,
+				NotSortableByHeaderClick: false,
+				ColumnsOrderable:         false,
 				ContextMenuItems: []ui.MenuItem{
 					ui.Action{
 						Text:        "&Delete",
@@ -133,10 +136,11 @@ func BindCallbackToView(v *View, c Callback) interface{ Run() error } {
 						OnTriggered: c.OnClear,
 					},
 				},
+
 				Columns: []ui.TableViewColumn{
 					{Title: "Stat", Width: 32},
 					{Title: "Name", Width: 256, StyleCell: c.StyleName},
-					{Title: "Path", Width: 512, Alignment: ui.AlignDefault},
+					{Title: "Path"},
 				},
 			},
 		},
