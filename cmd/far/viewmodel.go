@@ -16,7 +16,7 @@ import (
 func NewViewModel() (m *ViewModel, err error) {
 	m = &ViewModel{}
 	m.fall = fall.New(m)
-	m.sets.DragRecursively = true
+	m.sets.ImportRecursively = true
 	return
 }
 
@@ -86,7 +86,7 @@ func (a *ViewModel) OnRename() {
 func (a *ViewModel) OnImport(list []string) {
 
 	var input []string
-	if !a.sets.DragRecursively {
+	if !a.sets.ImportRecursively {
 		input = list
 	} else {
 		for _, file := range list {
@@ -207,6 +207,7 @@ func (a *ViewModel) StyleName(style *walk.CellStyle) {
 }
 
 func (a *ViewModel) Sort(col int, order walk.SortOrder) error {
+	log.Println("sort", col)
 	a.fall.WritableAccess(func(list []*fall.Item) {
 		comp := (func(i int, j int) bool)(nil)
 		switch col {
@@ -239,6 +240,10 @@ func (a *ViewModel) Sort(col int, order walk.SortOrder) error {
 	return a.SorterBase.Sort(col, order)
 }
 
+func (a *ViewModel) ColumnSortable(col int) bool {
+	return col != 0
+}
+
 func (a *ViewModel) ResetRows() {
 	a.fall.Reset()
 }
@@ -246,9 +251,9 @@ func (a *ViewModel) ResetRows() {
 /////////////////////////////////////////////////////////////////////////////
 //// Callbacks settings
 
-func (a *ViewModel) OnSettingDragRecursively() {
-	if a.view.actionDragRecursively != nil {
-		a.sets.DragRecursively = a.view.actionDragRecursively.Checked()
+func (a *ViewModel) OnSettingImportRecursively() {
+	if a.view.actionImportRecursively != nil {
+		a.sets.ImportRecursively = a.view.actionImportRecursively.Checked()
 	}
 }
 
@@ -258,6 +263,7 @@ func (a *ViewModel) OnSettingDragRecursively() {
 func (a *ViewModel) OnItemUpdate(index int) {
 	if a.view.window != nil {
 		a.view.window.Synchronize(func() {
+			log.Println("change", index)
 			a.PublishRowChanged(index)
 		})
 	}
@@ -266,6 +272,7 @@ func (a *ViewModel) OnItemUpdate(index int) {
 func (a *ViewModel) OnItemsUpdate(from, to int) {
 	if a.view.window != nil {
 		a.view.window.Synchronize(func() {
+			log.Println("change", from, to)
 			a.PublishRowsChanged(from, to)
 		})
 	}
@@ -285,6 +292,7 @@ func (a *ViewModel) OnItemsDelete(from, to int) {
 		a.view.window.Synchronize(func() {
 			log.Println("delete", from, to)
 			a.PublishRowsRemoved(from, to)
+			a.PublishRowsChanged(from, to)
 		})
 	}
 }
