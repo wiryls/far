@@ -14,17 +14,17 @@ func (s *sequencer) Collect(index int, items []*Item) {
 	/*_*/ s.keeper.Lock()
 
 	if s.Latest == index {
-		s.Output(items)
 		for {
 			s.Latest++
 			is, ok := s.buffer[s.Latest]
 			if ok {
-				s.Output(is)
+				items = append(items, is...)
 				delete(s.buffer, s.Latest)
 			} else {
 				break
 			}
 		}
+		s.Output(items)
 
 	} else {
 		if s.buffer == nil {

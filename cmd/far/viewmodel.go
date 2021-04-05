@@ -2,7 +2,9 @@ package main
 
 import (
 	"errors"
+	"io/fs"
 	"log"
+	"path/filepath"
 	"sort"
 
 	"github.com/lxn/walk"
@@ -14,12 +16,16 @@ import (
 func NewViewModel() (m *ViewModel, err error) {
 	m = &ViewModel{}
 	m.fall = fall.New(m)
+	m.sets.DragRecursively = true
 	return
 }
 
 type ViewModel struct {
 	// view
 	view View
+
+	// Settings
+	sets Settings
 
 	// model
 	walk.TableModelBase
@@ -78,8 +84,23 @@ func (a *ViewModel) OnRename() {
 }
 
 func (a *ViewModel) OnImport(list []string) {
-	log.Println("OnImport", list)
-	a.fall.Input(list)
+
+	var input []string
+	if !a.sets.DragRecursively {
+		input = list
+	} else {
+		for _, file := range list {
+			err := filepath.WalkDir(file, func(path string, d fs.DirEntry, err error) error {
+				input = append(input, path)
+				return err
+			})
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}
+
+	a.fall.Input(input)
 }
 
 func (a *ViewModel) OnDelete() {
@@ -105,6 +126,7 @@ func (a *ViewModel) RowCount() (count int) {
 
 func (a *ViewModel) Value(row, col int) (v interface{}) {
 	a.fall.ReadonlyAccess(func(is []*fall.Item) {
+
 		item := is[row].Load()
 		switch col {
 		case 0:
@@ -114,71 +136,73 @@ func (a *ViewModel) Value(row, col int) (v interface{}) {
 		case 2:
 			v = item.Path
 		}
+
+		// log.Printf("access %d %d with %v", row, col, v)
 	})
 	return
 }
 
-func (a *ViewModel) StyleCell(style *walk.CellStyle) {
+func (a *ViewModel) StyleName(style *walk.CellStyle) {
 	var item fall.Data
 	a.fall.ReadonlyAccess(func(i []*fall.Item) { item = i[style.Row()].Load() })
-	switch style.Col() {
-	case 0:
-	case 1:
-		if item.Diff.IsSame() {
-			break
+
+	if item.Diff.IsSame() {
+		return
+	}
+
+	canvas := style.Canvas()
+	if canvas == nil {
+		return
+	}
+
+	dash, err := walk.NewCosmeticPen(walk.PenSolid, style.TextColor)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	colour := [3]walk.Color{style.TextColor, RGB2BGR(0x007947), RGB2BGR(0xDC143C)}
+	bounds := style.Bounds()
+	font := a.view.preview.Font()
+	rect := bounds
+	rect.X += 6
+	rect.Y += 2
+	rect.Width -= 12
+	rect.Height -= 4
+
+	for _, d := range item.Diff {
+		var err error
+		if int(d.Type) >= len(colour) {
+			err = errors.New("unknown text color when drawing diff")
 		}
 
-		canvas := style.Canvas()
-		if canvas == nil {
-			break
+		if err == nil {
+			err = canvas.DrawTextPixels(d.Text, font, colour[d.Type], rect, walk.TextLeft)
 		}
 
-		dash, err := walk.NewCosmeticPen(walk.PenSolid, style.TextColor)
+		var calc walk.Rectangle
+		if err == nil {
+			flag := walk.TextLeft | walk.TextSingleLine | walk.TextCalcRect
+			calc, _, err = canvas.MeasureTextPixels(d.Text, font, rect, flag)
+		}
+
+		if err == nil && d.Type == far.DiffDelete {
+			l := walk.Point{Y: calc.Y + calc.Height/2 + 1, X: calc.X}
+			r := walk.Point{Y: calc.Y + calc.Height/2 + 1, X: calc.X + calc.Width}
+			err = canvas.DrawLinePixels(dash, l, r)
+		}
+
+		if err == nil {
+			rect.X += calc.Width
+			rect.Width -= calc.Width
+			if rect.Width <= 0 {
+				break
+			}
+		}
 		if err != nil {
 			log.Println(err)
 			break
 		}
-
-		colour := [3]walk.Color{style.TextColor, RGB2BGR(0x007947), RGB2BGR(0xDC143C)}
-		bounds := style.Bounds()
-		font := a.view.preview.Font()
-		rect := bounds
-
-		for _, d := range item.Diff {
-			var err error
-			if int(d.Type) >= len(colour) {
-				err = errors.New("unknown text color when drawing diff")
-			}
-
-			if err == nil {
-				err = canvas.DrawTextPixels(d.Text, font, colour[d.Type], rect, walk.TextLeft)
-			}
-
-			var calc walk.Rectangle
-			if err == nil {
-				flag := walk.TextLeft | walk.TextSingleLine | walk.TextCalcRect
-				calc, _, err = canvas.MeasureTextPixels(d.Text, font, rect, flag)
-			}
-
-			if err == nil && d.Type == far.DiffDelete {
-				l := walk.Point{Y: calc.Y + calc.Height/2 + 1, X: calc.X}
-				r := walk.Point{Y: calc.Y + calc.Height/2 + 1, X: calc.X + calc.Width}
-				canvas.DrawLinePixels(dash, l, r)
-			}
-
-			if err == nil {
-				rect.X += calc.Width
-				rect.Width -= calc.Width
-				if rect.Width <= 0 {
-					break
-				}
-			}
-			if err != nil {
-				log.Println(err)
-				break
-			}
-		}
-	case 2:
 	}
 }
 
@@ -190,18 +214,24 @@ func (a *ViewModel) Sort(col int, order walk.SortOrder) error {
 			fallthrough
 		case 1:
 			comp = func(i int, j int) bool {
+				l := list[i].Load()
+				r := list[j].Load()
 				return (order == walk.SortAscending) !=
-					(list[i].Load().Base < list[j].Load().Base)
+					(l.Base < r.Base || (l.Base == r.Base && l.Path < r.Path))
 			}
 		case 0:
 			comp = func(i int, j int) bool {
+				l := list[i].Load()
+				r := list[j].Load()
 				return (order == walk.SortAscending) !=
-					(list[i].Load().Stat < list[j].Load().Stat)
+					(l.Stat < r.Stat || (l.Stat == r.Stat && l.Base < r.Base))
 			}
 		case 2:
 			comp = func(i int, j int) bool {
+				l := list[i].Load()
+				r := list[j].Load()
 				return (order == walk.SortAscending) !=
-					(list[i].Load().Path < list[j].Load().Path)
+					(l.Path < r.Path || (l.Path == r.Path && l.Base < r.Base))
 			}
 		}
 		sort.SliceStable(list, comp)
@@ -211,6 +241,15 @@ func (a *ViewModel) Sort(col int, order walk.SortOrder) error {
 
 func (a *ViewModel) ResetRows() {
 	a.fall.Reset()
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//// Callbacks settings
+
+func (a *ViewModel) OnSettingDragRecursively() {
+	if a.view.actionDragRecursively != nil {
+		a.sets.DragRecursively = a.view.actionDragRecursively.Checked()
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -235,6 +274,7 @@ func (a *ViewModel) OnItemsUpdate(from, to int) {
 func (a *ViewModel) OnItemsInsert(from, to int) {
 	if a.view.window != nil {
 		a.view.window.Synchronize(func() {
+			log.Println("insert", from, to)
 			a.PublishRowsInserted(from, to)
 		})
 	}
@@ -243,6 +283,7 @@ func (a *ViewModel) OnItemsInsert(from, to int) {
 func (a *ViewModel) OnItemsDelete(from, to int) {
 	if a.view.window != nil {
 		a.view.window.Synchronize(func() {
+			log.Println("delete", from, to)
 			a.PublishRowsRemoved(from, to)
 		})
 	}
@@ -250,6 +291,7 @@ func (a *ViewModel) OnItemsDelete(from, to int) {
 
 func (a *ViewModel) OnItemsReset() {
 	if a.view.window != nil {
+		log.Println("Reset")
 		a.view.window.Synchronize(a.PublishRowsReset)
 	}
 }

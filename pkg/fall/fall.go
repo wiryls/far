@@ -119,7 +119,7 @@ func (f *Fall) Reset() {
 func (f *Fall) Input(source []string) {
 	f.flow.Push((&TaskImportItemsFromPaths{
 		Source: source,
-		Splite: Limited(32),
+		Splite: Limited(512),
 		Action: func(s string) *Item {
 			item, _ := FromPathToItem(s)
 			return item
@@ -150,13 +150,16 @@ func (f *Fall) Far(pattern, template string) (err error) {
 		f.feed.Wait()
 
 		// start a new FaR task.
+		defer f.keeper.RUnlock()
+		defer f.diffing(f.source)
+		defer f.keeper.RLock()
 		defer f.call.OnItemsReset()
+
 		defer f.keeper.Unlock()
 		/*_*/ f.keeper.Lock()
 		f.feed.Wait()
 		f.feed.Send(1)
 		f.output = nil
-		f.diffing(f.source)
 	}
 
 	return
@@ -166,6 +169,10 @@ func (f *Fall) diffing(list []*Item) {
 	s := sequencer{
 		Latest: 0,
 		Output: func(list []*Item) {
+			if len(list) == 0 {
+				return
+			}
+
 			f.keeper.Lock()
 			from, delta := len(f.output), len(list)
 			f.output = append(f.output, list...)
@@ -176,7 +183,7 @@ func (f *Fall) diffing(list []*Item) {
 	}
 	f.feed.Push((&TaskDifferItems{
 		Source: list,
-		Splite: Limited(32),
+		Splite: Limited(1024),
 		Action: func(src *Item) (dst *Item) {
 			item := src.Load()
 			item.Diff = f.farr.See(item.Base)
