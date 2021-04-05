@@ -4,8 +4,8 @@ import (
 	"sync/atomic"
 )
 
-// TaskFromStringsToItems is a task to import something and output it.
-type TaskFromStringsToItems struct {
+// TaskImportItemsFromPaths is a task to import something and output it.
+type TaskImportItemsFromPaths struct {
 	Source []string
 	Splite func(int) int
 	Action func(string) *Item
@@ -13,7 +13,7 @@ type TaskFromStringsToItems struct {
 	Runner func(func())
 }
 
-func (t *TaskFromStringsToItems) Execute() {
+func (t *TaskImportItemsFromPaths) Execute() {
 	switch {
 	case t.Splite == nil:
 		return
@@ -42,17 +42,17 @@ func (t *TaskFromStringsToItems) Execute() {
 	t.Output(result)
 }
 
-// I reaaaaaaaaly need GENERIC.
-type TaskFromItemsToItems struct {
+type TaskDifferItems struct {
 	Source []*Item
 	Splite func(int) int
 	Action func(*Item) *Item
-	Output func([]*Item)
+	Number int
+	Output func(int, []*Item)
 	Runner func(func(*uint32))
 	Runnin uint32
 }
 
-func (t *TaskFromItemsToItems) Execute(sync *uint32) {
+func (t *TaskDifferItems) Execute(sync *uint32) {
 	switch {
 	case t.Splite == nil:
 		return
@@ -70,6 +70,7 @@ func (t *TaskFromItemsToItems) Execute(sync *uint32) {
 	if size := t.Splite(len(t.Source)); 0 <= size && size < len(t.Source) {
 		task := *t
 		task.Source, todo = t.Source[size:], t.Source[:size]
+		task.Number++
 		task.Runner(task.Execute)
 	}
 
@@ -81,6 +82,6 @@ func (t *TaskFromItemsToItems) Execute(sync *uint32) {
 	}
 
 	if sync == nil || atomic.LoadUint32(sync) == t.Runnin {
-		t.Output(result)
+		t.Output(t.Number, result)
 	}
 }

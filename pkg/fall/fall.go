@@ -117,7 +117,7 @@ func (f *Fall) Reset() {
 
 // Input appends more paths as tasks.
 func (f *Fall) Input(source []string) {
-	f.flow.Push((&TaskFromStringsToItems{
+	f.flow.Push((&TaskImportItemsFromPaths{
 		Source: source,
 		Splite: Limited(32),
 		Action: func(s string) *Item {
@@ -163,7 +163,18 @@ func (f *Fall) Far(pattern, template string) (err error) {
 }
 
 func (f *Fall) diffing(list []*Item) {
-	f.feed.Push((&TaskFromItemsToItems{
+	s := sequencer{
+		Latest: 0,
+		Output: func(list []*Item) {
+			f.keeper.Lock()
+			from, delta := len(f.output), len(list)
+			f.output = append(f.output, list...)
+			f.keeper.Unlock()
+
+			f.call.OnItemsInsert(from, from+delta)
+		},
+	}
+	f.feed.Push((&TaskDifferItems{
 		Source: list,
 		Splite: Limited(32),
 		Action: func(src *Item) (dst *Item) {
@@ -185,14 +196,8 @@ func (f *Fall) diffing(list []*Item) {
 			}
 			return
 		},
-		Output: func(list []*Item) {
-			f.keeper.Lock()
-			from, delta := len(f.output), len(list)
-			f.output = append(f.output, list...)
-			f.keeper.Unlock()
-
-			f.call.OnItemsInsert(from, from+delta)
-		},
+		Number: 0,
+		Output: s.Collect,
 		Runner: f.feed.Push,
 		Runnin: 1,
 	}).Execute)
