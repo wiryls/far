@@ -5,15 +5,11 @@ import (
 	"log"
 	"path/filepath"
 
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
 	"github.com/wiryls/far/pkg/fall"
 )
 
 func NewFront() (m *Front, err error) {
 	m = &Front{}
-	m.main = app.New()
-	m.view = m.main.NewWindow("FAR")
 	m.fall = fall.New(m)
 	m.sets.ImportRecursively = true
 	return
@@ -21,8 +17,8 @@ func NewFront() (m *Front, err error) {
 
 type Front struct {
 	// view
-	main fyne.App
-	view fyne.Window
+	// main fyne.App
+	// view fyne.Window
 
 	// Settings
 	sets Settings
@@ -35,13 +31,10 @@ type Front struct {
 }
 
 func (a *Front) Run() error {
-	BuildMainWindow(a.view)
-	a.view.ShowAndRun()
 	return nil
 }
 
 func (a *Front) Close() error {
-	a.view.Close()
 	return nil
 }
 
