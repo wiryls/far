@@ -1,24 +1,28 @@
 package main
 
 import (
-	"errors"
 	"io/fs"
 	"log"
 	"path/filepath"
 
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
 	"github.com/wiryls/far/pkg/fall"
 )
 
-func NewViewModel() (m *ViewModel, err error) {
-	m = &ViewModel{}
+func NewFront() (m *Front, err error) {
+	m = &Front{}
+	m.main = app.New()
+	m.view = m.main.NewWindow("FAR")
 	m.fall = fall.New(m)
 	m.sets.ImportRecursively = true
 	return
 }
 
-type ViewModel struct {
+type Front struct {
 	// view
-	view View
+	main fyne.App
+	view fyne.Window
 
 	// Settings
 	sets Settings
@@ -28,33 +32,34 @@ type ViewModel struct {
 
 	// ui
 	// text texts
-	// uiPatternErrorInfo  string
-	// uiTemplateErrorInfo string
 }
 
-func (a *ViewModel) Run() error {
-	return errors.New("failed to init view")
+func (a *Front) Run() error {
+	BuildMainWindow(a.view)
+	a.view.ShowAndRun()
+	return nil
 }
 
-func (a *ViewModel) Close() error {
+func (a *Front) Close() error {
+	a.view.Close()
 	return nil
 }
 
 /////////////////////////////////////////////////////////////////////////////
 //// Callbacks GUI
 
-func (a *ViewModel) OnTextPatternChanged() {
+func (a *Front) OnTextPatternChanged() {
 
 }
 
-func (a *ViewModel) OnTextTemplateChanged() {
+func (a *Front) OnTextTemplateChanged() {
 }
 
-func (a *ViewModel) OnRename() {
+func (a *Front) OnRename() {
 
 }
 
-func (a *ViewModel) OnImport(list []string) {
+func (a *Front) OnImport(list []string) {
 
 	var input []string
 	if !a.sets.ImportRecursively {
@@ -74,50 +79,50 @@ func (a *ViewModel) OnImport(list []string) {
 	a.fall.Input(input)
 }
 
-func (a *ViewModel) OnDelete() {
+func (a *Front) OnDelete() {
 	a.fall.Delete( /*TODO*/ []int{})
 }
 
-func (a *ViewModel) OnClear() {
+func (a *Front) OnClear() {
 	a.fall.Reset()
 }
 
-func (a *ViewModel) OnExit() {
+func (a *Front) OnExit() {
 	a.fall.Reset()
 }
 
 /////////////////////////////////////////////////////////////////////////////
 //// Callbacks Table View
 
-func (a *ViewModel) ResetRows() {
+func (a *Front) ResetRows() {
 	a.fall.Reset()
 }
 
 /////////////////////////////////////////////////////////////////////////////
 //// Callbacks settings
 
-func (a *ViewModel) OnSettingImportRecursively() {
+func (a *Front) OnSettingImportRecursively() {
 }
 
 /////////////////////////////////////////////////////////////////////////////
 //// Callbacks Fall
 
-func (a *ViewModel) OnItemUpdate(index int) {
+func (a *Front) OnItemUpdate(index int) {
 
 }
 
-func (a *ViewModel) OnItemsUpdate(from, to int) {
+func (a *Front) OnItemsUpdate(from, to int) {
 
 }
 
-func (a *ViewModel) OnItemsInsert(from, to int) {
+func (a *Front) OnItemsInsert(from, to int) {
 
 }
 
-func (a *ViewModel) OnItemsDelete(from, to int) {
+func (a *Front) OnItemsDelete(from, to int) {
 
 }
 
-func (a *ViewModel) OnItemsReset() {
+func (a *Front) OnItemsReset() {
 
 }

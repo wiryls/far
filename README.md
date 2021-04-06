@@ -29,3 +29,7 @@ Find and Rename
 | +---------------------------------------------+ |
 +-------------------------------------------------+
 ```
+
+## Miscellaneous
+
+I've switched from ui to walk, then fyne, and finally Gotk3.

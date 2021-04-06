@@ -2,17 +2,17 @@ package main
 
 import "github.com/wiryls/pkg/runner"
 
-type app struct {
+type App struct {
 	main runner.Runner
 }
 
 // New app, init this application.
-func (a *app) New() (err error) {
-	a.main, err = NewViewModel()
+func (a *App) New() (err error) {
+	a.main, err = NewFront()
 	return
 }
 
 // Run this application.
-func (a *app) Run() error {
+func (a *App) Run() error {
 	return a.main.Run()
 }
