@@ -31,6 +31,7 @@ type Front struct {
 }
 
 func (a *Front) Run() error {
+	BuildMainWindow(nil)
 	return nil
 }
 
