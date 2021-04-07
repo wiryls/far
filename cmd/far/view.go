@@ -1,8 +1,11 @@
 package main
 
 import (
-	"log"
+	_ "embed"
+	"errors"
+	"os"
 
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
 
@@ -24,40 +27,65 @@ type Callback interface {
 	OnSettingImportRecursively()
 }
 
-func BuildMainWindow(interface{}) error {
+func BuildView() (err error) {
 
-	// Initialize GTK without parsing any command line arguments.
-	gtk.Init(nil)
-
-	// Create a new toplevel window, set its title, and connect it to the
-	// "destroy" signal to exit the GTK main loop when it is destroyed.
-	win, err := gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
-	if err != nil {
-		log.Fatal("Unable to create window:", err)
-	}
-	win.SetTitle("Simple Example")
-	win.Connect("destroy", func() {
-		gtk.MainQuit()
-	})
-
-	// Create a new label widget to show in the window.
-	l, err := gtk.LabelNew("Hello, gotk3!")
-	if err != nil {
-		log.Fatal("Unable to create label:", err)
+	var app *gtk.Application
+	if err == nil {
+		app, err = gtk.ApplicationNew("wiryls.github.com", glib.APPLICATION_FLAGS_NONE)
 	}
 
-	// Add the label to the window.
-	win.Add(l)
+	var vvv *view
+	if err == nil {
+		vvv = &view{app: app}
+		app.Connect("activate", vvv.BuildMainWindow)
+		app.Run(os.Args)
 
-	// Set the default window size.
-	win.SetDefaultSize(800, 600)
+		// References:
+		// - [signals](https://wiki.gnome.org/HowDoI/GtkApplication)
+	}
 
-	// Recursively show all widgets contained in this window.
-	win.ShowAll()
+	if err == nil {
+		err = vvv.err
+	}
 
-	// Begin executing the GTK main loop.  This blocks until
-	// gtk.MainQuit() is run.
-	gtk.Main()
+	return
+}
 
-	return nil
+type view struct {
+	app *gtk.Application
+	err error
+}
+
+//go:embed ui.xml
+var ui string
+
+func (v *view) BuildMainWindow() {
+
+	var b *gtk.Builder
+	var err = v.err
+	if err == nil {
+		b, err = gtk.BuilderNewFromString(ui)
+	}
+
+	var win *gtk.ApplicationWindow
+	if err == nil {
+		var o glib.IObject
+		o, err = b.GetObject("window")
+		if err == nil {
+			var ok bool
+			win, ok = o.(*gtk.ApplicationWindow)
+			if !ok {
+				err = errors.New("invalid ApplicationWindow")
+			}
+		}
+	}
+
+	if err == nil {
+		win.SetApplication(v.app)
+		win.SetTitle("FAR")
+		win.SetDefaultSize(720, 480)
+		win.ShowAll()
+	}
+
+	v.err = err
 }
