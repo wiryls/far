@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
@@ -193,6 +195,12 @@ func (v *view) BuildInput() (grid *gtk.Grid, err error) {
 
 func (v *view) BuildTable() (tree *gtk.TreeView, err error) {
 
+	const (
+		ColumnStat = iota
+		ColumnName
+		ColumnPath
+	)
+
 	var stat *gtk.TreeViewColumn
 	if err == nil {
 		var cell *gtk.CellRendererText
@@ -202,14 +210,13 @@ func (v *view) BuildTable() (tree *gtk.TreeView, err error) {
 
 		if err == nil {
 			stat, err = gtk.TreeViewColumnNewWithAttribute(
-				v.res("main_column_name"), cell, "text", 0)
+				v.res("main_column_stat"), cell, "text", ColumnStat)
 		}
 
 		if err == nil {
-			stat.SetTitle(v.res("main_column_stat"))
+			stat.SetSortColumnID(ColumnStat)
 			stat.SetClickable(true)
 			stat.SetMinWidth(32)
-			stat.SetSortColumnID(0)
 		}
 	}
 
@@ -223,15 +230,15 @@ func (v *view) BuildTable() (tree *gtk.TreeView, err error) {
 
 		if err == nil {
 			name, err = gtk.TreeViewColumnNewWithAttribute(
-				v.res("main_column_name"), cell, "text", 1)
+				v.res("main_column_name"), cell, "markup", ColumnName)
 		}
 
 		if err == nil {
+			name.SetSortColumnID(ColumnName)
 			name.SetClickable(true)
 			name.SetResizable(true)
 			name.SetMinWidth(64)
 			name.SetFixedWidth(256)
-			name.SetSortColumnID(1)
 		}
 	}
 
@@ -245,15 +252,15 @@ func (v *view) BuildTable() (tree *gtk.TreeView, err error) {
 
 		if err == nil {
 			path, err = gtk.TreeViewColumnNewWithAttribute(
-				v.res("main_column_path"), cell, "text", 2)
+				v.res("main_column_path"), cell, "text", ColumnPath)
 		}
 
 		if err == nil {
+			path.SetSortColumnID(ColumnPath)
 			path.SetClickable(true)
 			path.SetResizable(true)
 			path.SetSizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 			path.SetMinWidth(64)
-			path.SetSortColumnID(2)
 		}
 	}
 
@@ -265,8 +272,8 @@ func (v *view) BuildTable() (tree *gtk.TreeView, err error) {
 			glib.TYPE_STRING)
 
 		if err == nil {
-			model.Set(model.Append(), []int{0, 1, 2}, []interface{}{"Foo", "Bar", "Bar"})
-			model.Set(model.Append(), []int{0, 1, 2}, []interface{}{"Foo", "Bar", "Bar"})
+			model.Set(model.Append(), []int{0, 1, 2}, []interface{}{"Foo", "hi", "Bar"})
+			model.Set(model.Append(), []int{0, 1, 2}, []interface{}{"Foo", "<b>Bar</b>", "Bar"})
 		}
 	}
 
@@ -282,6 +289,14 @@ func (v *view) BuildTable() (tree *gtk.TreeView, err error) {
 		tree.SetVExpand(true)
 		tree.SetVAlign(gtk.ALIGN_FILL)
 		tree.SetGridLines(gtk.TREE_VIEW_GRID_LINES_VERTICAL)
+
+		uri, _ := gtk.TargetEntryNew("text/uri-list", gtk.TARGET_OTHER_APP, 0)
+		plain, _ := gtk.TargetEntryNew("text/plain", gtk.TARGET_OTHER_APP, 0)
+
+		tree.DragDestSet(gtk.DEST_DEFAULT_ALL, []gtk.TargetEntry{*uri, *plain}, gdk.ACTION_COPY)
+		tree.Connect("drag-data-received", func(tree *gtk.TreeView, ctx *gdk.DragContext, x, y int, data *gtk.SelectionData, m int, t uint) {
+			fmt.Println(string(data.GetData()))
+		})
 	}
 
 	return
