@@ -25,7 +25,7 @@ type Callback interface {
 	OnSettingImportRecursively()
 }
 
-func BuildView() (err error) {
+func BuildView(res Resource) (err error) {
 
 	var app *gtk.Application
 	if err == nil {
@@ -34,7 +34,7 @@ func BuildView() (err error) {
 
 	var vvv *view
 	if err == nil {
-		vvv = &view{app: app}
+		vvv = &view{app: app, res: res}
 		app.Connect("activate", vvv.BuildMainWindow)
 		app.Run(os.Args)
 
@@ -51,6 +51,7 @@ func BuildView() (err error) {
 
 type view struct {
 	app *gtk.Application
+	res Resource
 	err error
 }
 
@@ -59,10 +60,71 @@ func (v *view) BuildMainWindow() {
 	var err = v.err
 	var top *gtk.HeaderBar
 	if err == nil {
-		top, err = gtk.HeaderBarNew()
+		top, err = v.BuildHeaderBar()
+	}
+
+	var mid *gtk.Grid
+	if err == nil {
+		mid, err = v.BuildInput()
+	}
+
+	var bot *gtk.ScrolledWindow
+	if err == nil {
+		var tree *gtk.TreeView
+		if err == nil {
+			bot, err = gtk.ScrolledWindowNew(nil, nil)
+		}
 
 		if err == nil {
-			top.SetShowCloseButton(true)
+			tree, err = v.BuildTable()
+		}
+
+		if err == nil {
+			bot.Add(tree)
+			bot.SetShadowType(gtk.SHADOW_ETCHED_IN)
+			// [GtkShadowType]
+			// (http://gtk.php.net/manual/en/html/gtk/gtk.enum.shadowtype.html)
+		}
+	}
+
+	var box *gtk.Box
+	if err == nil {
+		box, err = gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 4)
+
+		if err == nil {
+			box.SetMarginTop(6)
+			box.SetMarginStart(6)
+			box.SetMarginBottom(6)
+			box.SetMarginEnd(6)
+			box.Add(mid)
+			box.Add(bot)
+		}
+	}
+
+	var win *gtk.ApplicationWindow
+	if err == nil {
+		win, err = gtk.ApplicationWindowNew(v.app)
+	}
+
+	if err == nil {
+		win.Add(box)
+		win.SetTitle(v.res("main_title"))
+		win.SetIconName("application-x-executable")
+		win.SetTitlebar(top)
+		win.SetDefaultSize(720, 480)
+		win.ShowAll()
+	}
+
+	v.err = err
+}
+
+func (v *view) BuildHeaderBar() (head *gtk.HeaderBar, err error) {
+
+	if err == nil {
+		head, err = gtk.HeaderBarNew()
+
+		if err == nil {
+			head.SetShowCloseButton(true)
 		}
 	}
 
@@ -77,13 +139,16 @@ func (v *view) BuildMainWindow() {
 
 		if err == nil {
 			menu.SetImage(icon)
-			top.Add(menu)
+			head.Add(menu)
+			head.SetTitle(v.res("main_title"))
 		}
 	}
+	return
+}
 
-	var mid *gtk.Grid
+func (v *view) BuildInput() (grid *gtk.Grid, err error) {
 	if err == nil {
-		mid, err = gtk.GridNew()
+		grid, err = gtk.GridNew()
 	}
 
 	if err == nil {
@@ -108,88 +173,87 @@ func (v *view) BuildMainWindow() {
 		if err == nil {
 			pattern.SetHExpand(true)
 			pattern.SetHAlign(gtk.ALIGN_FILL)
+
 			template.SetHExpand(true)
 			template.SetHAlign(gtk.ALIGN_FILL)
-			rename.SetLabel("Rename")
 
-			mid.SetRowHomogeneous(true)
-			mid.SetColumnSpacing(4)
-			mid.SetRowSpacing(4)
+			rename.SetLabel(v.res("main_rename"))
 
-			mid.Attach(pattern, 0, 0, 1, 1)
-			mid.AttachNextTo(template, pattern, gtk.POS_BOTTOM, 1, 1)
-			mid.AttachNextTo(rename, pattern, gtk.POS_RIGHT, 1, 1)
+			grid.SetRowHomogeneous(true)
+			grid.SetColumnSpacing(4)
+			grid.SetRowSpacing(4)
+
+			grid.Attach(pattern, 0, 0, 1, 1)
+			grid.AttachNextTo(template, pattern, gtk.POS_BOTTOM, 1, 1)
+			grid.AttachNextTo(rename, pattern, gtk.POS_RIGHT, 1, 1)
 		}
 	}
-
-	var bot *gtk.TreeView
-	if err == nil {
-		bot, err = v.BuildMainWindowTreeView()
-	}
-
-	var box *gtk.Box
-	if err == nil {
-		box, err = gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 4)
-
-		if err == nil {
-			box.SetMarginTop(8)
-			box.SetMarginStart(8)
-			box.SetMarginBottom(8)
-			box.SetMarginEnd(8)
-			box.Add(mid)
-			box.Add(bot)
-		}
-	}
-
-	var win *gtk.ApplicationWindow
-	if err == nil {
-		win, err = gtk.ApplicationWindowNew(v.app)
-	}
-
-	if err == nil {
-		win.Add(box)
-		win.SetTitle("FAR")
-		win.SetIconName("application-x-executable")
-		win.SetTitlebar(top)
-		win.SetDefaultSize(720, 480)
-		win.ShowAll()
-	}
-
-	v.err = err
+	return
 }
 
-func (v *view) BuildMainWindowTreeView() (tree *gtk.TreeView, err error) {
+func (v *view) BuildTable() (tree *gtk.TreeView, err error) {
 
 	var stat *gtk.TreeViewColumn
 	if err == nil {
-		stat, err = gtk.TreeViewColumnNew()
+		var cell *gtk.CellRendererText
 		if err == nil {
-			stat.SetTitle("Stat")
+			cell, err = gtk.CellRendererTextNew()
+		}
+
+		if err == nil {
+			stat, err = gtk.TreeViewColumnNewWithAttribute(
+				v.res("main_column_name"), cell, "text", 0)
+		}
+
+		if err == nil {
+			stat.SetTitle(v.res("main_column_stat"))
+			stat.SetClickable(true)
+			stat.SetMinWidth(32)
+			stat.SetSortColumnID(0)
 		}
 	}
 
 	var name *gtk.TreeViewColumn
 	if err == nil {
-		name, err = gtk.TreeViewColumnNew()
+
+		var cell *gtk.CellRendererText
 		if err == nil {
-			name.SetTitle("Name")
+			cell, err = gtk.CellRendererTextNew()
+		}
+
+		if err == nil {
+			name, err = gtk.TreeViewColumnNewWithAttribute(
+				v.res("main_column_name"), cell, "text", 1)
+		}
+
+		if err == nil {
 			name.SetClickable(true)
-			name.SetReorderable(true)
 			name.SetResizable(true)
 			name.SetMinWidth(64)
+			name.SetFixedWidth(256)
+			name.SetSortColumnID(1)
 		}
 	}
 
 	var path *gtk.TreeViewColumn
 	if err == nil {
-		path, err = gtk.TreeViewColumnNew()
+
+		var cell *gtk.CellRendererText
 		if err == nil {
-			path.SetTitle("Path")
+			cell, err = gtk.CellRendererTextNew()
+		}
+
+		if err == nil {
+			path, err = gtk.TreeViewColumnNewWithAttribute(
+				v.res("main_column_path"), cell, "text", 2)
+		}
+
+		if err == nil {
 			path.SetClickable(true)
-			path.SetReorderable(true)
 			path.SetResizable(true)
 			path.SetSizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 			path.SetMinWidth(64)
+			path.SetSortColumnID(2)
 		}
 	}
 
@@ -218,7 +282,6 @@ func (v *view) BuildMainWindowTreeView() (tree *gtk.TreeView, err error) {
 		tree.SetVExpand(true)
 		tree.SetVAlign(gtk.ALIGN_FILL)
 		tree.SetGridLines(gtk.TREE_VIEW_GRID_LINES_VERTICAL)
-		// tree.SetRe
 	}
 
 	return

@@ -31,7 +31,8 @@ type Front struct {
 }
 
 func (a *Front) Run() error {
-	return BuildView()
+	r := Resource(nil)
+	return BuildView(r.Set("zh"))
 }
 
 func (a *Front) Close() error {
