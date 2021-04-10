@@ -1,4 +1,4 @@
-package fall
+package fill
 
 import (
 	"strconv"
@@ -99,20 +99,12 @@ func TestRemoveItems(t *testing.T) {
 	assert := assert.New(t)
 
 	_0, _1, _2, _3, _4, _5, _6, _7 :=
-		&Item{}, &Item{}, &Item{}, &Item{}, &Item{}, &Item{}, &Item{}, &Item{}
-	_0.Store(Data{Stat: 0})
-	_1.Store(Data{Stat: 1})
-	_2.Store(Data{Stat: 2})
-	_3.Store(Data{Stat: 3})
-	_4.Store(Data{Stat: 4})
-	_5.Store(Data{Stat: 5})
-	_6.Store(Data{Stat: 6})
-	_7.Store(Data{Stat: 7})
+		0, 1, 2, 3, 4, 5, 6, 7
 
-	RemoveItemByConditionAdapter := func(items []*Item, indexes []int) []*Item {
-		in := func(item *Item) bool {
+	RemoveItemByConditionAdapter := func(items []interface{}, indexes []int) []interface{} {
+		in := func(item interface{}) bool {
 			for _, k := range indexes {
-				if k == int(item.Load().Stat) {
+				if k == item.(int) {
 					return true
 				}
 			}
@@ -121,16 +113,16 @@ func TestRemoveItems(t *testing.T) {
 		return RemoveItemByCondition(items, in)
 	}
 
-	for i, f := range map[string]func([]*Item, []int) []*Item{
+	for i, f := range map[string]func([]interface{}, []int) []interface{}{
 		"RemoveItemFromTailToHead": RemoveItemFromTailToHead,
 		"RemoveItemFromHeadToTail": RemoveItemFromHeadToTail,
 		"RemoveItemByIndexes":      RemoveItemByIndexes,
 		"RemoveItemByCondition":    RemoveItemByConditionAdapter,
 	} {
 		for j, c := range []struct {
-			source  []*Item
+			source  []interface{}
 			indexes []int
-			result  []*Item
+			result  []interface{}
 		}{
 			{
 				nil,
@@ -138,49 +130,49 @@ func TestRemoveItems(t *testing.T) {
 				nil,
 			},
 			{
-				[]*Item{_0, _1, _2, _3, _4, _5, _6},
+				[]interface{}{_0, _1, _2, _3, _4, _5, _6},
 				[]int{4},
-				[]*Item{_0, _1, _2, _3, _5, _6},
+				[]interface{}{_0, _1, _2, _3, _5, _6},
 			},
 			{
-				[]*Item{_0, _1, _2, _3, _4, _5, _6},
+				[]interface{}{_0, _1, _2, _3, _4, _5, _6},
 				[]int{6},
-				[]*Item{_0, _1, _2, _3, _4, _5},
+				[]interface{}{_0, _1, _2, _3, _4, _5},
 			},
 			{
-				[]*Item{_0, _1, _2, _3, _4, _5, _6, _7},
+				[]interface{}{_0, _1, _2, _3, _4, _5, _6, _7},
 				[]int{0},
-				[]*Item{_1, _2, _3, _4, _5, _6, _7},
+				[]interface{}{_1, _2, _3, _4, _5, _6, _7},
 			},
 			{
-				[]*Item{_0, _1, _2, _3, _4, _5, _6, _7},
+				[]interface{}{_0, _1, _2, _3, _4, _5, _6, _7},
 				[]int{0, 1, 2, 3, 4, 5, 6, 7},
-				[]*Item{},
+				[]interface{}{},
 			},
 			{
-				[]*Item{_0, _1, _2, _3, _4, _5, _6},
+				[]interface{}{_0, _1, _2, _3, _4, _5, _6},
 				[]int{0, 1, 2},
-				[]*Item{_3, _4, _5, _6},
+				[]interface{}{_3, _4, _5, _6},
 			},
 			{
-				[]*Item{_0, _1, _2, _3, _4, _5, _6},
+				[]interface{}{_0, _1, _2, _3, _4, _5, _6},
 				[]int{4, 5, 6},
-				[]*Item{_0, _1, _2, _3},
+				[]interface{}{_0, _1, _2, _3},
 			},
 			{
-				[]*Item{_0, _1, _2, _3, _4, _5, _6, _7},
+				[]interface{}{_0, _1, _2, _3, _4, _5, _6, _7},
 				[]int{0, 1, 3, 4, 6},
-				[]*Item{_2, _5, _7},
+				[]interface{}{_2, _5, _7},
 			},
 			{
-				[]*Item{_0, _1, _2, _3, _4, _5, _6},
+				[]interface{}{_0, _1, _2, _3, _4, _5, _6},
 				[]int{1, 2, 3, 4, 5},
-				[]*Item{_0, _6},
+				[]interface{}{_0, _6},
 			},
 			{
-				[]*Item{_0, _1, _2, _3, _4, _5, _6},
+				[]interface{}{_0, _1, _2, _3, _4, _5, _6},
 				[]int{1, 3, 5},
-				[]*Item{_0, _2, _4, _6},
+				[]interface{}{_0, _2, _4, _6},
 			},
 		} {
 			desc := "Case " + i + "#" + strconv.Itoa(j)

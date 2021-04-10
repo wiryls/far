@@ -1,4 +1,4 @@
-package fall
+package fill
 
 import "sort"
 
@@ -44,7 +44,7 @@ func IntsPairs(nums []int) [][2]int {
 }
 
 // RemoveItemByCondition remove any item if cond(item) is true.
-func RemoveItemByCondition(items []*Item, cond func(*Item) bool) []*Item {
+func RemoveItemByCondition(items []interface{}, cond func(interface{}) bool) []interface{} {
 
 	k, n := 0, len(items)
 	for i := 0; i < n; i++ {
@@ -60,7 +60,7 @@ func RemoveItemByCondition(items []*Item, cond func(*Item) bool) []*Item {
 }
 
 // RemoveItemByIndexes
-func RemoveItemByIndexes(items []*Item, indexes []int) []*Item {
+func RemoveItemByIndexes(items []interface{}, indexes []int) []interface{} {
 	if len(items) == 0 || len(indexes) == 0 {
 		return items
 	}
@@ -98,7 +98,7 @@ func RemoveItemByIndexes(items []*Item, indexes []int) []*Item {
 //  - `indexes` must be sorted in ascending order
 //  - `indexes` must be in range `[0, len(items))`.
 //  - there should not be any duplicate `indexes`.
-func RemoveItemFromTailToHead(items []*Item, indexes []int) []*Item {
+func RemoveItemFromTailToHead(items []interface{}, indexes []int) []interface{} {
 	if len(items) == 0 || len(indexes) == 0 {
 		return items
 	}
@@ -133,7 +133,7 @@ func RemoveItemFromTailToHead(items []*Item, indexes []int) []*Item {
 //  - `indexes` must be sorted in ascending order
 //  - `indexes` must be in range `[0, len(items))`.
 //  - there should not be any duplicate `indexes`.
-func RemoveItemFromHeadToTail(items []*Item, indexes []int) []*Item {
+func RemoveItemFromHeadToTail(items []interface{}, indexes []int) []interface{} {
 	if len(items) == 0 || len(indexes) == 0 {
 		return items
 	}
