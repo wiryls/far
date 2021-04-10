@@ -17,15 +17,21 @@ func (r *Resource) Set(locale string) Resource {
 		"main_input_template": {
 			"en": "Template",
 			"zh": "模板"},
-		"main_column_stat": {
+		"main_tree_column_stat": {
 			"en": "Stat",
 			"zh": "状态"},
-		"main_column_name": {
-			"en": "Stat",
+		"main_tree_column_name": {
+			"en": "Name",
 			"zh": "名字"},
-		"main_column_path": {
-			"en": "Stat",
+		"main_tree_column_path": {
+			"en": "Path",
 			"zh": "路径"},
+		"main_tree_menu_delete": {
+			"en": "Delete",
+			"zh": "移除"},
+		"main_tree_menu_clear": {
+			"en": "Clear",
+			"zh": "清空"},
 	}
 
 	*r = func(key string) string {
