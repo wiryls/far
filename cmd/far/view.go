@@ -13,13 +13,13 @@ import (
 type Callbacks interface {
 
 	// for Other View
-	OnTextPatternChanged()
-	OnTextTemplateChanged()
-	OnRename()
-	OnImport([]string)
-	OnDelete()
-	OnClear()
-	OnExit()
+	OnActionPatternChanged()
+	OnActionTemplateChanged()
+	OnActionRename()
+	OnActionImport([]string)
+	OnActionDelete()
+	OnActionClear()
+	OnActionExit()
 
 	// settings
 	OnSettingImportRecursively()
@@ -27,6 +27,8 @@ type Callbacks interface {
 
 type view struct {
 	app      *gtk.Application
+	list     *gtk.ListStore
+	cloumns  []int
 	tree     *gtk.TreeView
 	pattern  *gtk.Entry
 	template *gtk.Entry
@@ -132,7 +134,7 @@ func (b *builder) BuildMainWindow() {
 	if err == nil {
 		win.Add(box)
 
-		win.Connect("destroy", b.cbs.OnExit)
+		win.Connect("destroy", b.cbs.OnActionExit)
 
 		win.SetTitle(b.res("main_title"))
 		win.SetIconName("application-x-executable")
@@ -201,17 +203,17 @@ func (b *builder) BuildInput() (grid *gtk.Grid, err error) {
 			pattern.SetHExpand(true)
 			pattern.SetHAlign(gtk.ALIGN_FILL)
 			pattern.SetPlaceholderText(b.res("main_input_pattern"))
-			pattern.Connect("changed", b.cbs.OnTextPatternChanged)
+			pattern.Connect("changed", b.cbs.OnActionPatternChanged)
 			// [The “changed” signal]
 			// (https://developer.gnome.org/gtk3/unstable/GtkEditable.html#GtkEditable-changed)
 
 			template.SetHExpand(true)
 			template.SetHAlign(gtk.ALIGN_FILL)
 			template.SetPlaceholderText(b.res("main_input_template"))
-			template.Connect("changed", b.cbs.OnTextTemplateChanged)
+			template.Connect("changed", b.cbs.OnActionTemplateChanged)
 
 			rename.SetLabel(b.res("main_rename"))
-			rename.Connect("clicked", b.cbs.OnRename)
+			rename.Connect("clicked", b.cbs.OnActionRename)
 
 			grid.SetRowHomogeneous(true)
 			grid.SetColumnSpacing(4)
@@ -238,6 +240,7 @@ func (b *builder) BuildTable() (tree *gtk.TreeView, err error) {
 		ColumnStat = iota
 		ColumnName
 		ColumnPath
+		ColumnCust
 	)
 
 	var cell *gtk.CellRendererText
@@ -299,13 +302,8 @@ func (b *builder) BuildTable() (tree *gtk.TreeView, err error) {
 		model, err = gtk.ListStoreNew(
 			glib.TYPE_STRING,
 			glib.TYPE_STRING,
-			glib.TYPE_STRING)
-
-		if err == nil {
-			cols := []int{ColumnStat, ColumnName, ColumnPath}
-			model.Set(model.Append(), cols, []interface{}{"Foo", "?", "Bar"})
-			model.Set(model.Append(), cols, []interface{}{"Foo", "<b>Bar</b>", "Bar"})
-		}
+			glib.TYPE_STRING,
+			glib.TYPE_OBJECT)
 	}
 
 	var entries []gtk.TargetEntry
@@ -344,8 +342,8 @@ func (b *builder) BuildTable() (tree *gtk.TreeView, err error) {
 		clear, err = gtk.MenuItemNewWithLabel(b.res("main_tree_menu_clear"))
 	}
 	if err == nil {
-		delete.Connect("activate", b.cbs.OnDelete)
-		clear.Connect("activate", b.cbs.OnClear)
+		delete.Connect("activate", b.cbs.OnActionDelete)
+		clear.Connect("activate", b.cbs.OnActionClear)
 
 		menu.Add(delete)
 		menu.Add(separator)
@@ -390,7 +388,16 @@ func (b *builder) BuildTable() (tree *gtk.TreeView, err error) {
 		tree.Connect("drag-data-received", func(tree *gtk.TreeView, ctx *gdk.DragContext, x, y int, data *gtk.SelectionData, m int, t uint) {
 			src := strings.ReplaceAll(string(data.GetData()), "\r\n", "\n")
 			dst := strings.Split(src, "\n")
-			b.cbs.OnImport(dst)
+			out := make([]string, 0, len(dst))
+			for _, str := range dst {
+				str = strings.TrimPrefix(str, "file:///")
+				str = strings.TrimSpace(str)
+				str = strings.TrimFunc(str, func(r rune) bool { return r == 0 })
+				if len(str) > 0 {
+					out = append(out, str)
+				}
+			}
+			b.cbs.OnActionImport(out)
 		})
 
 		tree.AppendColumn(stat)
@@ -404,6 +411,8 @@ func (b *builder) BuildTable() (tree *gtk.TreeView, err error) {
 
 	if err == nil {
 		b.out.tree = tree
+		b.out.list = model
+		b.out.cloumns = []int{ColumnStat, ColumnName, ColumnPath, ColumnCust}
 	}
 
 	return

@@ -48,7 +48,7 @@ type differ struct {
 	Runnin uint32
 }
 
-func (t *differ) Execute(sync *uint32) {
+func (t *differ) Run(sync *uint32) {
 	if (sync == nil || atomic.LoadUint32(sync) != t.Runnin) ||
 		t.Source == nil ||
 		t.Splite == nil ||
@@ -63,7 +63,7 @@ func (t *differ) Execute(sync *uint32) {
 		another := *t
 		another.Source, todo = t.Source[size:], t.Source[:size]
 		another.Number++
-		another.Runner(another.Execute)
+		another.Runner(another.Run)
 	}
 
 	result := make([]Output, 0, len(todo))

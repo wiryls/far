@@ -51,7 +51,7 @@ func (f *Fall) Flow(source []Input) {
 		Output: (&sequencer{Latest: 0, Output: f.call}).Collect,
 		Runner: f.feed.Push,
 		Runnin: 1,
-	}).Execute)
+	}).Run)
 }
 
 // Stop all current tasks. It will block until the last task stops.

@@ -19,8 +19,8 @@ func NewFront() (m *Front, err error) {
 	m.view, err = BuildView(m.text, m)
 	m.sets.ImportRecursively = true
 
-	m.fall = fall.New(nil)
-	m.fill = fill.New(nil, m.hope.Has)
+	m.fill = fill.New(m.OnItemsImported, m.hope.Has)
+	m.fall = fall.New(m.OnItemsDiffered)
 	return
 }
 
@@ -34,8 +34,8 @@ type Front struct {
 
 	// model
 	hope filter.Filter
-	fall *fall.Fall
 	fill *fill.Fill
+	fall *fall.Fall
 }
 
 func (a *Front) Run() (err error) {
@@ -50,9 +50,9 @@ func (a *Front) Close() error {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-//// Callbacks GUI
+//// Callbacks View
 
-func (a *Front) OnTextPatternChanged() {
+func (a *Front) OnActionPatternChanged() {
 	var (
 		err     error
 		pattern string
@@ -63,12 +63,15 @@ func (a *Front) OnTextPatternChanged() {
 	if err == nil {
 		err = a.fall.SetPattern(pattern)
 	}
-	if err != nil {
+	if err == nil {
+		// TODO:
+		a.view.pattern.SetTooltipText("")
+	} else {
 		a.view.pattern.SetTooltipText(err.Error())
 	}
 }
 
-func (a *Front) OnTextTemplateChanged() {
+func (a *Front) OnActionTemplateChanged() {
 	var (
 		err      error
 		template string
@@ -79,16 +82,19 @@ func (a *Front) OnTextTemplateChanged() {
 	if err == nil {
 		err = a.fall.SetTemplate(template)
 	}
-	if err != nil {
+	if err == nil {
+		// TODO:
+		a.view.template.SetTooltipText("")
+	} else {
 		a.view.template.SetTooltipText(err.Error())
 	}
 }
 
-func (a *Front) OnRename() {
+func (a *Front) OnActionRename() {
 
 }
 
-func (a *Front) OnImport(list []string) {
+func (a *Front) OnActionImport(list []string) {
 
 	var input []string
 	if !a.sets.ImportRecursively {
@@ -96,89 +102,94 @@ func (a *Front) OnImport(list []string) {
 
 	} else {
 		for _, file := range list {
-			err := filepath.WalkDir(file, func(path string, d fs.DirEntry, err error) error {
+			if err := filepath.WalkDir(file, func(path string, d fs.DirEntry, err error) error {
 				input = append(input, path)
 				return err
-			})
-			if err != nil {
-				log.Println(err)
+			}); err != nil {
+				log.Println("OnActionImport", err)
 			}
 		}
 
 	}
 
 	if len(input) > 0 {
-		a.fall.Flow(input)
+		a.fill.Fill(input)
 	}
 }
 
-func (a *Front) OnDelete() {
+func (a *Front) OnActionDelete() {
 
 	var (
 		err       error
-		model     gtk.ITreeModel
 		selection *gtk.TreeSelection
 		rows      *glib.List
-		list      []int
 	)
-	if err == nil {
-		model, err = a.view.tree.GetModel()
-	}
 	if err == nil {
 		selection, err = a.view.tree.GetSelection()
 	}
-
 	if err == nil {
 		// attention: https://github.com/gotk3/gotk3/issues/590
-		rows = selection.GetSelectedRows(model)
+		rows = selection.GetSelectedRows(a.view.list)
 	}
-
 	if rows != nil {
-		rows.Foreach(func(i interface{}) {
-			if v, ok := i.(*gtk.TreePath); ok {
-				if is := v.GetIndices(); len(is) > 0 {
-					list = append(list, is[0])
+		a.DoItemsDelete(rows.Reverse())
+	}
+}
+
+func (a *Front) OnActionClear() {
+	a.DoItemsReset()
+}
+
+func (a *Front) OnActionExit() {
+	a.DoItemsReset()
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//// Callbacks setting
+
+func (a *Front) OnSettingImportRecursively() {
+
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//// Callbacks Items
+
+func (a *Front) OnItemsImported(imported []string) {
+	if m := a.view.list; m != nil {
+		a.fall.Flow(imported)
+	}
+}
+
+func (a *Front) OnItemsDiffered(differed []fall.Output) {
+	if m := a.view.list; m != nil {
+		for _, o := range differed {
+			m.Set(m.Append(), a.view.cloumns, []interface{}{
+				"READY", filepath.Base(o.Source), o.Source, o.Differ,
+			})
+		}
+	}
+}
+
+func (a *Front) DoItemsDelete(reversed *glib.List) {
+	if m := a.view.list; m != nil {
+		// [Removing multiple rows from a Gtk TreeStore]
+		// (https://stackoverflow.com/a/27933886)
+		reversed.Foreach(func(a interface{}) {
+			v, ok := a.(*gtk.TreePath)
+			if ok {
+				i, err := m.GetIter(v)
+				if err == nil {
+					m.Remove(i)
+				} else {
+					log.Println("DoItemsDelete", err)
 				}
 			}
 		})
 	}
+}
 
-	if len(list) > 0 {
-		// a.fall.Delete(list)
+func (a *Front) DoItemsReset() {
+	if m := a.view.list; m != nil {
+		m.Clear()
 	}
-}
-
-func (a *Front) OnClear() {
-}
-
-func (a *Front) OnExit() {
-}
-
-/////////////////////////////////////////////////////////////////////////////
-//// Callbacks settings
-
-func (a *Front) OnSettingImportRecursively() {
-}
-
-/////////////////////////////////////////////////////////////////////////////
-//// Callbacks Fall
-
-func (a *Front) OnItemUpdate(index int) {
-
-}
-
-func (a *Front) OnItemsUpdate(from, to int) {
-
-}
-
-func (a *Front) OnItemsInsert(from, to int) {
-
-}
-
-func (a *Front) OnItemsDelete(from, to int) {
-
-}
-
-func (a *Front) OnItemsReset() {
-
 }

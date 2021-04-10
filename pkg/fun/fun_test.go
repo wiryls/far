@@ -1,10 +1,11 @@
-package fill
+package fun_test
 
 import (
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/wiryls/far/pkg/fun"
 )
 
 func TestIntsUnique(t *testing.T) {
@@ -37,7 +38,7 @@ func TestIntsUnique(t *testing.T) {
 		},
 	} {
 		desc := "Case #" + strconv.Itoa(i)
-		assert.Equal(c[1], IntsUnique(c[0]), desc)
+		assert.Equal(c[1], fun.IntsUnique(c[0]), desc)
 	}
 }
 
@@ -91,7 +92,7 @@ func TestIntsPair(t *testing.T) {
 		},
 	} {
 		desc := "Case #" + strconv.Itoa(i)
-		assert.Equal(c.O, IntsPairs(c.I), desc)
+		assert.Equal(c.O, fun.IntsPairs(c.I), desc)
 	}
 }
 
@@ -110,13 +111,13 @@ func TestRemoveItems(t *testing.T) {
 			}
 			return false
 		}
-		return RemoveItemByCondition(items, in)
+		return fun.RemoveItemByCondition(items, in)
 	}
 
 	for i, f := range map[string]func([]interface{}, []int) []interface{}{
-		"RemoveItemFromTailToHead": RemoveItemFromTailToHead,
-		"RemoveItemFromHeadToTail": RemoveItemFromHeadToTail,
-		"RemoveItemByIndexes":      RemoveItemByIndexes,
+		"RemoveItemFromTailToHead": fun.RemoveItemFromTailToHead,
+		"RemoveItemFromHeadToTail": fun.RemoveItemFromHeadToTail,
+		"RemoveItemByIndexes":      fun.RemoveItemByIndexes,
 		"RemoveItemByCondition":    RemoveItemByConditionAdapter,
 	} {
 		for j, c := range []struct {

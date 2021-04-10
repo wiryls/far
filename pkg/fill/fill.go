@@ -47,10 +47,10 @@ func (f *Fill) Fill(input []string) {
 			if err == nil {
 				has = f.filter(path)
 			}
-			if has && err == nil {
+			if err == nil && !has {
 				_, err = os.Stat(path)
 			}
-			return path, err == nil && has
+			return path, err == nil && !has
 		},
 		Output: f.output,
 		Runner: f.flow.Push,
