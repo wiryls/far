@@ -39,7 +39,6 @@ type Front struct {
 }
 
 func (a *Front) Run() (err error) {
-	a.view, err = BuildView(a.text, a)
 	a.view.Run()
 	return
 }
@@ -64,8 +63,8 @@ func (a *Front) OnActionPatternChanged() {
 		err = a.fall.SetPattern(pattern)
 	}
 	if err == nil {
-		// TODO:
 		a.view.pattern.SetTooltipText("")
+		a.OnItemsRediffer()
 	} else {
 		a.view.pattern.SetTooltipText(err.Error())
 	}
@@ -83,8 +82,8 @@ func (a *Front) OnActionTemplateChanged() {
 		err = a.fall.SetTemplate(template)
 	}
 	if err == nil {
-		// TODO:
 		a.view.template.SetTooltipText("")
+		a.OnItemsRediffer()
 	} else {
 		a.view.template.SetTooltipText(err.Error())
 	}
@@ -154,33 +153,40 @@ func (a *Front) OnSettingImportRecursively() {
 /////////////////////////////////////////////////////////////////////////////
 //// Callbacks Items
 
+func (a *Front) OnItemsRediffer() {
+	if a != nil && a.view != nil && a.view.list != nil {
+		m := (*list)(a.view.list)
+		out := m.Paths()
+		a.fall.StopWith(m.Clear)
+		a.fall.Flow(out)
+	}
+}
+
 func (a *Front) OnItemsImported(imported []string) {
-	if m := a.view.list; m != nil {
+	if a != nil && a.view != nil && a.view.list != nil {
 		a.fall.Flow(imported)
 	}
 }
 
 func (a *Front) OnItemsDiffered(differed []fall.Output) {
-	if m := a.view.list; m != nil {
+	if a != nil && a.view != nil && a.view.list != nil {
+		m := (*list)(a.view.list)
 		for _, o := range differed {
-			m.Set(m.Append(), a.view.cloumns, []interface{}{
-				"READY", filepath.Base(o.Source), o.Source, o.Differ,
-			})
+			m.Append("READY", filepath.Base(o.Source), o.Source, o.Differ)
 		}
 	}
 }
 
 func (a *Front) DoItemsDelete(reversed *glib.List) {
-	if m := a.view.list; m != nil {
+	if a != nil && a.view != nil && a.view.list != nil {
+		m := (*list)(a.view.list)
 		// [Removing multiple rows from a Gtk TreeStore]
 		// (https://stackoverflow.com/a/27933886)
 		reversed.Foreach(func(a interface{}) {
 			v, ok := a.(*gtk.TreePath)
 			if ok {
-				i, err := m.GetIter(v)
-				if err == nil {
-					m.Remove(i)
-				} else {
+				err := m.Delete(v)
+				if err != nil {
 					log.Println("DoItemsDelete", err)
 				}
 			}
@@ -189,7 +195,7 @@ func (a *Front) DoItemsDelete(reversed *glib.List) {
 }
 
 func (a *Front) DoItemsReset() {
-	if m := a.view.list; m != nil {
-		m.Clear()
+	if a != nil && a.view != nil && a.view.list != nil {
+		(*list)(a.view.list).Clear()
 	}
 }
