@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"log"
 	"path/filepath"
+	"sync"
 
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -36,6 +37,7 @@ type Front struct {
 	hope filter.Filter
 	fill *fill.Fill
 	fall *fall.Fall
+	keep sync.Mutex
 }
 
 func (a *Front) Run() (err error) {
@@ -153,8 +155,33 @@ func (a *Front) OnSettingImportRecursively() {
 /////////////////////////////////////////////////////////////////////////////
 //// Callbacks Items
 
+func (a *Front) OnItemsImported(imported []string) {
+	l := make([]string, 0, len(imported))
+	for _, s := range imported {
+		if !a.hope.Put(s) {
+			l = append(l, s)
+		}
+	}
+	a.fall.Flow(l)
+}
+
+func (a *Front) OnItemsDiffered(differed []fall.Output) {
+	if a != nil && a.view != nil && a.view.list != nil {
+		defer a.keep.Unlock()
+		/*_*/ a.keep.Lock()
+
+		m := (*list)(a.view.list)
+		for _, o := range differed {
+			m.Append(o)
+		}
+	}
+}
+
 func (a *Front) OnItemsRediffer() {
 	if a != nil && a.view != nil && a.view.list != nil {
+		defer a.keep.Unlock()
+		/*_*/ a.keep.Lock()
+
 		m := (*list)(a.view.list)
 		out := m.Paths()
 		a.fall.StopWith(m.Clear)
@@ -162,30 +189,38 @@ func (a *Front) OnItemsRediffer() {
 	}
 }
 
-func (a *Front) OnItemsImported(imported []string) {
-	if a != nil && a.view != nil && a.view.list != nil {
-		a.fall.Flow(imported)
-	}
-}
-
-func (a *Front) OnItemsDiffered(differed []fall.Output) {
-	if a != nil && a.view != nil && a.view.list != nil {
-		m := (*list)(a.view.list)
-		for _, o := range differed {
-			m.Append("READY", filepath.Base(o.Source), o.Source, o.Differ)
-		}
-	}
-}
-
 func (a *Front) DoItemsDelete(reversed *glib.List) {
 	if a != nil && a.view != nil && a.view.list != nil {
+		defer a.keep.Unlock()
+		/*_*/ a.keep.Lock()
+
 		m := (*list)(a.view.list)
 		// [Removing multiple rows from a Gtk TreeStore]
 		// (https://stackoverflow.com/a/27933886)
-		reversed.Foreach(func(a interface{}) {
-			v, ok := a.(*gtk.TreePath)
+		reversed.Foreach(func(x interface{}) {
+			v, ok := x.(*gtk.TreePath)
 			if ok {
-				err := m.Delete(v)
+				i, err := m.GetIter(v)
+
+				var o *glib.Value
+				if err == nil {
+					o, err = m.GetValue(i, 2)
+				}
+
+				var s string
+				if err == nil {
+					s, err = o.GetString()
+				}
+				if err == nil {
+					a.hope.Pop(s)
+				}
+
+				if err != nil {
+					log.Println("DoItemsDelete", err)
+					err = nil
+				}
+
+				err = m.Delete(v)
 				if err != nil {
 					log.Println("DoItemsDelete", err)
 				}
@@ -196,6 +231,9 @@ func (a *Front) DoItemsDelete(reversed *glib.List) {
 
 func (a *Front) DoItemsReset() {
 	if a != nil && a.view != nil && a.view.list != nil {
+		defer a.keep.Unlock()
+		/*_*/ a.keep.Lock()
+
 		(*list)(a.view.list).Clear()
 	}
 }

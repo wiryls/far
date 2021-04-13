@@ -68,9 +68,7 @@ func (t *differ) Run(sync *uint32) {
 
 	result := make([]Output, 0, len(todo))
 	for _, input := range todo {
-		if output := t.Action(input); output.Differ != nil {
-			result = append(result, output)
-		}
+		result = append(result, t.Action(input))
 	}
 
 	if (sync == nil || atomic.LoadUint32(sync) == t.Runnin) && len(result) > 0 {

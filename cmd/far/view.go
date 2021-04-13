@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/xml"
 	"os"
 	"strings"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
+	"github.com/wiryls/far/pkg/fall"
 	"github.com/wiryls/far/pkg/far"
 	"github.com/wiryls/pkg/errors/cerrors"
 )
@@ -409,14 +411,13 @@ func (b *builder) BindList(tree *gtk.TreeView) (err error) {
 
 type list gtk.ListStore
 
-func (l *list) Append(stat, name, path string, diff far.Diffs) (err error) {
+func (l *list) Append(o fall.Output) (err error) {
 	m := (*gtk.ListStore)(l)
-	err = m.Set(m.Append(), []int{
+	return m.Set(m.Append(), []int{
 		0, 1, 2, 3,
 	}, []interface{}{
-		stat, name, path, diff,
+		"Preview", toMarkup(o), o.Source, o,
 	})
-	return
 }
 
 func (l *list) Paths() (out []string) {
@@ -434,15 +435,43 @@ func (l *list) Paths() (out []string) {
 	return
 }
 
-func (l *list) Delete(path *gtk.TreePath) (err error) {
+func (l *list) Delete(path *gtk.TreePath) error {
 	m := (*gtk.ListStore)(l)
 	i, err := m.GetIter(path)
 	if err == nil {
 		m.Remove(i)
 	}
-	return
+	return err
 }
 
 func (l *list) Clear() {
 	(*gtk.ListStore)(l).Clear()
+}
+
+func toMarkup(o fall.Output) string {
+	// fast path
+	if o.Differ.IsSame() && !strings.ContainsAny(o.Target, "><") {
+		return o.Target
+	}
+
+	// slow path
+	b := strings.Builder{}
+	for _, d := range o.Differ {
+		switch d.Type {
+		case far.DiffInsert:
+			b.WriteString(`<span foreground="#007947">`)
+			_ = xml.EscapeText(&b, []byte(d.Text))
+			b.WriteString("</span>")
+		case far.DiffDelete:
+			b.WriteString(`<span foreground="#DC143C" strikethrough="true">`)
+			_ = xml.EscapeText(&b, []byte(d.Text))
+			b.WriteString("</span>")
+		default:
+			_ = xml.EscapeText(&b, []byte(d.Text))
+		}
+	}
+
+	// [Pango markup]
+	// (https://developer.gnome.org/pango/1.46/pango-Markup.html)
+	return b.String()
 }

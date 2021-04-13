@@ -7,7 +7,8 @@ type Input = string
 
 // Output is a pair of Input and Differ result.
 type Output struct {
-	Source Input
+	Source string
+	Target string
 	Differ far.Diffs
 }
 
