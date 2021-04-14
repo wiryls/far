@@ -119,22 +119,7 @@ func (a *Front) OnActionImport(list []string) {
 }
 
 func (a *Front) OnActionDelete() {
-
-	var (
-		err       error
-		selection *gtk.TreeSelection
-		rows      *glib.List
-	)
-	if err == nil {
-		selection, err = a.view.tree.GetSelection()
-	}
-	if err == nil {
-		// attention: https://github.com/gotk3/gotk3/issues/590
-		rows = selection.GetSelectedRows(a.view.list)
-	}
-	if rows != nil {
-		a.DoItemsDelete(rows.Reverse())
-	}
+	a.DoItemsDeleteSelected()
 }
 
 func (a *Front) OnActionClear() {
@@ -172,60 +157,79 @@ func (a *Front) OnItemsDiffered(differed []fall.Output) {
 
 		m := (*list)(a.view.list)
 		for _, o := range differed {
-			m.Append(o)
+			err := m.Append(o)
+			if err != nil {
+				log.Printf("failed to append %s: %v\n", o.Target, err)
+			}
 		}
 	}
 }
 
 func (a *Front) OnItemsRediffer() {
 	if a != nil && a.view != nil && a.view.list != nil {
-		defer a.keep.Unlock()
-		/*_*/ a.keep.Lock()
-
+		a.fall.StopWith(a.keep.Lock)
 		m := (*list)(a.view.list)
 		out := m.Paths()
-		a.fall.StopWith(m.Clear)
+		m.Clear()
+		a.keep.Unlock()
+
 		a.fall.Flow(out)
 	}
 }
 
-func (a *Front) DoItemsDelete(reversed *glib.List) {
+func (a *Front) DoItemsDeleteSelected() {
 	if a != nil && a.view != nil && a.view.list != nil {
 		defer a.keep.Unlock()
 		/*_*/ a.keep.Lock()
 
-		m := (*list)(a.view.list)
-		// [Removing multiple rows from a Gtk TreeStore]
-		// (https://stackoverflow.com/a/27933886)
-		reversed.Foreach(func(x interface{}) {
-			v, ok := x.(*gtk.TreePath)
-			if ok {
-				i, err := m.GetIter(v)
+		var (
+			err       error
+			selection *gtk.TreeSelection
+			rows      *glib.List
+		)
+		if err == nil {
+			selection, err = a.view.tree.GetSelection()
+		}
+		if err == nil {
+			// attention: https://github.com/gotk3/gotk3/issues/590
+			rows = selection.GetSelectedRows(a.view.list).Reverse()
+		}
+		if rows != nil {
+			m := (*list)(a.view.list)
+			// [Removing multiple rows from a Gtk TreeStore]
+			// (https://stackoverflow.com/a/27933886)
+			rows.Foreach(func(x interface{}) {
+				v, ok := x.(*gtk.TreePath)
+				if ok {
+					i, err := m.GetIter(v)
 
-				var o *glib.Value
-				if err == nil {
-					o, err = m.GetValue(i, 2)
-				}
+					var o *glib.Value
+					if err == nil {
+						o, err = m.GetValue(i, 2)
+					}
 
-				var s string
-				if err == nil {
-					s, err = o.GetString()
-				}
-				if err == nil {
-					a.hope.Pop(s)
-				}
+					var s string
+					if err == nil {
+						s, err = o.GetString()
+					}
+					if err == nil {
+						a.hope.Pop(s)
+					} else if err != nil {
+						log.Printf("failed to pop %s: %v\n", s, err)
+						err = nil
+					}
 
-				if err != nil {
-					log.Println("DoItemsDelete", err)
-					err = nil
+					err = m.Delete(v)
+					if err != nil {
+						log.Printf("failed to delete %s: %v\n", s, err)
+					}
 				}
+			})
+		}
 
-				err = m.Delete(v)
-				if err != nil {
-					log.Println("DoItemsDelete", err)
-				}
-			}
-		})
+		if err != nil {
+			log.Println("failed to delete selected:", err)
+		}
 	}
 }
 

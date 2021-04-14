@@ -430,7 +430,7 @@ func (l *list) Paths() (out []string) {
 				out = append(out, s)
 			}
 		}
-		return err == nil
+		return err != nil
 	})
 	return
 }
