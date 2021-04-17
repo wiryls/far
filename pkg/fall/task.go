@@ -7,8 +7,7 @@ import (
 
 type sequencer struct {
 	Latest int
-	Output func(int, []Output)
-	number int
+	Output func([]Output)
 	buffer map[int][]Output
 	keeper sync.Mutex
 }
@@ -28,8 +27,7 @@ func (s *sequencer) Collect(index int, items []Output) {
 				break
 			}
 		}
-		s.Output(s.number, items)
-		s.number++
+		s.Output(items)
 
 	} else if len(items) > 0 {
 		if s.buffer == nil {

@@ -1,7 +1,9 @@
 package main
 
 import (
-	"encoding/xml"
+	"html"
+	"log"
+	"net/url"
 	"os"
 	"strings"
 
@@ -315,11 +317,21 @@ func (b *builder) BuildTree() (tree *gtk.TreeView, err error) {
 			dst := strings.Split(src, "\n")
 			out := make([]string, 0, len(dst))
 			for _, str := range dst {
-				str = strings.TrimPrefix(str, "file:///")
-				str = strings.TrimSpace(str)
-				str = strings.TrimFunc(str, func(r rune) bool { return r == 0 })
-				if len(str) > 0 {
-					out = append(out, str)
+				var err error
+				switch {
+				case strings.HasPrefix(str, "file:///"):
+					str = strings.TrimPrefix(str, "file:///")
+					str, err = url.PathUnescape(str)
+				default:
+					// do nothing
+				}
+				if err == nil {
+					str = strings.TrimFunc(str, func(r rune) bool { return r == 0 })
+					if len(str) > 0 {
+						out = append(out, str)
+					}
+				} else {
+					log.Printf("failed to import %s: %v\n", str, err)
 				}
 			}
 			b.cbs.OnActionImport(out)
@@ -450,8 +462,9 @@ func (l *list) Clear() {
 
 func toMarkup(o fall.Output) string {
 	// fast path
-	if o.Differ.IsSame() && !strings.ContainsAny(o.Target, "><") {
-		return o.Target
+	if o.Differ.IsSame() {
+		// I use html.EscapeString as there is no g_markup_escape_text in gotk3
+		return html.EscapeString(o.Target)
 	}
 
 	// slow path
@@ -460,15 +473,14 @@ func toMarkup(o fall.Output) string {
 		switch d.Type {
 		case far.DiffInsert:
 			b.WriteString(`<span foreground="#007947">`)
-			_ = xml.EscapeText(&b, []byte(d.Text))
+			b.WriteString(html.EscapeString(d.Text))
 			b.WriteString("</span>")
 		case far.DiffDelete:
 			b.WriteString(`<span foreground="#DC143C" strikethrough="true">`)
-			_ = xml.EscapeText(&b, []byte(d.Text))
+			b.WriteString(html.EscapeString(d.Text))
 			b.WriteString("</span>")
 		default:
-			// I use xml.EscapeText as there is no g_markup_escape_text in gotk3
-			_ = xml.EscapeText(&b, []byte(d.Text))
+			b.WriteString(html.EscapeString(d.Text))
 		}
 	}
 

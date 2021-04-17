@@ -94,7 +94,6 @@ func (a *Front) OnActionRename() {
 }
 
 func (a *Front) OnActionImport(list []string) {
-
 	var input []string
 	if !a.sets.ImportRecursively {
 		input = list
@@ -122,10 +121,12 @@ func (a *Front) OnActionDelete() {
 
 func (a *Front) OnActionClear() {
 	a.DoItemsReset()
+	a.hope.Reset()
 }
 
 func (a *Front) OnActionExit() {
 	a.DoItemsReset()
+	a.hope.Reset()
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -148,11 +149,12 @@ func (a *Front) OnItemsImported(imported []string) {
 	a.fall.Flow(l)
 }
 
-func (a *Front) OnItemsDiffered(i int, differed []fall.Output) {
+func (a *Front) OnItemsDiffered(differed []fall.Output) {
 	_, err := glib.IdleAdd(func() {
 		if a != nil && a.view != nil && a.view.list != nil {
 			m := (*list)(a.view.list)
-			if i == 0 {
+			if len(differed) > 0 && differed[0].Source == "" {
+				differed = differed[1:]
 				m.Clear()
 			}
 			for _, o := range differed {
@@ -172,7 +174,7 @@ func (a *Front) OnItemsRediffer() {
 	if a != nil && a.view != nil && a.view.list != nil {
 		a.fall.Stop()
 		m := (*list)(a.view.list)
-		out := m.Paths()
+		out := append([]string{""}, m.Paths()...)
 
 		a.fall.Flow(out)
 	}

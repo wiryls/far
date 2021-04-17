@@ -9,7 +9,7 @@ import (
 
 func New(callback Callback) *Fall {
 	if callback == nil {
-		callback = func(i int, os []Output) {}
+		callback = func(os []Output) {}
 	}
 
 	return &Fall{

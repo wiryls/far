@@ -23,3 +23,12 @@ func (f *Filter) Pop(value string) {
 		(*sync.Map)(f).Delete(value)
 	}
 }
+
+func (f *Filter) Reset() {
+	if f != nil {
+		(*sync.Map)(f).Range(func(key, value interface{}) bool {
+			(*sync.Map)(f).Delete(key)
+			return true
+		})
+	}
+}

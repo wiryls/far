@@ -27,7 +27,7 @@ func TestFall(t *testing.T) {
 			}
 			return i
 		}
-		u := func(i int, os []fall.Output) {
+		u := func(os []fall.Output) {
 			m.Lock()
 			for _, o := range os {
 				assert.Len(strings.Trim(o.Differ.New(), "_"), 0)

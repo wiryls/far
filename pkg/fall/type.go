@@ -13,4 +13,4 @@ type Output struct {
 }
 
 // Callback is fired when output arrives.
-type Callback func(i int, os []Output)
+type Callback func(os []Output)
