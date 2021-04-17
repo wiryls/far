@@ -1,7 +1,6 @@
 package main
 
 import (
-	"html"
 	"log"
 	"net/url"
 	"os"
@@ -313,6 +312,8 @@ func (b *builder) BuildTree() (tree *gtk.TreeView, err error) {
 	}
 	if err == nil {
 		_, err = tree.Connect("drag-data-received", func(tree *gtk.TreeView, ctx *gdk.DragContext, x, y int, data *gtk.SelectionData, m int, t uint) {
+			tree.StopEmission("drag_data_received")
+
 			src := strings.ReplaceAll(string(data.GetData()), "\r\n", "\n")
 			dst := strings.Split(src, "\n")
 			out := make([]string, 0, len(dst))
@@ -366,10 +367,26 @@ func (b *builder) BindList(tree *gtk.TreeView) (err error) {
 	var list *gtk.ListStore
 	if err == nil {
 		list, err = gtk.ListStoreNew(
+			// visiable
 			glib.TYPE_STRING,
 			glib.TYPE_STRING,
 			glib.TYPE_STRING,
-			glib.TYPE_OBJECT)
+			// hidden
+			glib.TYPE_BOOLEAN,
+			glib.TYPE_STRING)
+	}
+
+	var filter *gtk.TreeModelFilter
+	if err == nil {
+		filter, err = list.FilterNew(nil)
+		if err == nil {
+			filter.SetVisibleColumn(3)
+		}
+	}
+
+	var sort *gtk.TreeModelSort
+	if err == nil {
+		sort, err = gtk.TreeModelSortNew(filter)
 	}
 
 	var (
@@ -410,7 +427,7 @@ func (b *builder) BindList(tree *gtk.TreeView) (err error) {
 		path.SetSizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 		path.SetMinWidth(64)
 
-		tree.SetModel(list)
+		tree.SetModel(sort)
 		tree.AppendColumn(stat)
 		tree.AppendColumn(name)
 		tree.AppendColumn(path)
@@ -426,9 +443,9 @@ type list gtk.ListStore
 func (l *list) Append(o fall.Output) (err error) {
 	m := (*gtk.ListStore)(l)
 	return m.Set(m.Append(), []int{
-		0, 1, 2, 3,
+		0, 1, 2, 3, 4,
 	}, []interface{}{
-		"Preview", toMarkup(o), o.Source, o,
+		"Preview", toMarkup(o), o.Source, o.Differ != nil, o.Differ.New(),
 	})
 }
 
@@ -460,11 +477,19 @@ func (l *list) Clear() {
 	(*gtk.ListStore)(l).Clear()
 }
 
+// this replacer is copied from "html/htmlEscaper"
+var theMarkupReplacer = strings.NewReplacer(
+	`&`, "&amp;",
+	`'`, "&#39;",
+	`<`, "&lt;",
+	`>`, "&gt;",
+	`"`, "&#34;")
+
 func toMarkup(o fall.Output) string {
 	// fast path
 	if o.Differ.IsSame() {
 		// I use html.EscapeString as there is no g_markup_escape_text in gotk3
-		return html.EscapeString(o.Target)
+		return theMarkupReplacer.Replace(o.Target)
 	}
 
 	// slow path
@@ -472,15 +497,15 @@ func toMarkup(o fall.Output) string {
 	for _, d := range o.Differ {
 		switch d.Type {
 		case far.DiffInsert:
-			b.WriteString(`<span foreground="#007947">`)
-			b.WriteString(html.EscapeString(d.Text))
-			b.WriteString("</span>")
+			_, _ = b.WriteString(`<span foreground="#007947">`)
+			_, _ = theMarkupReplacer.WriteString(&b, d.Text)
+			_, _ = b.WriteString("</span>")
 		case far.DiffDelete:
-			b.WriteString(`<span foreground="#DC143C" strikethrough="true">`)
-			b.WriteString(html.EscapeString(d.Text))
-			b.WriteString("</span>")
+			_, _ = b.WriteString(`<span foreground="#DC143C" strikethrough="true">`)
+			_, _ = theMarkupReplacer.WriteString(&b, d.Text)
+			_, _ = b.WriteString("</span>")
 		default:
-			b.WriteString(html.EscapeString(d.Text))
+			_, _ = theMarkupReplacer.WriteString(&b, d.Text)
 		}
 	}
 
