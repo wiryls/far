@@ -9,23 +9,20 @@ import (
 
 func New(callback Callback) *Fall {
 	if callback == nil {
-		callback = func(os []Output) {}
+		callback = func(i int, os []Output) {}
 	}
 
-	flee := &flow.Flow{}
 	return &Fall{
 		call: callback,
 		farr: &far.Farsafe{Inner: &far.Faregex{}},
-		flow: flee,
-		feed: &flow.Feed{Flow: flee, Sync: 1},
+		flow: &flow.Feed{Mark: 1},
 	}
 }
 
 type Fall struct {
 	call Callback
 	farr far.Far
-	flow *flow.Flow
-	feed *flow.Feed
+	flow *flow.Feed
 }
 
 // SetPattern change the far pattern.
@@ -40,7 +37,7 @@ func (f *Fall) SetTemplate(text string) error {
 
 // Flow will append some inputs to current task.
 func (f *Fall) Flow(source []Input) {
-	f.feed.Push((&differ{
+	f.flow.Push((&differ{
 		Number: 0,
 		Source: source,
 		Splite: limited(1024),
@@ -54,27 +51,27 @@ func (f *Fall) Flow(source []Input) {
 			return
 		},
 		Output: (&sequencer{Latest: 0, Output: f.call}).Collect,
-		Runner: f.feed.Push,
+		Runner: f.flow.Push,
 		Runnin: 1,
 	}).Run)
 }
 
 // Stop all current tasks. It will block until the last task stops.
 func (f *Fall) Stop() {
-	f.feed.Send(0)
-	f.feed.Wait()
-	f.feed.Send(1)
+	f.flow.Sync(0)
+	f.flow.Wait()
+	f.flow.Sync(1)
 }
 
 // Stop all current tasks. But do something extra during stopping.
 func (f *Fall) StopWith(action func()) {
-	f.feed.Send(0)
-	f.feed.Wait()
+	f.flow.Sync(0)
+	f.flow.Wait()
 
 	if action != nil {
 		action()
 	}
 
-	f.feed.Wait()
-	f.feed.Send(1)
+	f.flow.Wait()
+	f.flow.Sync(1)
 }

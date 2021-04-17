@@ -467,6 +467,7 @@ func toMarkup(o fall.Output) string {
 			_ = xml.EscapeText(&b, []byte(d.Text))
 			b.WriteString("</span>")
 		default:
+			// I use xml.EscapeText as there is no g_markup_escape_text in gotk3
 			_ = xml.EscapeText(&b, []byte(d.Text))
 		}
 	}

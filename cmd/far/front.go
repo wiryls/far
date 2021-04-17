@@ -4,7 +4,6 @@ import (
 	"io/fs"
 	"log"
 	"path/filepath"
-	"sync"
 
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -37,7 +36,6 @@ type Front struct {
 	hope filter.Filter
 	fill *fill.Fill
 	fall *fall.Fall
-	keep sync.Mutex
 }
 
 func (a *Front) Run() (err error) {
@@ -150,28 +148,31 @@ func (a *Front) OnItemsImported(imported []string) {
 	a.fall.Flow(l)
 }
 
-func (a *Front) OnItemsDiffered(differed []fall.Output) {
-	if a != nil && a.view != nil && a.view.list != nil {
-		defer a.keep.Unlock()
-		/*_*/ a.keep.Lock()
-
-		m := (*list)(a.view.list)
-		for _, o := range differed {
-			err := m.Append(o)
-			if err != nil {
-				log.Printf("failed to append %s: %v\n", o.Target, err)
+func (a *Front) OnItemsDiffered(i int, differed []fall.Output) {
+	_, err := glib.IdleAdd(func() {
+		if a != nil && a.view != nil && a.view.list != nil {
+			m := (*list)(a.view.list)
+			if i == 0 {
+				m.Clear()
+			}
+			for _, o := range differed {
+				err := m.Append(o)
+				if err != nil {
+					log.Printf("failed to append %s: %v\n", o.Target, err)
+				}
 			}
 		}
+	})
+	if err != nil {
+		log.Printf("failed to idle_add: %v\n", err)
 	}
 }
 
 func (a *Front) OnItemsRediffer() {
 	if a != nil && a.view != nil && a.view.list != nil {
-		a.fall.StopWith(a.keep.Lock)
+		a.fall.Stop()
 		m := (*list)(a.view.list)
 		out := m.Paths()
-		m.Clear()
-		a.keep.Unlock()
 
 		a.fall.Flow(out)
 	}
@@ -179,8 +180,6 @@ func (a *Front) OnItemsRediffer() {
 
 func (a *Front) DoItemsDeleteSelected() {
 	if a != nil && a.view != nil && a.view.list != nil {
-		defer a.keep.Unlock()
-		/*_*/ a.keep.Lock()
 
 		var (
 			err       error
@@ -235,9 +234,6 @@ func (a *Front) DoItemsDeleteSelected() {
 
 func (a *Front) DoItemsReset() {
 	if a != nil && a.view != nil && a.view.list != nil {
-		defer a.keep.Unlock()
-		/*_*/ a.keep.Lock()
-
 		(*list)(a.view.list).Clear()
 	}
 }

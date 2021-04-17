@@ -17,6 +17,8 @@ github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5Cc
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/wiryls/pkg v0.0.6 h1:7i5nbpQY+K2ttrrM0ZFF9S70f2a4BIEoZFuQ1jfnuK4=
 github.com/wiryls/pkg v0.0.6/go.mod h1:fD7hc0g8LzV+pgKbB2RtMUShAdiedzpodGMWXn8znj8=
+github.com/wiryls/pkg v0.0.7 h1:DfY5NEK9bvlZq9Hp2ItPVvSxGFlm5OtUl8ZHcekTCwE=
+github.com/wiryls/pkg v0.0.7/go.mod h1:fD7hc0g8LzV+pgKbB2RtMUShAdiedzpodGMWXn8znj8=
 golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 h1:go1bK/D/BFZV2I8cIQd1NKEZ+0owSTG1fDTci4IqFcE=
 golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
