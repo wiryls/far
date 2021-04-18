@@ -27,10 +27,10 @@ func TestFall(t *testing.T) {
 			}
 			return i
 		}
-		u := func(os []fall.Output) {
+		u := func(os []*fall.Output) {
 			m.Lock()
 			for _, o := range os {
-				assert.Len(strings.Trim(o.Differ.New(), "_"), 0)
+				assert.Len(strings.Trim(o.Next, "_"), 0)
 			}
 			m.Unlock()
 		}

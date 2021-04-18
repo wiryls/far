@@ -149,18 +149,15 @@ func (a *Front) OnItemsImported(imported []string) {
 	a.fall.Flow(l)
 }
 
-func (a *Front) OnItemsDiffered(differed []fall.Output) {
+func (a *Front) OnItemsDiffered(differed []*fall.Output) {
 	_, err := glib.IdleAdd(func() {
 		if a != nil && a.view != nil && a.view.list != nil {
 			m := (*list)(a.view.list)
-			if len(differed) > 0 && differed[0].Source == "" {
-				differed = differed[1:]
-				m.Clear()
-			}
 			for _, o := range differed {
-				err := m.Append(o)
-				if err != nil {
-					log.Printf("failed to append %s: %v\n", o.Target, err)
+				if o == nil {
+					m.Clear()
+				} else if err := m.Append(o); err != nil {
+					log.Printf("failed to append %s: %v\n", o.Path, err)
 				}
 			}
 		}

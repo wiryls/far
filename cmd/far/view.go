@@ -10,7 +10,6 @@ import (
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/wiryls/far/pkg/fall"
-	"github.com/wiryls/far/pkg/far"
 	"github.com/wiryls/pkg/errors/cerrors"
 )
 
@@ -440,13 +439,18 @@ func (b *builder) BindList(tree *gtk.TreeView) (err error) {
 
 type list gtk.ListStore
 
-func (l *list) Append(o fall.Output) (err error) {
-	m := (*gtk.ListStore)(l)
-	return m.Set(m.Append(), []int{
-		0, 1, 2, 3, 4,
-	}, []interface{}{
-		"Preview", toMarkup(o), o.Source, o.Differ != nil, o.Differ.New(),
-	})
+func (l *list) Append(o *fall.Output) (err error) {
+	if o != nil {
+		m := (*gtk.ListStore)(l)
+		err = m.Set(m.Append(), []int{
+			0, 1, 2, 3, 4,
+		}, []interface{}{
+			"Preview", o.View, o.Path, o.Diff, o.Next,
+		})
+	} else {
+		err = cerrors.NilArgument("o *fall.Output")
+	}
+	return
 }
 
 func (l *list) Paths() (out []string) {
@@ -475,41 +479,4 @@ func (l *list) Delete(path *gtk.TreePath) error {
 
 func (l *list) Clear() {
 	(*gtk.ListStore)(l).Clear()
-}
-
-// this replacer is copied from "html/htmlEscaper"
-var theMarkupReplacer = strings.NewReplacer(
-	`&`, "&amp;",
-	`'`, "&#39;",
-	`<`, "&lt;",
-	`>`, "&gt;",
-	`"`, "&#34;")
-
-func toMarkup(o fall.Output) string {
-	// fast path
-	if o.Differ.IsSame() {
-		// I use html.EscapeString as there is no g_markup_escape_text in gotk3
-		return theMarkupReplacer.Replace(o.Target)
-	}
-
-	// slow path
-	b := strings.Builder{}
-	for _, d := range o.Differ {
-		switch d.Type {
-		case far.DiffInsert:
-			_, _ = b.WriteString(`<span foreground="#007947">`)
-			_, _ = theMarkupReplacer.WriteString(&b, d.Text)
-			_, _ = b.WriteString("</span>")
-		case far.DiffDelete:
-			_, _ = b.WriteString(`<span foreground="#DC143C" strikethrough="true">`)
-			_, _ = theMarkupReplacer.WriteString(&b, d.Text)
-			_, _ = b.WriteString("</span>")
-		default:
-			_, _ = theMarkupReplacer.WriteString(&b, d.Text)
-		}
-	}
-
-	// [Pango markup]
-	// (https://developer.gnome.org/pango/1.46/pango-Markup.html)
-	return b.String()
 }

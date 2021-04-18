@@ -7,12 +7,12 @@ import (
 
 type sequencer struct {
 	Latest int
-	Output func([]Output)
-	buffer map[int][]Output
+	Output func([]*Output)
+	buffer map[int][]*Output
 	keeper sync.Mutex
 }
 
-func (s *sequencer) Collect(index int, items []Output) {
+func (s *sequencer) Collect(index int, items []*Output) {
 	defer s.keeper.Unlock()
 	/*_*/ s.keeper.Lock()
 
@@ -31,7 +31,7 @@ func (s *sequencer) Collect(index int, items []Output) {
 
 	} else if len(items) > 0 {
 		if s.buffer == nil {
-			s.buffer = make(map[int][]Output)
+			s.buffer = make(map[int][]*Output)
 		}
 		s.buffer[index] = items
 
@@ -42,8 +42,8 @@ type differ struct {
 	Number int
 	Source []Input
 	Splite func(int) int
-	Action func(Input) Output
-	Output func(int, []Output)
+	Action func(Input) *Output
+	Output func(int, []*Output)
 	Runner func(func(*uint32))
 	Runnin uint32
 }
@@ -66,7 +66,7 @@ func (t *differ) Run(sync *uint32) {
 		another.Runner(another.Run)
 	}
 
-	result := make([]Output, 0, len(todo))
+	result := make([]*Output, 0, len(todo))
 	for _, input := range todo {
 		result = append(result, t.Action(input))
 	}
