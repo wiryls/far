@@ -1,6 +1,7 @@
 package fill
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -29,16 +30,33 @@ type Fill struct {
 }
 
 // Fill start a task to walk through filepath and fetch all valid.
-func (f *Fill) Fill(input []string) {
+func (f *Fill) Fill(input []string, recursive bool) {
 	f.flow.Push((&importer{
 		Source: input,
 		Splite: func(i int) int {
-			if i < 256 {
+			switch {
+			case recursive:
+				return 1
+			case i > 128:
+				return 128
+			default:
 				return i
 			}
-			return 256
 		},
 		Action: func(path string) (string, bool) {
+			if recursive {
+				var input []string
+				_ = filepath.WalkDir(path, func(file string, d fs.DirEntry, err error) error {
+					if path != file {
+						input = append(input, file)
+					}
+					return err
+				})
+				if len(input) > 0 {
+					f.Fill(input, false)
+				}
+			}
+
 			var err error
 			if err == nil {
 				path, err = filepath.Abs(path)

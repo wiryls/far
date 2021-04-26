@@ -41,12 +41,11 @@ func (f *Fall) Flow(source []Input) {
 	f.flow.Push((&differ{
 		Number: 0,
 		Source: source,
-		Splite: limited(1024),
+		Splite: limited(128),
 		Action: func(src Input) *Output {
 			if src == "" {
 				return nil
 			}
-
 			name := filepath.Base(src)
 			diff := f.farr.See(name)
 			return &Output{

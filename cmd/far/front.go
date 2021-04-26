@@ -1,9 +1,8 @@
 package main
 
 import (
-	"io/fs"
 	"log"
-	"path/filepath"
+	"time"
 
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -94,24 +93,8 @@ func (a *Front) OnActionRename() {
 }
 
 func (a *Front) OnActionImport(list []string) {
-	var input []string
-	if !a.sets.ImportRecursively {
-		input = list
-
-	} else {
-		for _, file := range list {
-			if err := filepath.WalkDir(file, func(path string, d fs.DirEntry, err error) error {
-				input = append(input, path)
-				return err
-			}); err != nil {
-				log.Println("OnActionImport", err)
-			}
-		}
-
-	}
-
-	if len(input) > 0 {
-		a.fill.Fill(input)
+	if len(list) > 0 {
+		a.fill.Fill(list, a.sets.ImportRecursively)
 	}
 }
 
@@ -151,6 +134,7 @@ func (a *Front) OnItemsImported(imported []string) {
 
 func (a *Front) OnItemsDiffered(differed []*fall.Output) {
 	_, err := glib.IdleAdd(func() {
+		t := time.Now()
 		if a != nil && a.view != nil && a.view.list != nil {
 			m := (*list)(a.view.list)
 			for _, o := range differed {
@@ -161,6 +145,7 @@ func (a *Front) OnItemsDiffered(differed []*fall.Output) {
 				}
 			}
 		}
+		log.Println("time cost - append", time.Since(t), "count", len(differed))
 	})
 	if err != nil {
 		log.Printf("failed to idle_add: %v\n", err)
@@ -233,6 +218,8 @@ func (a *Front) DoItemsDeleteSelected() {
 
 func (a *Front) DoItemsReset() {
 	if a != nil && a.view != nil && a.view.list != nil {
+		t := time.Now()
 		(*list)(a.view.list).Clear()
+		log.Println("time cost - clear", time.Since(t))
 	}
 }

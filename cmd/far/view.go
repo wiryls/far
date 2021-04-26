@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
@@ -411,25 +412,28 @@ func (b *builder) BindList(tree *gtk.TreeView) (err error) {
 	}
 	if err == nil {
 		stat.SetSortColumnID(ColumnStat)
+		stat.SetSizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		stat.SetClickable(true)
 		stat.SetMinWidth(32)
 
 		name.SetSortColumnID(ColumnName)
+		name.SetSizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		name.SetClickable(true)
 		name.SetResizable(true)
 		name.SetMinWidth(64)
 		name.SetFixedWidth(256)
 
 		path.SetSortColumnID(ColumnPath)
+		path.SetSizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		path.SetClickable(true)
 		path.SetResizable(true)
-		path.SetSizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 		path.SetMinWidth(64)
 
 		tree.SetModel(sort)
 		tree.AppendColumn(stat)
 		tree.AppendColumn(name)
 		tree.AppendColumn(path)
+		tree.SetFixedHeightMode(true)
 
 		b.out.list = list
 	}
@@ -454,7 +458,9 @@ func (l *list) Append(o *fall.Output) (err error) {
 }
 
 func (l *list) Paths() (out []string) {
+	t := time.Now()
 	m := (*gtk.ListStore)(l)
+	out = make([]string, 0, m.IterNChildren(nil))
 	m.ForEach(func(model *gtk.TreeModel, path *gtk.TreePath, iter *gtk.TreeIter, u ...interface{}) bool {
 		v, err := model.GetValue(iter, 2)
 		if err == nil {
@@ -465,6 +471,7 @@ func (l *list) Paths() (out []string) {
 		}
 		return err != nil
 	})
+	log.Println("time cost - paths", time.Since(t))
 	return
 }
 
