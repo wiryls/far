@@ -1,17 +1,13 @@
 package main
 
 import (
-	"log"
-	"net/url"
-	"os"
+	"regexp"
 	"strings"
-	"time"
 
-	"github.com/gotk3/gotk3/gdk"
-	"github.com/gotk3/gotk3/glib"
-	"github.com/gotk3/gotk3/gtk"
-	"github.com/wiryls/far/pkg/fall"
-	"github.com/wiryls/pkg/errors/cerrors"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 )
 
 type Callbacks interface {
@@ -30,460 +26,83 @@ type Callbacks interface {
 }
 
 type view struct {
-	app      *gtk.Application
-	list     *gtk.ListStore
-	tree     *gtk.TreeView
-	pattern  *gtk.Entry
-	template *gtk.Entry
-	rename   *gtk.Button
+	app fyne.App
+	win fyne.Window
 }
 
 func (v *view) Run() {
-	if v != nil && v.app != nil {
-		v.app.Run(os.Args)
-	}
+	v.win.Show()
+	v.app.Run()
 }
 
-func BuildView(res Resource, cbs Callbacks) (out *view, err error) {
-
-	if cbs == nil {
-		err = cerrors.NilArgument("cbs Callbacks")
-	}
-
-	if res == nil {
-		res.Set("en")
-	}
-
-	var app *gtk.Application
-	if err == nil {
-		app, err = gtk.ApplicationNew("wiryls.github.com", glib.APPLICATION_FLAGS_NONE)
-	}
-
-	var bui *builder
-	if err == nil {
-		bui = &builder{out: &view{app: app}, res: res, cbs: cbs}
-		_, err = app.Connect("activate", bui.BuildMainWindow)
-
-		// [signals]
-		// (https://wiki.gnome.org/HowDoI/GtkApplication)
-	}
-
-	if err == nil {
-		out = bui.out
-		err = bui.err
-	}
-
-	return
+func BuildView(res Resource, cbs Callbacks) (out *view) {
+	b := theViewBuilder{out: &view{}, res: res, cbs: cbs}
+	b.Build()
+	return b.out
 }
 
-type builder struct {
+type theViewBuilder struct {
 	out *view
 	res Resource
 	cbs Callbacks
-	err error
 }
 
-func (b *builder) BuildMainWindow() {
-
-	var err = b.err
-	var top *gtk.HeaderBar
-	if err == nil {
-		top, err = b.BuildHeaderBar()
+func (b *theViewBuilder) Build() {
+	if b == nil || b.out == nil {
+		return
 	}
 
-	var mid *gtk.Grid
-	if err == nil {
-		mid, err = b.BuildInput()
-	}
-
-	var bot *gtk.ScrolledWindow
-	if err == nil {
-		var tree *gtk.TreeView
-		if err == nil {
-			bot, err = gtk.ScrolledWindowNew(nil, nil)
-		}
-
-		if err == nil {
-			tree, err = b.BuildTree()
-		}
-
-		if err == nil {
-			bot.Add(tree)
-			bot.SetShadowType(gtk.SHADOW_ETCHED_IN)
-			// [GtkShadowType]
-			// (http://gtk.php.net/manual/en/html/gtk/gtk.enum.shadowtype.html)
-		}
-	}
-
-	var box *gtk.Box
-	if err == nil {
-		box, err = gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 4)
-
-		if err == nil {
-			box.SetMarginTop(6)
-			box.SetMarginStart(6)
-			box.SetMarginBottom(6)
-			box.SetMarginEnd(6)
-			box.Add(mid)
-			box.Add(bot)
-		}
-	}
-
-	var win *gtk.ApplicationWindow
-	if err == nil {
-		win, err = gtk.ApplicationWindowNew(b.out.app)
-	}
-	if err == nil {
-		_, err = win.Connect("destroy", b.cbs.OnActionExit)
-	}
-	if err == nil {
-		win.Add(box)
-		win.SetTitle(b.res("main_title"))
-		win.SetIconName("application-x-executable")
-		win.SetTitlebar(top)
-		win.SetDefaultSize(720, 480)
-		win.ShowAll()
-	}
-
-	b.err = err
-}
-
-func (b *builder) BuildHeaderBar() (head *gtk.HeaderBar, err error) {
-
-	if err == nil {
-		head, err = gtk.HeaderBarNew()
-
-		if err == nil {
-			head.SetShowCloseButton(true)
-		}
-	}
-
-	if err == nil {
-		var menu *gtk.MenuButton
-		menu, err = gtk.MenuButtonNew()
-
-		var icon *gtk.Image
-		if err == nil {
-			icon, err = gtk.ImageNewFromIconName("open-menu-symbolic", gtk.ICON_SIZE_MENU)
-		}
-
-		if err == nil {
-			menu.SetImage(icon)
-			head.Add(menu)
-			head.SetTitle(b.res("main_title"))
-		}
-	}
-	return
-}
-
-func (b *builder) BuildInput() (grid *gtk.Grid, err error) {
-
-	if err == nil {
-		grid, err = gtk.GridNew()
-	}
-
-	var (
-		pattern  *gtk.Entry
-		template *gtk.Entry
-		rename   *gtk.Button
+	app := app.New()
+	win := app.NewWindow(b.res("main_title"))
+	win.Resize(fyne.NewSize(640, 480))
+	win.SetContent(
+		container.NewVBox(
+			b.BuildInput(),
+			b.BuildTable(),
+		),
 	)
 
-	if err == nil {
-		pattern, err = gtk.EntryNew()
-	}
-	if err == nil {
-		template, err = gtk.EntryNew()
-	}
-	if err == nil {
-		rename, err = gtk.ButtonNew()
-	}
-	if err == nil {
-		pattern.SetHExpand(true)
-		pattern.SetHAlign(gtk.ALIGN_FILL)
-		pattern.SetPlaceholderText(b.res("main_input_pattern"))
-		_, err = pattern.Connect("changed", b.cbs.OnActionPatternChanged)
-
-		// [The “changed” signal]
-		// (https://developer.gnome.org/gtk3/unstable/GtkEditable.html#GtkEditable-changed)
-	}
-	if err == nil {
-		template.SetHExpand(true)
-		template.SetHAlign(gtk.ALIGN_FILL)
-		template.SetPlaceholderText(b.res("main_input_template"))
-		_, err = template.Connect("changed", b.cbs.OnActionTemplateChanged)
-	}
-	if err == nil {
-		rename.SetLabel(b.res("main_rename"))
-		_, err = rename.Connect("clicked", b.cbs.OnActionRename)
-	}
-
-	if err == nil {
-		grid.SetRowHomogeneous(true)
-		grid.SetColumnSpacing(4)
-		grid.SetRowSpacing(4)
-
-		grid.Attach(pattern, 0, 0, 1, 1)
-		grid.AttachNextTo(template, pattern, gtk.POS_BOTTOM, 1, 1)
-		grid.AttachNextTo(rename, pattern, gtk.POS_RIGHT, 1, 1)
-
-		b.out.pattern = pattern
-		b.out.template = template
-		b.out.rename = rename
-	}
-
-	return
+	b.out.app = app
+	b.out.win = win
 }
 
-func (b *builder) BuildTree() (tree *gtk.TreeView, err error) {
-
-	var entries []gtk.TargetEntry
-	if err == nil {
-		var entry *gtk.TargetEntry
-		if err == nil {
-			entry, err = gtk.TargetEntryNew("text/uri-list", gtk.TARGET_OTHER_APP, 0)
-		}
-		if err == nil {
-			entries = append(entries, *entry)
-		}
-		if err == nil {
-			entry, err = gtk.TargetEntryNew("text/plain", gtk.TARGET_OTHER_APP, 0)
-		}
-		if err == nil {
-			entries = append(entries, *entry)
-		}
+func (b *theViewBuilder) BuildInput() *fyne.Container {
+	pattern := widget.NewEntry()
+	pattern.SetPlaceHolder(b.res("main_input_pattern"))
+	pattern.Validator = func(text string) (err error) {
+		_, err = regexp.Compile(text)
+		return
 	}
 
-	var (
-		menu      *gtk.Menu
-		delete    *gtk.MenuItem
-		separator *gtk.SeparatorMenuItem
-		clear     *gtk.MenuItem
+	template := widget.NewEntry()
+	template.SetPlaceHolder(b.res("main_input_template"))
+
+	rename := widget.NewButton(b.res("main_rename"), func() {})
+
+	return container.NewBorder(
+		nil, nil, nil, rename,
+		container.NewVBox(
+			pattern,
+			template,
+		),
 	)
-	if err == nil {
-		menu, err = gtk.MenuNew()
-	}
-	if err == nil {
-		delete, err = gtk.MenuItemNewWithLabel(b.res("main_tree_menu_delete"))
-	}
-	if err == nil {
-		_, err = delete.Connect("activate", b.cbs.OnActionDelete)
-	}
-	if err == nil {
-		separator, err = gtk.SeparatorMenuItemNew()
-	}
-	if err == nil {
-		clear, err = gtk.MenuItemNewWithLabel(b.res("main_tree_menu_clear"))
-	}
-	if err == nil {
-		_, err = clear.Connect("activate", b.cbs.OnActionClear)
-	}
-	if err == nil {
-		menu.Add(delete)
-		menu.Add(separator)
-		menu.Add(clear)
-	}
+}
 
-	if err == nil {
-		tree, err = gtk.TreeViewNew()
-	}
-	if err == nil {
-		err = b.BindList(tree)
-	}
-	if err == nil {
-		_, err = tree.Connect("button-press-event", func(tree *gtk.TreeView, source *gdk.Event) bool {
-			event := gdk.EventButtonNewFromEvent(source)
-			model, err := tree.GetModel()
-			if err == nil &&
-				event.Type() == gdk.EVENT_BUTTON_PRESS &&
-				event.Button() == gdk.BUTTON_SECONDARY {
-
-				selection, err := tree.GetSelection()
-				delete.SetSensitive(err == nil && selection.CountSelectedRows() > 0)
-
-				_, ok := model.ToTreeModel().GetIterFirst()
-				clear.SetSensitive(ok)
-
-				menu.ShowAll()
-				menu.PopupAtPointer(source)
-				return true
+func (b *theViewBuilder) BuildTable() (t *widget.Table) {
+	t = widget.NewTable(
+		func() (int, int) { return 1, 3 },
+		func() fyne.CanvasObject {
+			return widget.NewLabel(strings.Repeat("1", 12))
+		},
+		func(i widget.TableCellID, o fyne.CanvasObject) {
+			switch i.Col {
+			case 0:
+				o.(*widget.Label).SetText("1")
+			case 1:
+				o.(*widget.Label).SetText("short")
+			case 2:
+				o.(*widget.Label).SetText("long long long text")
 			}
-			return false
 		})
-	}
-	if err == nil {
-		_, err = tree.Connect("drag-data-received", func(tree *gtk.TreeView, ctx *gdk.DragContext, x, y int, data *gtk.SelectionData, m int, t uint) {
-			tree.StopEmission("drag_data_received")
-
-			src := strings.ReplaceAll(string(data.GetData()), "\r\n", "\n")
-			dst := strings.Split(src, "\n")
-			out := make([]string, 0, len(dst))
-			for _, str := range dst {
-				var err error
-				switch {
-				case strings.HasPrefix(str, "file:///"):
-					str = strings.TrimPrefix(str, "file:///")
-					str, err = url.PathUnescape(str)
-				default:
-					// do nothing
-				}
-				if err == nil {
-					str = strings.TrimFunc(str, func(r rune) bool { return r == 0 })
-					if len(str) > 0 {
-						out = append(out, str)
-					}
-				} else {
-					log.Printf("failed to import %s: %v\n", str, err)
-				}
-			}
-			b.cbs.OnActionImport(out)
-		})
-	}
-	var selection *gtk.TreeSelection
-	if err == nil {
-		selection, err = tree.GetSelection()
-	}
-	if err == nil {
-		tree.DragDestSet(gtk.DEST_DEFAULT_ALL, entries, gdk.ACTION_COPY)
-		tree.SetVExpand(true)
-		tree.SetVAlign(gtk.ALIGN_FILL)
-		tree.SetGridLines(gtk.TREE_VIEW_GRID_LINES_VERTICAL)
-
-		selection.SetMode(gtk.SELECTION_MULTIPLE)
-
-		b.out.tree = tree
-	}
-
 	return
-}
-
-func (b *builder) BindList(tree *gtk.TreeView) (err error) {
-
-	const (
-		ColumnStat = iota
-		ColumnName
-		ColumnPath
-	)
-
-	var list *gtk.ListStore
-	if err == nil {
-		list, err = gtk.ListStoreNew(
-			// visiable
-			glib.TYPE_STRING,
-			glib.TYPE_STRING,
-			glib.TYPE_STRING,
-			// hidden
-			glib.TYPE_BOOLEAN,
-			glib.TYPE_STRING)
-	}
-
-	var filter *gtk.TreeModelFilter
-	if err == nil {
-		filter, err = list.FilterNew(nil)
-		if err == nil {
-			filter.SetVisibleColumn(3)
-		}
-	}
-
-	var sort *gtk.TreeModelSort
-	if err == nil {
-		sort, err = gtk.TreeModelSortNew(filter)
-	}
-
-	var (
-		cell *gtk.CellRendererText
-		stat *gtk.TreeViewColumn
-		name *gtk.TreeViewColumn
-		path *gtk.TreeViewColumn
-	)
-	if err == nil {
-		cell, err = gtk.CellRendererTextNew()
-	}
-	if err == nil {
-		stat, err = gtk.TreeViewColumnNewWithAttribute(
-			b.res("main_tree_column_stat"), cell, "text", ColumnStat)
-	}
-	if err == nil {
-		name, err = gtk.TreeViewColumnNewWithAttribute(
-			b.res("main_tree_column_name"), cell, "markup", ColumnName)
-	}
-	if err == nil {
-		path, err = gtk.TreeViewColumnNewWithAttribute(
-			b.res("main_tree_column_path"), cell, "text", ColumnPath)
-	}
-	if err == nil {
-		stat.SetSortColumnID(ColumnStat)
-		stat.SetSizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		stat.SetClickable(true)
-		stat.SetMinWidth(32)
-
-		name.SetSortColumnID(ColumnName)
-		name.SetSizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		name.SetClickable(true)
-		name.SetResizable(true)
-		name.SetMinWidth(64)
-		name.SetFixedWidth(256)
-
-		path.SetSortColumnID(ColumnPath)
-		path.SetSizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		path.SetClickable(true)
-		path.SetResizable(true)
-		path.SetMinWidth(64)
-
-		tree.SetModel(sort)
-		tree.AppendColumn(stat)
-		tree.AppendColumn(name)
-		tree.AppendColumn(path)
-		tree.SetFixedHeightMode(true)
-
-		b.out.list = list
-	}
-
-	return
-}
-
-type list gtk.ListStore
-
-func (l *list) Append(o *fall.Output) (err error) {
-	if o != nil {
-		m := (*gtk.ListStore)(l)
-		err = m.Set(m.Append(), []int{
-			0, 1, 2, 3, 4,
-		}, []interface{}{
-			"Preview", o.View, o.Path, o.Diff, o.Next,
-		})
-	} else {
-		err = cerrors.NilArgument("o *fall.Output")
-	}
-	return
-}
-
-func (l *list) Paths() (out []string) {
-	t := time.Now()
-	m := (*gtk.ListStore)(l)
-	out = make([]string, 0, m.IterNChildren(nil))
-	m.ForEach(func(model *gtk.TreeModel, path *gtk.TreePath, iter *gtk.TreeIter, u ...interface{}) bool {
-		v, err := model.GetValue(iter, 2)
-		if err == nil {
-			s, err := v.GetString()
-			if err == nil {
-				out = append(out, s)
-			}
-		}
-		return err != nil
-	})
-	log.Println("time cost - paths", time.Since(t))
-	return
-}
-
-func (l *list) Delete(path *gtk.TreePath) error {
-	m := (*gtk.ListStore)(l)
-	i, err := m.GetIter(path)
-	if err == nil {
-		m.Remove(i)
-	}
-	return err
-}
-
-func (l *list) Clear() {
-	(*gtk.ListStore)(l).Clear()
 }
