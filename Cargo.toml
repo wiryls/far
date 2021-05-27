@@ -4,8 +4,16 @@ version = "0.1.0"
 authors = ["wiryls"]
 edition = "2018"
 
-[dependencies]
+[[bin]]
+name = "far"
+path = "src/main.rs"
 
+[lib]
+name = "far"
+path = "src/lib.rs"
+
+[dependencies]
+regex = "1"
 
 [dependencies.gtk]
 package = "gtk4"
