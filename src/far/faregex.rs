@@ -25,7 +25,7 @@ impl Faregex {
                 let mut diff : Diffs = Vec::new();
                 let mut last : usize = 0;
                 for cap in re.captures_iter(text) {
-                    // why is the Item of SubCaptureMatches.Iterator an
+                    // Why is the Item of SubCaptureMatches.Iterator an
                     // Option<Match> ???
                     // https://docs.rs/regex/1.5.4/regex/struct.SubCaptureMatches.html#associatedtype.Item
                     let m = match cap.get(0) {
@@ -67,7 +67,7 @@ impl Faregex {
     /// set a pattern for regex.
     pub fn set_pattern(&mut self, pattern : &str) -> Option<Error> {
         match Regex::new(pattern) {
-            Ok(r)  => {self.pattern = Some(r); None},
+            Ok (r) => {self.pattern = Some(r); None},
             Err(e) => Some(e),
         }
     }

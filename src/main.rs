@@ -1,25 +1,63 @@
 use gtk::prelude::*;
+use gtk::{gio, glib};
+
+mod fur;
 
 fn main() {
     build_app();
 }
 
 fn build_app() {
-    let application =
-        gtk::Application::new(Some("com.github.gtk-rs.examples.basic"), Default::default());
+    let application = gtk::Application::new(
+        Some("com.github.wiryls.far.testing"), 
+        Default::default());
     application.connect_activate(build_ui);
     application.run();
 }
 
 fn build_ui(application: &gtk::Application) {
-    let window = gtk::ApplicationWindow::new(application);
 
-    window.set_title(Some("First GTK Program"));
-    window.set_default_size(350, 70);
+    let factory = gtk::SignalListItemFactory::new();
+    factory.connect_setup(move |_, item| {
+        item.set_child(Some(&gtk::Label::new(None)));
+    });
+    factory.connect_bind(move |_, item| {
+        // item.item().unwrap().downcast::<>()
+    });
 
-    let button = gtk::Button::with_label("Click me!");
+    let s = gtk::StringList::new(&["A", "B"]);
 
-    window.set_child(Some(&button));
+    let model = gio::ListStore::new(glib::String::static_type());
 
-    window.show();
+    let model = gtk::MultiSelection::new(Some(&model));
+
+    let column = gtk::ColumnViewColumn::builder()
+        .title("hello")
+        .factory(&factory)
+        .build();
+
+    let list = gtk::ColumnView::builder()
+        .model(&model)
+        .build();
+    list.append_column(&column);
+
+    let container = gtk::Box::builder()
+        .orientation(gtk::Orientation::Vertical)
+        .spacing(8)
+        .build();
+
+    container.append(&gtk::Button::builder()
+        .label("Click me!")
+        .build()
+    );
+    container.append(&list);
+
+    gtk::ApplicationWindow::builder()
+        .application(application)
+        .title("First GTK Program")
+        .default_width(350)
+        .default_height(70)
+        .child(&container)
+        .build()
+        .show();
 }
