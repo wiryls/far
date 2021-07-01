@@ -1,3 +1,5 @@
+//! This file is based on:
+//! https://github.com/wiryls/far/blob/46271a4a1dfb69c321aea4564337b838132b775f/pkg/far/faregex.go
 use regex::{Regex, Error};
 use super::{Diff, Diffs};
 

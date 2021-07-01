@@ -1,4 +1,7 @@
-//! A module for our GUI
+//! A module for our GUI.
+//!
+//! For subclasses, please see:
+//! https://gtk-rs.org/gtk4-rs/git/book/gobject_subclassing.html
 
 use gtk::{glib, gio};
 
