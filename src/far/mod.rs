@@ -1,5 +1,5 @@
 mod diff;
-pub use self::diff::{Diff, Diffs, Compare};
+pub use self::diff::{Change, Diff, DiffIterator};
 
 mod sofar;
 pub use self::sofar::Far;

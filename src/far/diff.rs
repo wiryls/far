@@ -1,45 +1,77 @@
-#[derive(Debug, Clone)]
-pub enum Diff {
-    Retain(String),
+// Currently there is no small string optimization in Rust. We decide to keep
+// pairs of integers to record ranges instead of store new strings.
+
+#[derive(Clone, Debug)]
+pub enum Change<'a> {
+    Retain(&'a str),
+    Delete(&'a str),
+    Insert(&'a str),
+}
+
+#[derive(Clone, Debug)]
+pub(in crate::far) enum ChangeBuf {
+    Retain(std::ops::Range<usize>),
+	Delete(std::ops::Range<usize>),
 	Insert(String),
-	Delete(String),
 }
 
-pub type Diffs = Vec<Diff>;
-
-pub trait Compare {
-    fn concat(&self, f: fn(&Diff) -> &str) -> String;
-    fn new(&self) -> String;
-    fn old(&self) -> String;
-    fn unchanged(&self) -> bool;
+#[derive(Default)]
+pub struct Diff {
+    v: Vec<ChangeBuf>
 }
 
-impl Compare for Diffs {
+impl Diff {
 
-    fn concat(&self, f: fn(&Diff) -> &str) -> String {
-        self.into_iter()
-            .map(f)
-            .collect::<Vec<&str>>()
-            .concat()
+    pub(in crate::far) fn new(v: Vec<ChangeBuf>) -> Self {
+        Self {v}
     }
 
-    fn new(&self) -> String {
-        self.concat(|s : &Diff| match s{
-            Diff::Retain(s) => s.as_str(),
-            Diff::Insert(s) => s.as_str(),
-            Diff::Delete(_) => ""})
+    pub fn iter<'a>(&'a self, source : &'a str) -> DiffIterator<'a> {
+        DiffIterator{
+            index: 0,
+            values: self,
+            source,
+        }
     }
 
-    fn old(&self) -> String {
-        self.concat(|s: &Diff| match s {
-            Diff::Retain(s) => s.as_str(),
-            Diff::Insert(_) => "",
-            Diff::Delete(s) => s.as_str()})
+    pub fn is_same(&self) -> bool {
+        let v = &self.v;
+        let l = self.v.len();
+        (l == 0) || (l == 1 && matches!(v[0], ChangeBuf::Retain{..}))
     }
 
-    fn unchanged(&self) -> bool {
-        let v = &self;
-        let l = v.len();
-        (l == 0) || (l == 1 && matches!(v[0], Diff::Retain{..}))
+    pub fn target(&self, source: &str) -> String {
+        // self.iter(source)
+        self.iter(source)
+            .filter_map(|x| match x {
+                Change::Retain(s) => Some(s),
+                Change::Delete(_) => None,
+                Change::Insert(s) => Some(s)})
+            .collect()
+    }
+}
+
+pub struct DiffIterator<'a> {
+    index: usize,
+    values: &'a Diff,
+    source: &'a str,
+}
+
+impl<'a> Iterator for DiffIterator<'a> {
+
+    type Item = Change<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.values.v.get(self.index) {
+            None => None,
+            Some(d) => {
+                self.index += 1;
+                Some(match d {
+                    ChangeBuf::Retain(r) => Change::Retain(&self.source[r.clone()]),
+                    ChangeBuf::Delete(r) => Change::Delete(&self.source[r.clone()]),
+                    ChangeBuf::Insert(s) => Change::Insert(s),
+                })
+            },
+        }
     }
 }

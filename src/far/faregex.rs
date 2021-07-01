@@ -1,7 +1,7 @@
 //! This file is based on:
 //! https://github.com/wiryls/far/blob/46271a4a1dfb69c321aea4564337b838132b775f/pkg/far/faregex.go
 use regex::{Regex, Error};
-use super::{Diff, Diffs};
+use super::diff::{Diff, ChangeBuf};
 
 pub struct Faregex {
     pattern  : Option<Regex>,
@@ -20,11 +20,11 @@ impl Faregex {
     }
 
     /// See the difference.
-    pub fn see(&self, text : &str) -> Diffs {
+    pub fn see(&self, text : &str) -> Diff {
         match &self.pattern {
-            None     => vec![Diff::Retain(text.to_owned())],
+            None     => Diff::new(vec![ChangeBuf::Retain(0..text.len())]),
             Some(re) => {
-                let mut diff : Diffs = Vec::new();
+                let mut diff  = Vec::new() as Vec<ChangeBuf>;
                 let mut last : usize = 0;
                 for cap in re.captures_iter(text) {
                     // Why is the Item of SubCaptureMatches.Iterator an
@@ -42,21 +42,21 @@ impl Faregex {
 
                     if del != ins {
                         if !ret.is_empty() {
-                            diff.push(Diff::Retain(ret.to_owned()));
+                            diff.push(ChangeBuf::Retain(last..m.start()));
                         }
                         if !del.is_empty() {
-                            diff.push(Diff::Delete(del.to_owned()));
+                            diff.push(ChangeBuf::Delete(m.range()));
                         }
                         if !ins.is_empty() {
-                            diff.push(Diff::Insert(ins));
+                            diff.push(ChangeBuf::Insert(ins));
                         }
                         last = m.end();
                     }
                 }
                 if last != text.len() {
-                    diff.push(Diff::Retain(text[last..].to_owned()));
+                    diff.push(ChangeBuf::Retain(last..text.len()));
                 }
-                diff
+                Diff::new(diff)
             },
         }
     }

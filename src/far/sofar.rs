@@ -1,5 +1,5 @@
 use std::fmt;
-use super::{Diffs, Faregex};
+use super::{Diff, Faregex};
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -17,7 +17,7 @@ impl fmt::Display for Error {
 }
 
 pub trait Far {
-    fn see         (&self, text : &str) -> Diffs;
+    fn see         (&self, text : &str) -> Diff;
     fn is_empty    (&self)              -> bool;
 
     // could someone tell me whether it is ok to use
@@ -30,7 +30,7 @@ pub trait Far {
 
 impl Far for Faregex {
 
-    fn see(&self, text : &str) -> Diffs {
+    fn see(&self, text : &str) -> Diff {
         self.see(text)
     }
 
