@@ -1,6 +1,8 @@
-// Currently there is no small string optimization in Rust. We decide to keep
-// pairs of integers to record ranges instead of store new strings.
+// For now there is no small string optimization in Rust. We decide to keep
+// some ranges instead of new strings.
 
+/// Change is an operation to Retain, Delete or Insert a string.
+/// It references to source string and a ChangeBuf.
 #[derive(Clone, Debug)]
 pub enum Change<'a> {
     Retain(&'a str),
@@ -8,6 +10,7 @@ pub enum Change<'a> {
     Insert(&'a str),
 }
 
+/// ChangeBuf is an internal type.
 #[derive(Clone, Debug)]
 pub(in crate::far) enum ChangeBuf {
     Retain(std::ops::Range<usize>),
@@ -15,33 +18,30 @@ pub(in crate::far) enum ChangeBuf {
 	Insert(String),
 }
 
+/// Diff is something releated to transform a source string to its target
+/// string.
 #[derive(Default)]
-pub struct Diff {
-    v: Vec<ChangeBuf>
-}
+pub struct Diff(Vec<ChangeBuf>);
 
 impl Diff {
 
     pub(in crate::far) fn new(v: Vec<ChangeBuf>) -> Self {
-        Self {v}
+        Self(v)
     }
 
     pub fn iter<'a>(&'a self, source : &'a str) -> DiffIterator<'a> {
         DiffIterator{
             index: 0,
-            values: self,
+            mapper: self,
             source,
         }
     }
 
     pub fn is_same(&self) -> bool {
-        let v = &self.v;
-        let l = self.v.len();
-        (l == 0) || (l == 1 && matches!(v[0], ChangeBuf::Retain{..}))
+        return self.0.is_empty();
     }
 
     pub fn target(&self, source: &str) -> String {
-        // self.iter(source)
         self.iter(source)
             .filter_map(|x| match x {
                 Change::Retain(s) => Some(s),
@@ -53,7 +53,7 @@ impl Diff {
 
 pub struct DiffIterator<'a> {
     index: usize,
-    values: &'a Diff,
+    mapper: &'a Diff,
     source: &'a str,
 }
 
@@ -62,8 +62,7 @@ impl<'a> Iterator for DiffIterator<'a> {
     type Item = Change<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.values.v.get(self.index) {
-            None => None,
+        match self.mapper.0.get(self.index) {
             Some(d) => {
                 self.index += 1;
                 Some(match d {
@@ -72,6 +71,13 @@ impl<'a> Iterator for DiffIterator<'a> {
                     ChangeBuf::Insert(s) => Change::Insert(s),
                 })
             },
+            None => match self.index {
+                0 => {
+                    self.index += 1;
+                    Some(Change::Retain(&self.source))
+                },
+                _ => None,
+            }
         }
     }
 }

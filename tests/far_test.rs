@@ -1,4 +1,4 @@
-use far::{Far, Faregex, Compare};
+use far::{Far, Faregex, Change};
 
 #[test]
 fn when_faregex_is_empty() {
@@ -8,10 +8,15 @@ fn when_faregex_is_empty() {
     
     let src = "hello";
     let dst = far.see(src);
-    assert!   (dst.unchanged());
-    assert_eq!(dst.len(), 1);
-    assert_eq!(dst.new(), src);
-    assert_eq!(dst.old(), src);
+    assert!   (dst.is_same());
+    assert_eq!(dst.target(src), src);
+    
+    for c in dst.iter(src) {
+        match c {
+            Change::Retain(s) => assert_eq!(s, src),
+            _ => assert!(false),
+        }
+    }
 }
 
 #[test]
@@ -22,11 +27,13 @@ fn when_faregex_is_not_empty() {
         for (i, c) in vec![(
                 "", "",
                 vec![
-                    ["QAQ", "QAQ"]
+                    ["", ""],
+                    ["QAQ", "QAQ"],
                 ]
             ), (
                 r"\.\.", r".",
                 vec![
+                    ["", ""],
                     ["..", "."],
                     ["......", "..."],
                     ["._..___....", "._.___.."],
@@ -63,9 +70,8 @@ fn when_faregex_is_not_empty() {
     
             for (j, s) in c.2.iter().enumerate() {
                 let o = f.see(s[0]);
-                assert_eq!(o.old(), s[0], "CASE({}, {}, {})", n, i, j);
-                assert_eq!(o.new(), s[1], "CASE({}, {}, {})", n, i, j);
-                assert_eq!(o.unchanged(), s[0] == s[1], "CASE({}, {}, {})", n, i, j);
+                assert_eq!(o.target(s[0]), s[1], "CASE({}, {}, {})", n, i, j);
+                assert_eq!(o.is_same(), s[0] == s[1], "CASE({}, {}, {})", n, i, j);
             }
         }
     }

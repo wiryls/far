@@ -22,11 +22,11 @@ impl Faregex {
     /// See the difference.
     pub fn see(&self, text : &str) -> Diff {
         match &self.pattern {
-            None     => Diff::new(vec![ChangeBuf::Retain(0..text.len())]),
-            Some(re) => {
-                let mut diff  = Vec::new() as Vec<ChangeBuf>;
+            None => Diff::default(),
+            Some(regexp) => {
                 let mut last : usize = 0;
-                for cap in re.captures_iter(text) {
+                let mut diff = Vec::new() as Vec<ChangeBuf>;
+                for cap in regexp.captures_iter(text) {
                     // Why is the Item of SubCaptureMatches.Iterator an
                     // Option<Match> ???
                     // https://docs.rs/regex/1.5.4/regex/struct.SubCaptureMatches.html#associatedtype.Item
@@ -53,7 +53,7 @@ impl Faregex {
                         last = m.end();
                     }
                 }
-                if last != text.len() {
+                if 0 != last && last != text.len() {
                     diff.push(ChangeBuf::Retain(last..text.len()));
                 }
                 Diff::new(diff)
