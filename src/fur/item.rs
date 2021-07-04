@@ -1,4 +1,5 @@
 use std::path;
+use far::Diff;
 use gtk::{glib, gio};
 use gtk::subclass::prelude::*;
 
@@ -36,8 +37,8 @@ impl<'a> FilePath {
 
 #[derive(Default)]
 pub struct Item {
-    src: FilePath,
-    dst: FilePath,
+    name: FilePath,
+    diff: Diff,
 }
 
 #[glib::object_subclass]

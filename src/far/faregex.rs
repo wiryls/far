@@ -1,8 +1,9 @@
 //! This file is based on:
 //! https://github.com/wiryls/far/blob/46271a4a1dfb69c321aea4564337b838132b775f/pkg/far/faregex.go
 use regex::{Regex, Error};
-use super::diff::{Diff, ChangeBuf};
+use super::diff::{Diff, Patch};
 
+#[derive(Clone, Debug)]
 pub struct Faregex {
     pattern  : Option<Regex>,
     template : String,
@@ -42,19 +43,19 @@ impl Faregex {
 
                     if del != ins {
                         if !ret.is_empty() {
-                            diff.push(ChangeBuf::Retain(last..m.start()));
+                            diff.push(Patch::Retain(last..m.start()));
                         }
                         if !del.is_empty() {
-                            diff.push(ChangeBuf::Delete(m.range()));
+                            diff.push(Patch::Delete(m.range()));
                         }
                         if !ins.is_empty() {
-                            diff.push(ChangeBuf::Insert(ins));
+                            diff.push(Patch::Insert(ins));
                         }
                         last = m.end();
                     }
                 }
                 if 0 != last && last != text.len() {
-                    diff.push(ChangeBuf::Retain(last..text.len()));
+                    diff.push(Patch::Retain(last..text.len()));
                 }
                 Diff::from_vec(diff)
             },

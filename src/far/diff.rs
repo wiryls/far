@@ -2,7 +2,7 @@
 // some ranges instead of new strings.
 
 /// Change is an operation to Retain, Delete or Insert a string.
-/// It references to source string and a ChangeBuf.
+/// It references to source string and a Patch.
 #[derive(Clone, Debug)]
 pub enum Change<'a> {
     Retain(&'a str),
@@ -10,9 +10,10 @@ pub enum Change<'a> {
     Insert(&'a str),
 }
 
-/// ChangeBuf is an internal type.
+/// Patch is an internal type. It records a single step about transforming
+/// the source string to target.
 #[derive(Clone, Debug)]
-pub(in crate::far) enum ChangeBuf {
+pub(in crate::far) enum Patch {
     Retain(std::ops::Range<usize>),
 	Delete(std::ops::Range<usize>),
 	Insert(String),
@@ -20,16 +21,16 @@ pub(in crate::far) enum ChangeBuf {
 
 /// Diff is something releated to transform a source string to its target
 /// string.
-#[derive(Default)]
-pub struct Diff(Vec<ChangeBuf>);
+#[derive(Clone, Debug, Default)]
+pub struct Diff(Vec<Patch>);
 
 impl Diff {
 
-    pub(in crate::far) fn from_vec(src: Vec<ChangeBuf>) -> Self {
+    pub(in crate::far) fn from_vec(src: Vec<Patch>) -> Self {
 
         let mut dst = Vec::with_capacity(src.len());
         for rhs in src.into_iter() {
-            use ChangeBuf::{Retain, Delete, Insert};
+            use Patch::{Retain, Delete, Insert};
             match dst.last_mut() {
                 Some(lhs) => match (lhs, &rhs) {
                     (Retain(l), Retain(r)) => l.end = r.end,
@@ -67,6 +68,8 @@ impl Diff {
     }
 }
 
+/// An iterator to walk through Diff.
+#[derive(Clone, Debug)]
 pub struct DiffIterator<'a> {
     index: usize,
     mapper: &'a Diff,
@@ -82,9 +85,9 @@ impl<'a> Iterator for DiffIterator<'a> {
             Some(d) => {
                 self.index += 1;
                 Some(match d {
-                    ChangeBuf::Retain(r) => Change::Retain(&self.source[r.clone()]),
-                    ChangeBuf::Delete(r) => Change::Delete(&self.source[r.clone()]),
-                    ChangeBuf::Insert(s) => Change::Insert(s),
+                    Patch::Retain(r) => Change::Retain(&self.source[r.clone()]),
+                    Patch::Delete(r) => Change::Delete(&self.source[r.clone()]),
+                    Patch::Insert(s) => Change::Insert(s),
                 })
             },
             None => match self.index {
