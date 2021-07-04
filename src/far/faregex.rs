@@ -25,7 +25,7 @@ impl Faregex {
             None => Diff::default(),
             Some(regexp) => {
                 let mut last : usize = 0;
-                let mut diff = Vec::new() as Vec<ChangeBuf>;
+                let mut diff = Vec::new();
                 for cap in regexp.captures_iter(text) {
                     // Why is the Item of SubCaptureMatches.Iterator an
                     // Option<Match> ???
@@ -56,7 +56,7 @@ impl Faregex {
                 if 0 != last && last != text.len() {
                     diff.push(ChangeBuf::Retain(last..text.len()));
                 }
-                Diff::new(diff)
+                Diff::from_vec(diff)
             },
         }
     }

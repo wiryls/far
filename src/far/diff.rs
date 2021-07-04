@@ -25,8 +25,24 @@ pub struct Diff(Vec<ChangeBuf>);
 
 impl Diff {
 
-    pub(in crate::far) fn new(v: Vec<ChangeBuf>) -> Self {
-        Self(v)
+    pub(in crate::far) fn from_vec(src: Vec<ChangeBuf>) -> Self {
+
+        let mut dst = Vec::with_capacity(src.len());
+        for rhs in src.into_iter() {
+            use ChangeBuf::{Retain, Delete, Insert};
+            match dst.last_mut() {
+                Some(lhs) => match (lhs, &rhs) {
+                    (Retain(l), Retain(r)) => l.end = r.end,
+                    (Delete(l), Delete(r)) => l.end = r.end,
+                    (Insert(l), Insert(r)) => l.push_str(r.as_str()),
+                    _ => dst.push(rhs),
+                },
+                None => dst.push(rhs),
+            };
+        }
+
+        dst.shrink_to_fit();
+        Self(dst)
     }
 
     pub fn iter<'a>(&'a self, source : &'a str) -> DiffIterator<'a> {
