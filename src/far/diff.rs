@@ -15,11 +15,11 @@ pub enum Change<'a> {
 #[derive(Clone, Debug)]
 pub(in crate::far) enum Patch {
     Retain(std::ops::Range<usize>),
-	Delete(std::ops::Range<usize>),
-	Insert(String),
+    Delete(std::ops::Range<usize>),
+    Insert(String),
 }
 
-/// Diff is something releated to transform a source string to its target
+/// Diff is something related to transform a source string to its target
 /// string.
 #[derive(Clone, Debug, Default)]
 pub struct Diff(Vec<Patch>);
@@ -27,17 +27,17 @@ pub struct Diff(Vec<Patch>);
 impl Diff {
 
     pub(in crate::far) fn from_vec(src: Vec<Patch>) -> Self {
-
         let mut dst = Vec::with_capacity(src.len());
+
         for rhs in src.into_iter() {
             use Patch::{Retain, Delete, Insert};
             match dst.last_mut() {
                 Some(lhs) => match (lhs, &rhs) {
-                    (Retain(l), Retain(r)) => l.end = r.end,
-                    (Delete(l), Delete(r)) => l.end = r.end,
+                    (Retain(l), Retain(r)) |
+                    (Delete(l), Delete(r)) if l.end == r.start => l.end = r.end,
                     (Insert(l), Insert(r)) => l.push_str(r.as_str()),
                     _ => dst.push(rhs),
-                },
+                }
                 None => dst.push(rhs),
             };
         }
@@ -77,26 +77,20 @@ pub struct DiffIterator<'a> {
 }
 
 impl<'a> Iterator for DiffIterator<'a> {
-
     type Item = Change<'a>;
-
     fn next(&mut self) -> Option<Self::Item> {
-        match self.mapper.0.get(self.index) {
-            Some(d) => {
-                self.index += 1;
-                Some(match d {
-                    Patch::Retain(r) => Change::Retain(&self.source[r.clone()]),
-                    Patch::Delete(r) => Change::Delete(&self.source[r.clone()]),
-                    Patch::Insert(s) => Change::Insert(s),
-                })
-            },
-            None => match self.index {
-                0 => {
-                    self.index += 1;
-                    Some(Change::Retain(&self.source))
-                },
-                _ => None,
+        let out = match self.mapper.0.get(self.index) {
+            Some(d) => match d {
+                Patch::Retain(r) => self.source.get(r.clone()).map(Change::Retain),
+                Patch::Delete(r) => self.source.get(r.clone()).map(Change::Delete),
+                Patch::Insert(s) => Some(Change::Insert(s)),
             }
-        }
+            None => match self.index {
+                0 => Some(Change::Retain(&self.source)),
+                _ => None
+            }
+        };
+        self.index += out.is_some() as usize;
+        out
     }
 }
