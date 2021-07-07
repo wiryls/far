@@ -21,7 +21,7 @@ impl Faregex {
     }
 
     /// See the difference.
-    pub fn see(&self, text : &str) -> Diff {
+    pub fn see(&self, text : &str) -> Diff<String> {
         match &self.pattern {
             None => Diff::default(),
             Some(regexp) => {

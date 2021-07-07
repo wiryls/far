@@ -6,7 +6,7 @@ use gtk::subclass::prelude::*;
 pub struct Item {
     stat: u32,
     path: Path,
-    diff: Diff,
+    diff: Diff<String>,
 }
 
 #[glib::object_subclass]
@@ -19,10 +19,6 @@ impl ObjectSubclass for Item {
 impl ObjectImpl for Item {
 
 }
-
-pub const StateImported : u32 = 0b00000001;
-pub const StateDiffered : u32 = 0b00000010;
-pub const StateReplaced : u32 = 0b00000100;
 
 #[derive(Default)]
 pub struct Path(std::path::PathBuf);

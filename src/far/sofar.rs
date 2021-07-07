@@ -17,7 +17,7 @@ impl fmt::Display for Error {
 }
 
 pub trait Far {
-    fn see         (&self, text : &str) -> Diff;
+    fn see         (&self, text : &str) -> Diff<String>;
     fn is_empty    (&self)              -> bool;
 
     // could someone tell me whether it is ok to use
@@ -30,7 +30,7 @@ pub trait Far {
 
 impl Far for Faregex {
 
-    fn see(&self, text : &str) -> Diff {
+    fn see(&self, text : &str) -> Diff<String> {
         self.see(text)
     }
 
