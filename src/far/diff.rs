@@ -1,16 +1,20 @@
-use super::Stringer;
+/// Stringer is something like String type.
+pub trait Stringer : AsRef<str> {
+    fn append<'a>(&mut self, rhs: &'a str);
+}
 
 /// Patch is an internal type. It records a single step about transforming
-/// the source string to target.
-/// For now there is no small string optimization in Rust. We decide to keep
-/// some ranges instead of new strings.
+/// the source to target string.
 #[derive(Clone, Debug)]
 pub(in crate::far) enum Patch<T>
 where
     T : Stringer
 {
+    // For now there is no small string optimization in Rust. We decide to
+    // keep some ranges instead of new strings.
     Retain(std::ops::Range<usize>),
     Delete(std::ops::Range<usize>),
+    // T might be String or Rc<String> and so on.
     Insert(T),
 }
 

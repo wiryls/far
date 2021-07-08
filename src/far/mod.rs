@@ -1,8 +1,6 @@
-mod shared;
-pub use self::shared::Stringer;
-
 mod diff;
-pub use self::diff::{Diff, DiffIterator, Change};
+mod adapte;
+pub use self::diff::{Stringer, Diff, DiffIterator, Change};
 
 mod sofar;
 pub use self::sofar::Far;

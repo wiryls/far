@@ -38,14 +38,14 @@ impl<'a> Path {
     pub fn base(&'a self) -> &'a str {
         self.0
             .file_name()
-            .map_or(None, std::ffi::OsStr::to_str)
+            .and_then(std::ffi::OsStr::to_str)
             .unwrap_or(&"")
     }
 
     pub fn dir(&'a self) -> &'a str {
         self.0
             .parent()
-            .map_or(None, std::path::Path::to_str)
+            .and_then(std::path::Path::to_str)
             .unwrap_or(&"")
     }
 }
