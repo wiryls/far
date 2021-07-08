@@ -4,15 +4,8 @@ use gtk::{gio, glib};
 mod fur;
 
 fn main() {
-    build_app();
-}
-
-fn build_app() {
-    let application = gtk::Application::new(
-        Some("com.github.wiryls.far.testing"), 
-        Default::default());
-    application.connect_activate(build_ui);
-    application.run();
+    let view = fur::View::new();
+    view.run();
 }
 
 fn build_ui(application: &gtk::Application) {
