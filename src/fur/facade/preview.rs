@@ -24,8 +24,15 @@ use gtk::{glib, prelude::*, CompositeTemplate};
 #[derive(Debug, Default, CompositeTemplate)]
 #[template(file = "preview.ui")]
 pub struct Window {
+
     #[template_child]
-    pub menu_button: TemplateChild<gtk::MenuButton>,
+    pub input_pattern: TemplateChild<gtk::Entry>,
+
+    #[template_child]
+    pub input_replace: TemplateChild<gtk::Entry>,
+
+    #[template_child]
+    pub button_rename: TemplateChild<gtk::Button>,
 }
 
 #[glib::object_subclass]
@@ -40,9 +47,9 @@ impl ObjectSubclass for Window {
     fn class_init(klass: &mut Self::Class) {
         Self::bind_template(klass);
 
-        // bind actions to our window
-        klass.install_action("win.quit", None, move |obj, _action_name, _action_target| {
-            let this = Window::from_instance(obj);
+        // bind actions from the ui file to our window
+        klass.install_action("win.quit", None, move |this, _action_name, _action_target| {
+            let this = Window::from_instance(this);
             this.instance().close();
         });
 

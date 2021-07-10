@@ -15,7 +15,7 @@ struct Context {
 
 impl View {
 
-    const ID : &'static str = "com.github.wiryls.far.testing";
+    const ID : &'static str = "com.github.wiryls.far";
 
     pub fn new() -> Self {
         let ctx = Rc::new(Context{});
@@ -25,23 +25,15 @@ impl View {
             .build();
 
         // [signals]
-		// (https://wiki.gnome.org/HowDoI/GtkApplication)
+        // (https://wiki.gnome.org/HowDoI/GtkApplication)
         app.connect_activate(
-            clone!(@weak ctx =>
-                move |app| View::build_main_window(ctx, app)));
+            clone!(@weak ctx => move
+                |app| PreviewWindow::new(app).show() ));
 
         Self{ctx, app}
     }
 
     pub fn run(&self) {
         self.app.run();
-    }
-
-    fn build_main_window(ctx: Rc<Context>, app: &gtk::Application) {
-
-        // let builder = gtk::Builder::from_resource("");
-        // let model : gio::MenuModel = builder.object("menu").unwrap();
-
-        PreviewWindow::new(app).show();
     }
 }

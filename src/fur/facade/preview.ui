@@ -3,41 +3,97 @@
   <!-- OUR MAIN WINDOW -->
   <template class="PreviewWindow" parent="GtkApplicationWindow">
     <property name="title" translatable="yes">F A R</property>
-    <property name="default-width">600</property>
-    <property name="default-height">400</property>
+    <property name="icon-name">application-x-executable"</property>
+    <property name="default-width">720</property>
+    <property name="default-height">480</property>
     <child type="titlebar">
       <object class="GtkHeaderBar">
-        <property name="show-title-buttons">True</property>
+        <property name="show-title-buttons">true</property>
         <child type="start">
           <object class="GtkMenuButton" id="menu_button">
             <property name="halign">start</property>
             <property name="icon-name">open-menu-symbolic</property>
-            <property name="menu-model">top_menu</property>
+            <property name="menu-model">header_menu</property>
           </object>
         </child>
       </object>
     </child>
     <child>
-      <object class="GtkBox" id="content_box">
+      <object class="GtkBox">
         <property name="orientation">vertical</property>
+        <property name="spacing">4</property>
+        <property name="margin_start">6</property>
+        <property name="margin_end">6</property>
+        <property name="margin_top">6</property>
+        <property name="margin_bottom">6</property>
         <child>
-          <object class="GtkStack" id="stack"/>
+          <!-- THE MAIN INPUT AREA -->
+          <object class="GtkGrid">
+            <property name="row-homogeneous">True</property>
+            <property name="column-spacing">4</property>
+            <property name="row-spacing">4</property>
+            <child>
+              <object class="GtkEntry" id="input_pattern">
+                <property name="halign">fill</property>
+                <property name="hexpand">true</property>
+                <property name="placeholder-text" translatable="yes">Search</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkEntry" id="input_replace">
+                <property name="halign">fill</property>
+                <property name="hexpand">true</property>
+                <property name="placeholder-text" translatable="yes">Replace</property>
+                <layout>
+                  <property name="column">0</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_rename">
+                <property name="label" translatable="yes">Rename</property>
+                <layout>
+                  <property name="column">1</property>
+                  <property name="row">0</property>
+                  <property name="row-span">2</property>
+                </layout>
+              </object>
+            </child>
+            <!-- TODO: as focus chain is deprecated, find another way to
+                       reorder "pattern" -> "replace" -> "rename". -->
+            <!-- see: https://gitlab.gnome.org/GNOME/gtk/-/issues/1430 -->
+            <!-- PS. I am feeling lack of docs :-( -->
+          </object>
+        </child>
+        <child>
+          <!-- THE PREVIEW AREA -->
+          <object class="GtkScrolledWindow">
+            <property name="has-frame">true</property>
+            <!-- note: "shadow-type" in GTK3 has been changed into "has-frame" -->
+            <!-- see: https://docs.gtk.org/gtk4/migrating-3to4.html#stop-using-gtkshadowtype-and-gtkrelief-properties-->
+            <child>
+              <object class="GtkColumnView">
+                <property name="valign">fill</property>
+                <property name="vexpand">true</property>
+                <!-- TODO-->
+              </object>
+            </child>
+          </object>
         </child>
       </object>
     </child>
   </template>
   <!-- THE HEADBAR MENU -->
-  <menu id="top_menu">
+  <menu id="header_menu">
     <section>
       <item>
         <attribute name="label">_Import</attribute>
         <attribute name="action">win.open</attribute>
-      </item>
-    </section>
-    <section>
-      <item>
-        <attribute name="label">_Preference</attribute>
-        <attribute name="action">win.pref</attribute>
       </item>
     </section>
     <section>
@@ -47,6 +103,9 @@
       </item>
     </section>
   </menu>
-  <!-- some sample menus:
-       https://gitlab.gnome.org/GNOME/gtk/-/blob/master/examples/bp/gtk/menus.ui -->
+  <!-- note 01: GtkMenu has been deprecated and we use GMenu now. -->
+  <!-- note 02: some sample menus:
+                https://gitlab.gnome.org/GNOME/gtk/-/blob/a64087d4814a5e2f562ee8a0cef8b349f7a8667b/examples/bp/gtk/menus.ui -->
 </interface>
+<!-- note: this ui file is migrated from gotk3 version
+           https://github.com/wiryls/far/blob/deprecated/gotk3/cmd/far/view.go -->
