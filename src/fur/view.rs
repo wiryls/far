@@ -38,6 +38,10 @@ impl View {
     }
 
     fn build_main_window(ctx: Rc<Context>, app: &gtk::Application) {
+
+        // let builder = gtk::Builder::from_resource("");
+        // let model : gio::MenuModel = builder.object("menu").unwrap();
+
         PreviewWindow::new(app).show();
     }
 }

@@ -1,20 +1,31 @@
 //! The main window for finding, replacing and previewing.
 
-// NOTE:
-// see [examples](https://github.com/gtk-rs/gtk4-rs/tree/master/examples) for
-// deatils.
+// References:
+//
+// [GUI development with Rust and GTK 4: Subclassing]
+// (https://gtk-rs.org/gtk4-rs/git/book/gobject_subclassing.html)
+//
+// [gtk4-rs examples composite_template]
+// (https://github.com/gtk-rs/gtk4-rs/tree/master/examples)
+//
+// [gtk4 getting started]
+// (https://docs.gtk.org/gtk4/getting_started.html#a-menu)
+//
+// [Gtk4-tutorial: GtkMenuButton, accelerators, font, pango and gsettings]
+// (https://github.com/ToshioCP/Gtk4-tutorial/blob/main/gfm/sec20.md)
+//
+// [Using GMenu]
+// (https://developer.gnome.org/GMenu/)
 
-use glib::clone;
+// use glib::clone;
 use gtk::subclass::prelude::*;
 use gtk::{glib, prelude::*, CompositeTemplate};
 
-use super::PreviewMenuButton;
-
 #[derive(Debug, Default, CompositeTemplate)]
-#[template(file = "preview_window.ui")]
+#[template(file = "preview.ui")]
 pub struct Window {
     #[template_child]
-    pub menubutton: TemplateChild<PreviewMenuButton>,
+    pub menu_button: TemplateChild<gtk::MenuButton>,
 }
 
 #[glib::object_subclass]
@@ -26,8 +37,17 @@ impl ObjectSubclass for Window {
     // this windows is derived from gtk::ApplicationWindow
     type ParentType = gtk::ApplicationWindow;
 
-    fn class_init(t: &mut Self::Class) {
-        Self::bind_template(t);
+    fn class_init(klass: &mut Self::Class) {
+        Self::bind_template(klass);
+
+        // bind actions to our window
+        klass.install_action("win.quit", None, move |obj, _action_name, _action_target| {
+            let this = Window::from_instance(obj);
+            this.instance().close();
+        });
+
+        // [install action]
+        // (https://github.com/gtk-rs/gtk4-rs/blob/6c296e5763faf8e3e967c457b318b8a8fbd45303/examples/video_player/video_player_window/imp.rs#L47)
     }
 
     fn instance_init(o: &glib::subclass::InitializingObject<Self>) {
@@ -39,63 +59,3 @@ impl ObjectImpl for Window {}
 impl WidgetImpl for Window {}
 impl WindowImpl for Window {}
 impl ApplicationWindowImpl for Window {}
-
-#[derive(Debug, Default, CompositeTemplate)]
-#[template(file = "preview_menu.ui")]
-pub struct MenuButton {
-    #[template_child]
-    pub toggle: TemplateChild<gtk::ToggleButton>,
-    #[template_child]
-    pub popover: TemplateChild<gtk::Popover>,
-}
-
-#[glib::object_subclass]
-impl ObjectSubclass for MenuButton {
-    const NAME: &'static str = "PreviewMenuButton";
-    type Type = super::PreviewMenuButton;
-    type ParentType = gtk::Widget;
-
-    fn class_init(klass: &mut Self::Class) {
-        Self::bind_template(klass);
-    }
-
-    fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
-        obj.init_template();
-    }
-}
-
-impl ObjectImpl for MenuButton {
-    fn constructed(&self, obj: &Self::Type) {
-        self.parent_constructed(obj);
-
-        let popover = &*self.popover;
-        self.toggle
-            .connect_toggled(glib::clone!(@weak popover => move |toggle| {
-                if toggle.is_active() {
-                    popover.popup();
-                }
-            }));
-
-        let toggle = &*self.toggle;
-        self.popover
-            .connect_closed(glib::clone!(@weak toggle => move |_| {
-                toggle.set_active(false);
-            }));
-    }
-
-    // Needed for direct subclasses of GtkWidget;
-    // Here you need to unparent all direct children
-    // of your template.
-    fn dispose(&self, obj: &Self::Type) {
-        while let Some(child) = obj.first_child() {
-            child.unparent();
-        }
-    }
-}
-
-impl WidgetImpl for MenuButton {
-    fn size_allocate(&self, widget: &Self::Type, width: i32, height: i32, baseline: i32) {
-        self.parent_size_allocate(widget, width, height, baseline);
-        self.popover.present();
-    }
-}

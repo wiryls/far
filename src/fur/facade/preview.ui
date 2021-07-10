@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <!-- OUR MAIN WINDOW -->
+  <template class="PreviewWindow" parent="GtkApplicationWindow">
+    <property name="title" translatable="yes">F A R</property>
+    <property name="default-width">600</property>
+    <property name="default-height">400</property>
+    <child type="titlebar">
+      <object class="GtkHeaderBar">
+        <property name="show-title-buttons">True</property>
+        <child type="start">
+          <object class="GtkMenuButton" id="menu_button">
+            <property name="halign">start</property>
+            <property name="icon-name">open-menu-symbolic</property>
+            <property name="menu-model">top_menu</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="content_box">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkStack" id="stack"/>
+        </child>
+      </object>
+    </child>
+  </template>
+  <!-- THE HEADBAR MENU -->
+  <menu id="top_menu">
+    <section>
+      <item>
+        <attribute name="label">_Import</attribute>
+        <attribute name="action">win.open</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label">_Preference</attribute>
+        <attribute name="action">win.pref</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label">_Quit</attribute>
+        <attribute name="action">win.quit</attribute>
+      </item>
+    </section>
+  </menu>
+  <!-- some sample menus:
+       https://gitlab.gnome.org/GNOME/gtk/-/blob/master/examples/bp/gtk/menus.ui -->
+</interface>
