@@ -1,7 +1,8 @@
 use std::rc::{Rc, Weak};
 use gtk::prelude::*;
 use gtk::{gio, glib, glib::clone};
-use crate::fur::fiber::{Item, List};
+use crate::fur::fervor::{Item, List};
+use crate::fur::facade::PreviewWindow;
 
 pub struct View {
     ctx: Rc<Context>,
@@ -37,24 +38,6 @@ impl View {
     }
 
     fn build_main_window(ctx: Rc<Context>, app: &gtk::Application) {
-
-        let menu = gtk::MenuButton::builder()
-            .icon_name("open-menu-symbolic")
-            .build();
-
-        let head = gtk::HeaderBar::builder()
-            .build();
-
-        let win = gtk::ApplicationWindow::builder()
-            .application(app)
-            .default_width(350)
-            .default_height(70)
-            .title("F A R")
-            // .child(&container)
-            .build();
-
-        head.pack_start(&menu);
-        win.set_titlebar(Some(&head));
-        win.show();
+        PreviewWindow::new(app).show();
     }
 }
