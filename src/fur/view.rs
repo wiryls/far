@@ -4,11 +4,11 @@ use gtk::{gio, glib, glib::clone};
 use crate::fur::fervor::List;
 use crate::fur::facade::PreviewWindow;
 
-pub struct View(gtk::Application);
-
 pub struct Context {
 
 }
+
+pub struct View(gtk::Application);
 
 impl View {
 
@@ -36,15 +36,20 @@ impl View {
         Self(app)
     }
 
-    fn bind(_ctx: &Context, app: &gtk::Application) {
+    fn bind(ctx: &Context, app: &gtk::Application) {
+        // prepare
         View::load();
-        PreviewWindow::new(app).show();
+
+        // build window
+        let win = PreviewWindow::new(app);
+        win.bind(ctx);
+        win.show();
     }
 
     fn load() {
         use std::sync::Once;
-        static LOADER: Once = Once::new();
-        LOADER.call_once(|| {
+        static ONESHOT: Once = Once::new();
+        ONESHOT.call_once(|| {
             const RES: &'static [u8] = include_bytes!("res.gresource");
             let res = glib::Bytes::from(RES);
             let res = gio::Resource::from_data(&res).unwrap();
