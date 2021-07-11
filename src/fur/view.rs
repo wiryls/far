@@ -17,6 +17,10 @@ impl View {
 
     const ID : &'static str = "com.github.wiryls.far";
 
+    pub fn run(&self) {
+        self.app.run();
+    }
+
     pub fn new() -> Self {
         let ctx = Rc::new(Context{});
         let app = gtk::Application::builder()
@@ -34,18 +38,14 @@ impl View {
     }
 
     fn bind(_ctx: &Context, app: &gtk::Application) {
+        View::load();
+        PreviewWindow::new(app).show();
+    }
+
+    fn load() {
         const RES: &'static [u8] = include_bytes!("res.gresource");
         let res = glib::Bytes::from(RES);
         let res = gio::Resource::from_data(&res).unwrap();
         gio::resources_register(&res);
-
-        let mut d = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("res/res.gresource");
-
-        PreviewWindow::new(app).show()
-    }
-
-    pub fn run(&self) {
-        self.app.run();
     }
 }

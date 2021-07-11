@@ -10,10 +10,9 @@
       <object class="GtkHeaderBar">
         <property name="show-title-buttons">true</property>
         <child type="start">
-          <object class="GtkMenuButton">
+          <object class="GtkButton">
             <property name="halign">start</property>
-            <property name="icon-name">open-menu-symbolic</property>
-            <property name="menu-model">header_menu</property>
+            <property name="icon-name">list-add-symbolic</property>
           </object>
         </child>
       </object>
