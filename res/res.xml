@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/github/wiryls/far">
+    <file>icon/case-sensitive.svg</file>
+    <file>icon/regex.svg</file>
+  </gresource>
+  <gresource prefix="/com/github/wiryls/far">
+    <file>ui/preview.ui</file>
+  </gresource>
+</gresources>
+<!-- note: https://developer.gnome.org/gio/stable/GResource.html-->

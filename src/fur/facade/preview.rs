@@ -22,7 +22,7 @@ use gtk::subclass::prelude::*;
 use gtk::{glib, prelude::*, CompositeTemplate};
 
 #[derive(Debug, Default, CompositeTemplate)]
-#[template(file = "preview.ui")]
+#[template(resource = "/com/github/wiryls/far/ui/preview.ui")]
 pub struct Window {
 
     #[template_child]
