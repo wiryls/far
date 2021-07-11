@@ -55,17 +55,17 @@ impl Window {
         println!("bind preview");
         let this = self.instance();
 
-        let state= RefCell::new(true.to_variant());
-        let action = gio::SimpleAction::new(
+        let action = gio::SimpleAction::new_stateful(
             "stat",
-            glib::VariantTy::new("bool").map_or(None, Some));
+            None,
+            &true.to_variant());
 
         action.connect_activate(move |a, b| {
-            let mut bo = state.borrow_mut();
-            if let Some(value) = bo.get::<bool>() {
-                *bo = (!value).to_variant();
+            if let Some(value) = a.state().and_then(|x| x.get::<bool>()) {
+                a.set_state(&(!value).to_variant());
+                println!("action activate {} {} {:?}", a, value, b);
             }
-            println!("action activate {} {:?} {}", a, b, bo);
+            println!("action activate {} {:?}", a, b);
         });
         action.connect_change_state(|a, b|{
             println!("action changing {:?} {:?}", a, b);
