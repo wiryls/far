@@ -1,10 +1,12 @@
+use std::rc::Rc;
 use gtk::prelude::*;
 use gtk::{gio, glib};
 
 mod fur;
 
 fn main() {
-    let view = fur::View::new();
+    let ctxt = Rc::new(fur::Context{});
+    let view = fur::View::new(ctxt.clone());
     view.run();
 }
 
@@ -33,24 +35,4 @@ fn build_ui(application: &gtk::Application) {
         .model(&model)
         .build();
     list.append_column(&column);
-
-    let container = gtk::Box::builder()
-        .orientation(gtk::Orientation::Vertical)
-        .spacing(8)
-        .build();
-
-    container.append(&gtk::Button::builder()
-        .label("Click me!")
-        .build()
-    );
-    container.append(&list);
-
-    gtk::ApplicationWindow::builder()
-        .application(application)
-        .title("First GTK Program")
-        .default_width(350)
-        .default_height(70)
-        .child(&container)
-        .build()
-        .show();
 }

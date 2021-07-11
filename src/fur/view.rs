@@ -1,40 +1,39 @@
 use std::rc::Rc;
 use gtk::prelude::*;
 use gtk::{gio, glib, glib::clone};
-use crate::fur::fervor::{Item, List};
+use crate::fur::fervor::List;
 use crate::fur::facade::PreviewWindow;
 
-pub struct View {
-    ctx: Rc<Context>,
-    app: gtk::Application,
-}
+pub struct View(gtk::Application);
 
-struct Context {
+pub struct Context {
 
 }
 
 impl View {
 
-    const ID : &'static str = "com.github.wiryls.far";
-
     pub fn run(&self) {
-        self.app.run();
+        self.0.run();
     }
 
-    pub fn new() -> Self {
-        let ctx = Rc::new(Context{});
+    pub fn new(ctx: Rc<Context>) -> Self {
+        const ID : &'static str = "com.github.wiryls.far";
+
         let app = gtk::Application::builder()
-            .application_id(View::ID)
+            .application_id(ID)
             .flags(Default::default())
             .build();
 
-        // [signals]
-        // (https://wiki.gnome.org/HowDoI/GtkApplication)
         app.connect_activate(
             clone!(@weak ctx => move
                 |app| View::bind(ctx.as_ref(), app) ));
 
-        Self{ctx, app}
+        // Reference:
+        //
+        // [signals]
+        // (https://wiki.gnome.org/HowDoI/GtkApplication)
+
+        Self(app)
     }
 
     fn bind(_ctx: &Context, app: &gtk::Application) {
@@ -43,9 +42,13 @@ impl View {
     }
 
     fn load() {
-        const RES: &'static [u8] = include_bytes!("res.gresource");
-        let res = glib::Bytes::from(RES);
-        let res = gio::Resource::from_data(&res).unwrap();
-        gio::resources_register(&res);
+        use std::sync::Once;
+        static LOADER: Once = Once::new();
+        LOADER.call_once(|| {
+            const RES: &'static [u8] = include_bytes!("res.gresource");
+            let res = glib::Bytes::from(RES);
+            let res = gio::Resource::from_data(&res).unwrap();
+            gio::resources_register(&res);
+        });
     }
 }

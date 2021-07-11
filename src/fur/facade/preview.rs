@@ -33,6 +33,9 @@ pub struct Window {
 
     #[template_child]
     pub button_rename: TemplateChild<gtk::Button>,
+
+    #[template_child]
+    pub table: TemplateChild<gtk::ColumnView>,
 }
 
 #[glib::object_subclass]

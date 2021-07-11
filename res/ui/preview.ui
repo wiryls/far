@@ -110,10 +110,29 @@
             <!-- see: https://docs.gtk.org/gtk4/migrating-3to4.html#stop-using-gtkshadowtype-and-gtkrelief-properties
                  also https://docs.gtk.org/gtk4/property.ScrolledWindow.has-frame.html -->
             <child>
-              <object class="GtkColumnView">
+              <object class="GtkColumnView" id="table">
                 <property name="valign">fill</property>
                 <property name="vexpand">true</property>
-                <!-- TODO-->
+                <property name="hexpand">true</property>
+                <style>
+                  <class name="data-table"/>
+                </style>
+                <child>
+                  <object class="GtkColumnViewColumn" id="column_stat">
+                    <property name="title" translatable="yes">State</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkColumnViewColumn" id="column_view">
+                    <property name="title" translatable="yes">Name</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkColumnViewColumn" id="column_path">
+                    <property name="title" translatable="yes">Path</property>
+                    <property name="expand">true</property>
+                  </object>
+                </child>
               </object>
             </child>
           </object>
@@ -122,7 +141,7 @@
     </child>
   </template>
   <!-- THE HEADBAR MENU -->
-  <menu id="header_menu">
+  <menu id="list_menu">
     <section>
       <item>
         <attribute name="label">_Import</attribute>
@@ -137,8 +156,9 @@
     </section>
   </menu>
   <!-- note 01: GtkMenu has been deprecated and we use GMenu now. -->
-  <!-- note 02: some sample menus:
-                https://gitlab.gnome.org/GNOME/gtk/-/blob/a64087d4814a5e2f562ee8a0cef8b349f7a8667b/examples/bp/gtk/menus.ui -->
+  <!-- note 02: some sample menus or tutorial:
+                https://gitlab.gnome.org/GNOME/gtk/-/blob/a64087d4814a5e2f562ee8a0cef8b349f7a8667b/examples/bp/gtk/menus.ui
+                https://github.com/ToshioCP/Gtk4-tutorial/blob/7423bec0bd352d8ab9f9ae9adacd99f7d8781b63/gfm/sec19.md -->
 </interface>
 <!-- note: this ui file is migrated from gotk3 version
            https://github.com/wiryls/far/blob/deprecated/gotk3/cmd/far/view.go -->
