@@ -3,7 +3,7 @@
 // References:
 //
 // [GUI development with Rust and GTK 4: Subclassing]
-// (https://gtk-rs.org/gtk4-rs/git/book/gobject_subclassing.html)
+// (https://gtk-rs.org/gtk4-rs/gi, width: (), height: () t/book/gobject_subclassing.html)
 //
 // [gtk4-rs examples composite_template]
 // (https://github.com/gtk-rs/gtk4-rs/tree/master/examples)
@@ -17,11 +17,9 @@
 // [Using GMenu]
 // (https://developer.gnome.org/GMenu/)
 
-use std::cell::RefCell;
-
-// use glib::clone;
 use gtk::{prelude::*, subclass::prelude::*};
-use gtk::{glib, gio, CompositeTemplate};
+use gtk::{glib, gdk, gio, CompositeTemplate};
+use glib::clone;
 use crate::fur::Context;
 
 #[derive(Default, CompositeTemplate)]
@@ -41,6 +39,9 @@ pub struct Window {
     pub table: TemplateChild<gtk::ColumnView>,
 
     #[template_child]
+    pub table_menu: TemplateChild<gtk::PopoverMenu>,
+
+    #[template_child]
     pub column_stat: TemplateChild<gtk::ColumnViewColumn>,
 
     #[template_child]
@@ -52,8 +53,24 @@ pub struct Window {
 
 impl Window {
     pub fn bind(&self, _ctx: &Context) {
+        let this = &self.instance();
         println!("bind preview");
-        let this = self.instance();
+
+        let right_click = gtk::GestureClick::builder()
+            .button(gtk::gdk::BUTTON_SECONDARY)
+            .build();
+
+        let table_menu = &*self.table_menu;
+        // table_menu.set_parent(&*self.table);
+        table_menu.set_position(gtk::PositionType::Right);
+
+        right_click.connect_released(clone!(@strong table_menu => move |_, _, x, y|{
+            let rect = gdk::Rectangle{x: x as i32,y: y as i32, width: 0, height: 0};
+            table_menu.set_pointing_to(&rect);
+            table_menu.popup();
+        }));
+
+        self.table.add_controller(&right_click);
 
         let action = gio::SimpleAction::new_stateful(
             "stat",
