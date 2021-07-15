@@ -22,7 +22,7 @@ use gtk::{glib, gdk, gio, CompositeTemplate};
 use glib::clone;
 use crate::fur::Context;
 
-#[derive(Default, CompositeTemplate)]
+#[derive(Debug, Default, CompositeTemplate)]
 #[template(resource = "/com/github/wiryls/far/ui/preview.ui")]
 pub struct Window {
 
@@ -56,13 +56,16 @@ impl Window {
         let this = &self.instance();
         println!("bind preview");
 
+
         let right_click = gtk::GestureClick::builder()
             .button(gtk::gdk::BUTTON_SECONDARY)
             .build();
 
         let table_menu = &*self.table_menu;
+        right_click.connect_released(clone!(@weak table_menu => move |gesture, _, x, y|{
+            // consume the message
+            gesture.set_state(gtk::EventSequenceState::Claimed);
 
-        right_click.connect_released(clone!(@strong table_menu => move |_, _, x, y|{
             let rect = gdk::Rectangle{x: x as i32,y: y as i32, width: 0, height: 0};
             table_menu.set_pointing_to(&rect);
             table_menu.popup();
@@ -80,18 +83,27 @@ impl Window {
                 a.set_state(&(!value).to_variant());
                 println!("action activate {} {} {:?}", a, value, b);
             }
-            println!("action activate {} {:?}", a, b);
         });
-        action.connect_change_state(|a, b|{
+
+        action.connect_change_state(|a, b| {
             println!("action changing {:?} {:?}", a, b);
         });
 
-        this.add_action(&action);
-        println!("bind preview {:?}", &this.list_actions());
+        let action_delete = gio::SimpleAction::new("delete", None);
+        action_delete.set_enabled(false);
 
-        // TODO: find out how to use Actions.
+        let group = gio::SimpleActionGroup::new();
+        group.add_action(&action);
+        group.add_action(&action_delete);
 
-        // References:
+        self.table.insert_action_group("tab", Some(&group));
+
+        // References: Gesture
+        //
+        // [Gesture]
+        // (https://gnome.pages.gitlab.gnome.org/gtk/gtk4/class.Gesture.html)
+
+        // References: Action
         //
         // [Custom widgets in GTK 4 – Actions]
         // (https://blog.gtk.org/2020/05/01/custom-widgets-in-gtk-4-actions/)
@@ -107,6 +119,9 @@ impl Window {
         //
         // [Gio.Menu items always disabled for boolean actions]
         // (https://stackoverflow.com/questions/66509574)
+        //
+        // [examples custom_widget button]
+        // (https://github.com/gtk-rs/gtk4-rs/blob/af3a136457f3623bf6c4b3cf94a6a1b8652415bf/examples/custom_widget/ex_button/imp.rs)
     }
 }
 
@@ -120,9 +135,8 @@ impl ObjectSubclass for Window {
     type ParentType = gtk::ApplicationWindow;
 
     fn class_init(klass: &mut Self::Class) {
-        println!("preview class init");
-
         Self::bind_template(klass);
+        println!("preview class init");
 
         // bind actions from the ui file to our window
         klass.install_action("win.quit", None, move |this, _action_name, _action_target| {
@@ -137,8 +151,8 @@ impl ObjectSubclass for Window {
     }
 
     fn instance_init(o: &glib::subclass::InitializingObject<Self>) {
-        println!("preview template init");
         o.init_template();
+        println!("preview template init");
     }
 }
 
@@ -158,8 +172,9 @@ impl ObjectImpl for Window {
     }
 
     // Note: we need to manage lifetime of our popovermenu manually or GTK
-    // will pop up warning. The link shows how to manage a detached child:
+    // will pop up warning.
     // https://github.com/gtk-rs/gtk4-rs/blob/af3a136457f3623bf6c4b3cf94a6a1b8652415bf/examples/custom_widget/ex_button/imp.rs
+    // https://github.com/gtk-rs/gtk4-rs/blob/af3a136457f3623bf6c4b3cf94a6a1b8652415bf/examples/composite_template/ex_menu_button/imp.rs
 }
 
 impl WidgetImpl for Window {}

@@ -143,6 +143,8 @@
       </object>
     </child>
   </template>
+  <!-- THE MENU (DETACHED) -->
+  <!-- We should attatch it to ColumnView manually -->
   <object class="GtkPopoverMenu" id="table_menu">
     <property name="menu-model">table-menu</property>
     <!-- note: align to top left -->
@@ -155,20 +157,20 @@
     <section>
       <item>
         <attribute name="label">_Delete</attribute>
-        <attribute name="action">win.delete</attribute>
+        <attribute name="action">tab.delete</attribute>
       </item>
     </section>
     <section>
       <item>
         <attribute name="label">_Clear</attribute>
-        <attribute name="action">win.clear</attribute>
+        <attribute name="action">tab.clear</attribute>
       </item>
     </section>
   </menu>
-  <!-- note 01: GtkMenu has been deprecated and we use GMenu now. -->
-  <!-- note 02: some sample menus or tutorial:
+  <!-- Note 01: GtkMenu has been deprecated and we use GtkPopoverMenu now. -->
+  <!-- Note 02: some sample menus or tutorial:
                 https://gitlab.gnome.org/GNOME/gtk/-/blob/a64087d4814a5e2f562ee8a0cef8b349f7a8667b/examples/bp/gtk/menus.ui
                 https://github.com/ToshioCP/Gtk4-tutorial/blob/7423bec0bd352d8ab9f9ae9adacd99f7d8781b63/gfm/sec19.md -->
 </interface>
-<!-- note: this ui file is migrated from gotk3 version
+<!-- Note: this ui file is migrated from my gotk3 version
            https://github.com/wiryls/far/blob/deprecated/gotk3/cmd/far/view.go -->

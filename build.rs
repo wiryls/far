@@ -24,6 +24,7 @@ fn main() {
     }
 
     println!("cargo:rerun-if-changed=res/res.xml");
+    println!("cargo:rerun-if-changed=res/ui/preview.ui");
 }
 
 // References:

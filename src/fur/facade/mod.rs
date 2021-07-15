@@ -17,7 +17,10 @@ glib::wrapper! {
 
 impl PreviewWindow {
 
-    pub fn new<P: glib::IsA<gtk::Application>>(app: &P) -> Self {
+    pub fn new<P>(app: &P) -> Self
+    where
+        P: glib::IsA<gtk::Application>
+    {
         glib::Object::new(&[("application", app)])
             .expect("failed to create PreviewWindow")
     }

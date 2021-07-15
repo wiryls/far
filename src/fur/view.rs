@@ -42,6 +42,7 @@ impl View {
 
         // build window
         let win = PreviewWindow::new(app);
+        println!("binding win");
         win.bind(ctx);
         win.show();
     }
