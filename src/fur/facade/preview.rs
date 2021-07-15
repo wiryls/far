@@ -61,8 +61,6 @@ impl Window {
             .build();
 
         let table_menu = &*self.table_menu;
-        // table_menu.set_parent(&*self.table);
-        table_menu.set_position(gtk::PositionType::Right);
 
         right_click.connect_released(clone!(@strong table_menu => move |_, _, x, y|{
             let rect = gdk::Rectangle{x: x as i32,y: y as i32, width: 0, height: 0};
@@ -122,6 +120,8 @@ impl ObjectSubclass for Window {
     type ParentType = gtk::ApplicationWindow;
 
     fn class_init(klass: &mut Self::Class) {
+        println!("preview class init");
+
         Self::bind_template(klass);
 
         // bind actions from the ui file to our window
@@ -137,11 +137,31 @@ impl ObjectSubclass for Window {
     }
 
     fn instance_init(o: &glib::subclass::InitializingObject<Self>) {
+        println!("preview template init");
         o.init_template();
     }
 }
 
-impl ObjectImpl for Window {}
+impl ObjectImpl for Window {
+
+    fn constructed(&self, obj: &Self::Type) {
+        println!("preview instance construct");
+        self.parent_constructed(obj);
+        self.table_menu.set_parent(&*self.table);
+    }
+
+    fn dispose(&self, _obj: &Self::Type) {
+        println!("preview instance dispose");
+        if let Some(_) = self.table_menu.parent() {
+            self.table_menu.unparent();
+        }
+    }
+
+    // Note: we need to manage lifetime of our popovermenu manually or GTK
+    // will pop up warning. The link shows how to manage a detached child:
+    // https://github.com/gtk-rs/gtk4-rs/blob/af3a136457f3623bf6c4b3cf94a6a1b8652415bf/examples/custom_widget/ex_button/imp.rs
+}
+
 impl WidgetImpl for Window {}
 impl WindowImpl for Window {}
 impl ApplicationWindowImpl for Window {}

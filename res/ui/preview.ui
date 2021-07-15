@@ -16,13 +16,6 @@
             <property name="action-name">win.import</property>
           </object>
         </child>
-        <child type="start">
-          <object class="GtkButton">
-            <property name="halign">start</property>
-            <property name="icon-name">view-refresh-symbolic</property>
-            <property name="action-name">win.reset</property>
-          </object>
-        </child>
       </object>
     </child>
     <child>
@@ -127,12 +120,6 @@
                   <class name="data-table"/>
                 </style>
                 <child>
-                  <object class="GtkPopoverMenu" id="table_menu">
-                    <property name="has_arrow">false</property>
-                    <property name="menu-model">table-menu</property>
-                  </object>
-                </child>
-                <child>
                   <object class="GtkColumnViewColumn" id="column_stat">
                     <property name="title" translatable="yes">State</property>
                   </object>
@@ -156,6 +143,13 @@
       </object>
     </child>
   </template>
+  <object class="GtkPopoverMenu" id="table_menu">
+    <property name="menu-model">table-menu</property>
+    <!-- note: align to top left -->
+    <property name="halign">start</property>
+    <property name="position">bottom</property>
+    <property name="has_arrow">false</property>
+  </object>
   <!-- THE HEADBAR MENU -->
   <menu id="table-menu">
     <section>
