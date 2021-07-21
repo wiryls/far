@@ -105,8 +105,10 @@ impl Window {
                         Some("_Cancel"));
 
                     chooser.set_select_multiple(true);
-                    chooser.connect_accept_label_notify(|chooser: &gtk::FileChooserNative| {
-                        println!("import files");
+                    chooser.connect_response(|chooser: &gtk::FileChooserNative, response: gtk::ResponseType| {
+                        if response == gtk::ResponseType::Accept {
+                            println!("import files");
+                        }
                         chooser.destroy();
                     });
                     chooser.show();
