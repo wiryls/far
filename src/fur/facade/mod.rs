@@ -2,8 +2,8 @@ mod import;
 mod rename;
 mod preview;
 
-use gtk::subclass::prelude::*;
 use gtk::{gio, glib};
+use gtk::subclass::prelude::*;
 use crate::fur::Context;
 
 glib::wrapper! {
@@ -17,15 +17,17 @@ glib::wrapper! {
 
 impl PreviewWindow {
 
-    pub fn new<P>(app: &P) -> Self
+    pub fn new<P>(ctx: &Context, app: &P) -> Self
     where
         P: glib::IsA<gtk::Application>
     {
         glib::Object::new(&[("application", app)])
+            .map(|x: Self| x.setup(ctx))
             .expect("failed to create PreviewWindow")
     }
 
-    pub fn bind(&self, ctx: &Context) {
-        preview::Window::from_instance(self).bind(ctx);
+    fn setup(self, ctx: &Context) -> Self {
+        preview::Window::from_instance(&self).setup(ctx);
+        self
     }
 }

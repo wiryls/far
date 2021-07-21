@@ -41,9 +41,8 @@ impl View {
         View::load();
 
         // build window
-        let win = PreviewWindow::new(app);
+        let win = PreviewWindow::new(ctx, app);
         println!("binding win");
-        win.bind(ctx);
         win.show();
     }
 

@@ -67,7 +67,7 @@
                   <object class="GtkToggleButton">
                     <property name="active">true</property>
                     <property name="has-frame">false</property>
-                    <property name="action-name">win.stat</property>
+                    <property name="action-name">settings.case-sensitive</property>
                     <child>
                       <object class="GtkImage">
                         <property name="resource">/com/github/wiryls/far/icon/case-sensitive.svg</property>
@@ -79,6 +79,7 @@
                   <object class="GtkToggleButton">
                     <property name="active">true</property>
                     <property name="has-frame">false</property>
+                    <property name="action-name">settings.use-regexp</property>
                     <child>
                       <object class="GtkImage">
                         <property name="resource">/com/github/wiryls/far/icon/regex.svg</property>
@@ -157,13 +158,13 @@
     <section>
       <item>
         <attribute name="label">_Delete</attribute>
-        <attribute name="action">tab.delete</attribute>
+        <attribute name="action">table.delete</attribute>
       </item>
     </section>
     <section>
       <item>
         <attribute name="label">_Clear</attribute>
-        <attribute name="action">tab.clear</attribute>
+        <attribute name="action">table.clear</attribute>
       </item>
     </section>
   </menu>

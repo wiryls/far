@@ -17,8 +17,9 @@
 // [Using GMenu]
 // (https://developer.gnome.org/GMenu/)
 
+use gtk::{glib, gdk, gio};
 use gtk::{prelude::*, subclass::prelude::*};
-use gtk::{glib, gdk, gio, CompositeTemplate};
+use gtk::CompositeTemplate;
 use glib::clone;
 use crate::fur::Context;
 
@@ -52,10 +53,16 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn bind(&self, _ctx: &Context) {
-        let this = &self.instance();
-        println!("bind preview");
 
+    // setup will be triggered after "constructed"
+    //
+    // note: the sequence of funcion call is:
+    //    1. ObjectSubclass::class_init
+    //    2. ObjectSubclass::instance_init
+    //    3. ObjectImpl::constructed
+    //    4. setup
+    //    5. ObjectImpl::dispose
+    pub fn setup(&self, ctx: &Context) {
 
         let right_click = gtk::GestureClick::builder()
             .button(gtk::gdk::BUTTON_SECONDARY)
@@ -73,35 +80,94 @@ impl Window {
 
         self.table.add_controller(&right_click);
 
-        let action = gio::SimpleAction::new_stateful(
-            "stat",
-            None,
-            &true.to_variant());
-
-        action.connect_activate(move |a, b| {
-            if let Some(value) = a.state().and_then(|x| x.get::<bool>()) {
-                a.set_state(&(!value).to_variant());
-                println!("action activate {} {} {:?}", a, value, b);
-            }
-        });
-
-        action.connect_change_state(|a, b| {
-            println!("action changing {:?} {:?}", a, b);
-        });
-
-        let action_delete = gio::SimpleAction::new("delete", None);
-        action_delete.set_enabled(false);
-
-        let group = gio::SimpleActionGroup::new();
-        group.add_action(&action);
-        group.add_action(&action_delete);
-
-        self.table.insert_action_group("tab", Some(&group));
-
         // References: Gesture
         //
         // [Gesture]
         // (https://gnome.pages.gitlab.gnome.org/gtk/gtk4/class.Gesture.html)
+
+        self.setup_actions(ctx);
+    }
+
+    fn setup_actions(&self, _ctx: &Context) {
+        let this = self.instance();
+
+        {   // action group "win"
+            {
+                let action = gio::SimpleAction::new("import", None);
+                this.add_action(&action);
+
+                action.connect_activate(glib::clone!(@weak this => move |_, _| {
+                    let chooser = gtk::FileChooserNative::new(
+                        Some("Import"),
+                        Some(&this),
+                        gtk::FileChooserAction::Open,
+                        Some("_OK"),
+                        Some("_Cancel"));
+
+                    chooser.set_select_multiple(true);
+                    chooser.connect_accept_label_notify(|chooser: &gtk::FileChooserNative| {
+                        println!("import files");
+                        chooser.destroy();
+                    });
+                    chooser.show();
+                }));
+            }
+        }
+
+        {   // action group "settings"
+            let group = gio::SimpleActionGroup::new();
+            this.insert_action_group("settings", Some(&group));
+            {
+                let action = gio::SimpleAction::new_stateful(
+                    "case-sensitive",
+                    None,
+                    &true.to_variant());
+                group.add_action(&action);
+
+                action.connect_activate(|action, _| {
+                    if let Some(value) = action.state().and_then(|x| x.get::<bool>()) {
+                        action.set_state(&(!value).to_variant());
+                        println!("case-sensitive {}", !value);
+                    }
+                });
+            }
+            {
+                let action = gio::SimpleAction::new_stateful(
+                    "use-regexp",
+                    None,
+                    &true.to_variant());
+                group.add_action(&action);
+
+                action.connect_activate(|action, _| {
+                    if let Some(value) = action.state().and_then(|x| x.get::<bool>()) {
+                        action.set_state(&(!value).to_variant());
+                        println!("use-regexp {}", !value);
+                    }
+                });
+            }
+        }
+
+        {   // action group "table"
+            let group = gio::SimpleActionGroup::new();
+            self.table.insert_action_group("table", Some(&group));
+            {
+                let action = gio::SimpleAction::new("delete", None);
+                group.add_action(&action);
+
+                // enable if selection is not empty.
+                action.connect_activate(|_, _| {
+                    println!("delete some items");
+                });
+            }
+            {
+                let action = gio::SimpleAction::new("clear", None);
+                group.add_action(&action);
+
+                action.connect_activate(|_, _| {
+                    println!("clear all items");
+                });
+            }
+        }
 
         // References: Action
         //
@@ -122,6 +188,9 @@ impl Window {
         //
         // [examples custom_widget button]
         // (https://github.com/gtk-rs/gtk4-rs/blob/af3a136457f3623bf6c4b3cf94a6a1b8652415bf/examples/custom_widget/ex_button/imp.rs)
+        //
+        // [ToshioCP: Stateful action]
+        // (https://github.com/ToshioCP/Gtk4-tutorial/blob/main/gfm/sec18.md)
     }
 }
 
@@ -136,7 +205,6 @@ impl ObjectSubclass for Window {
 
     fn class_init(klass: &mut Self::Class) {
         Self::bind_template(klass);
-        println!("preview class init");
 
         // bind actions from the ui file to our window
         klass.install_action("win.quit", None, move |this, _action_name, _action_target| {
@@ -152,20 +220,17 @@ impl ObjectSubclass for Window {
 
     fn instance_init(o: &glib::subclass::InitializingObject<Self>) {
         o.init_template();
-        println!("preview template init");
     }
 }
 
 impl ObjectImpl for Window {
 
     fn constructed(&self, obj: &Self::Type) {
-        println!("preview instance construct");
         self.parent_constructed(obj);
         self.table_menu.set_parent(&*self.table);
     }
 
     fn dispose(&self, _obj: &Self::Type) {
-        println!("preview instance dispose");
         if let Some(_) = self.table_menu.parent() {
             self.table_menu.unparent();
         }
