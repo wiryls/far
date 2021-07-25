@@ -17,12 +17,13 @@ FetchContent_Declare(
 
 # enable all dependencies
 FetchContent_MakeAvailable(catch)
-set_target_properties     (Catch2 Catch2WithMain PROPERTIES FOLDER "third_party/tests")
 
-# ignore warnings
+# config and ignore warnings
 foreach(_target Catch2 Catch2WithMain)
+    set_target_properties(${_target} PROPERTIES FOLDER "third_party/tests")
+    set(third_party_targets ${third_party_targets} ${_target} CACHE INTERNAL "third party target list")
     get_target_property(_includes ${_target} INTERFACE_INCLUDE_DIRECTORIES)
-    target_include_directories(${_target} SYSTEM INTERFACE ${_includes})    
+    target_include_directories(${_target} SYSTEM INTERFACE ${_includes})
 endforeach()
 
 #[[ subprojects ]]

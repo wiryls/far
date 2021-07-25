@@ -2,15 +2,14 @@
 cmake_minimum_required(VERSION 3.19...3.22)
 
 # project infomation
-project(fervor
+project(far
     VERSION 0.0.1
-    DESCRIPTION "fervor of FAR"
-    LANGUAGES CXX
-)
+    DESCRIPTION "find and rename"
+    LANGUAGES CXX)
 
 # provide options for users
-option(UNCAT_BUILD_TESTS    "build all test programs"   OFF)
-option(UNCAT_BUILD_EXAMPLES "build all sample programs" OFF)
+option(UNCAT_BUILD_TESTS    "build all test programs"   ON)
+option(UNCAT_BUILD_EXAMPLES "build all sample programs" ON)
 
 # global properties or options
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

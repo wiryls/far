@@ -5,7 +5,7 @@ string(TOLOWER ${name} name)
 
 # source lists
 set(sources
-    todo_test.cpp)
+    faregex_test.cpp)
 
 # executable
 add_executable       (${name} ${sources})
