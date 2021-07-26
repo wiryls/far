@@ -107,7 +107,15 @@ far::faregex<C>::faregex::operator()(I const & first, I const & last) -> void
     auto tail = iterator_t();
     for (; head != tail; ++head)
     {
-        auto const & match = *head;
-        (void) match;
+        auto & match = *head;
+        if (!match.empty())
+        {
+            auto l = match[0].first;
+            auto r = match[0].second;
+            auto target = match.format(replace);
+            (void)l;
+            (void)r;
+            (void)target;
+        }
     }
 }

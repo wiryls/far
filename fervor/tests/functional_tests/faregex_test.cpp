@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+
+#include <list>
 #include <far/faregex.hpp>
 
 TEST_CASE("constructor, trait, deduction guide", "[faregex]")
@@ -17,5 +19,11 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         auto w = std::wstring();
         auto f = far::faregex(w, w);
         f(w);
+    }
+    SECTION("std::list<wchar_t>")
+    {
+        auto l = std::list<wchar_t>{};
+        auto f = far::faregex(l, l);
+        f(l);
     }
 }
