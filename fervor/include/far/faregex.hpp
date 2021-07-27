@@ -1,11 +1,13 @@
 #pragma once
 
 /// Note:
-/// this file is base on RUST version:
+/// this file is base on a RUST version:
 /// https://github.com/wiryls/far/blob/deprecated/gtk4-rs/src/far/diff.rs and
 /// https://github.com/wiryls/far/blob/deprecated/gtk4-rs/src/far/faregex.rs
 
 #include <concepts>
+#include <execution> // std::execution::unseq
+#include <algorithm> // std::equal
 #include <iterator>
 #include <ranges>
 #include <variant>
@@ -34,12 +36,13 @@ namespace far { namespace cep
 namespace far
 {
     //// changes
-    template<far::cep::char_type C>
+    template
+        < far::cep::char_type C
+        , std::bidirectional_iterator I >
     using change = std::variant
-        < std::basic_string_view<C>
-        , std::basic_string_view<C>
-        , std::basic_string     <C>
-        >;
+        < std::pair<I, I>
+        , std::pair<I, I>
+        , std::basic_string<C> >;
 
     //// iterator
     template<far::cep::char_type C>
@@ -105,17 +108,44 @@ far::faregex<C>::faregex::operator()(I const & first, I const & last) -> void
 
     auto head = iterator_t(first, last, pattern);
     auto tail = iterator_t();
+
+    auto prev = first;
+    auto buff = std::basic_string<C>();
+
     for (; head != tail; ++head)
     {
-        auto & match = *head;
-        if (!match.empty())
+        auto & matches = *head;
+        if (!matches.empty()) [[likely]]
         {
-            auto l = match[0].first;
-            auto r = match[0].second;
-            auto target = match.format(replace);
-            (void)l;
-            (void)r;
-            (void)target;
+            buff.clear();
+            matches.format(std::back_inserter(buff), replace);
+
+            auto remove = static_cast<std::pair<I, I>>(matches[0]);
+            auto retain = std::make_pair(prev, remove.first);
+            auto insert = std::make_pair(buff.begin(), buff.end());
+
+            if (std::equal
+                ( std::execution::unseq
+                , insert.first, insert.second
+                , remove.first, remove.second ) ) [[unlikely]]
+                continue;
+
+            if (retain.first != retain.second)
+            {
+                // TODO: output retain
+            }
+
+            if (remove.first != remove.second)
+            {
+                // TODO: output remove
+            }
+
+            if (insert.first != insert.second)
+            {
+                // TODO: output insert
+            }
+
+            prev = remove.second;
         }
     }
 }
