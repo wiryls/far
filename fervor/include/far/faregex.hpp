@@ -140,6 +140,8 @@ namespace far { namespace detail
 
 //// implementation starts from here
 
+
+
 template<::far::cep::char_type C>
 class far::faregex
 {
