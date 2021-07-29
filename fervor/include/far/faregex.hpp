@@ -1,5 +1,10 @@
 #pragma once
 
+/// Note:
+/// this file is base on a RUST version:
+/// https://github.com/wiryls/far/blob/deprecated/gtk4-rs/src/far/diff.rs and
+/// https://github.com/wiryls/far/blob/deprecated/gtk4-rs/src/far/faregex.rs
+
 #include <concepts>
 #include <execution> // std::execution::unseq
 #include <algorithm> // std::equal
@@ -64,50 +69,74 @@ namespace far
 {
     //// changes
 
-    template
-        < ::far::cep::char_type C
-        , ::far::cep::matched_iter<C> I
-        > struct retain : std::pair<I, I>
+    template<::far::cep::char_type C, ::far::cep::matched_iter<C> I>
+    struct retain : std::pair<I, I>
     {
         using std::pair<I, I>::pair;
     };
 
-    template
-        < ::far::cep::char_type C
-        , ::far::cep::matched_iter<C> I
-        > struct remove : std::pair<I, I>
+    template<::far::cep::char_type C, ::far::cep::matched_iter<C> I>
+    struct remove : std::pair<I, I>
     {
         using std::pair<I, I>::pair;
     };
 
-    template
-        < ::far::cep::char_type C
-        > using insert = std::basic_string_view<C>;
+    template<::far::cep::char_type C>
+    using insert = std::basic_string_view<C>;
 
-    template
-        < ::far::cep::char_type C
-        , std::bidirectional_iterator I
-        > using change = std::variant
-            < std::monostate
-            , retain<C, I>
-            , remove<C, I>
-            , insert<C> >;
+    template<::far::cep::char_type C, std::bidirectional_iterator I>
+    using change = std::variant
+        < std::monostate
+        , retain<C, I>
+        , remove<C, I>
+        , insert<C> >;
 
     //// iterator
-    template
-        < ::far::cep::char_type C
-        > class iterator;
+    template<::far::cep::char_type C>
+    class iterator;
 
     //// faregex
-    template
-        < ::far::cep::char_type C
-        > class faregex;
+    template<::far::cep::char_type C>
+    class faregex;
 
-    template
-        < std::ranges::forward_range P
-        , std::ranges::forward_range R
-        > faregex(P &&, R &&, bool = false) -> faregex<std::ranges::range_value_t<P>>;
+    template<std::ranges::forward_range P, std::ranges::forward_range R>
+    faregex(P &&, R &&, bool = false) -> faregex<std::ranges::range_value_t<P>>;
 }
+
+namespace far { namespace detail
+{
+    //// helpers
+
+    namespace cpo
+    {
+        struct end
+        {
+        private:
+            template<std::ranges::range R>
+            struct zero_suffixed : std::false_type {};
+
+            template<typename C, std::size_t N>
+            requires (N > 0)
+            struct zero_suffixed<C(&)[N]> : std::true_type
+            {
+                static constexpr std::ptrdiff_t N = N;
+            };
+
+        public:
+            template<std::ranges::range R>
+            auto constexpr operator()(R && r) const noexcept(noexcept(std::ranges::end(r)))
+            {
+                if constexpr  (zero_suffixed<R>::value)
+                    return r + zero_suffixed<R>::N - 1;
+                else
+                    return std::ranges::end(std::forward<R>(r));
+            }
+        };
+    }
+
+    inline constexpr auto begin = std::ranges::begin;
+    inline constexpr auto end   = cpo::end{};
+}}
 
 //// implementation starts from here
 
@@ -125,6 +154,88 @@ public:
     template<::far::cep::matched_iter<C> I>
     struct generator
     {
+    public:
+        auto constexpr operator ()() -> change<C, I>
+        {
+            // Note: because coroutines from C++20 are hard to use and have
+            // poor performance (in contrast to for-loop), so I choose duff's
+            // device.
+            // https://www.reddit.com/r/cpp/comments/gqi0io
+            // https://stackoverflow.com/questions/57726401
+
+            switch (stat)
+            {
+            default:
+            case state::starting:
+
+                for (; head != tail; ++ head)
+                {
+                    if (head->empty()) [[unlikely]]
+                        continue;
+
+                    buff.clear();
+                    head->format(std::back_inserter(buff), ctxt->replace);
+
+                    if  ( auto const & match = (*head)[0]
+                        ; std::equal
+                            ( std::execution::unseq
+                            , buff.begin(), buff.end()
+                            , match.first, match.second ) ) [[unlikely]]
+                        continue;
+
+                    if (auto const & match = (*head)[0]; prev != match.first )
+                    {
+                        stat = state::after_retain;
+                        return retain<C, I>{ prev, match.first };
+                    }
+
+            [[fallthrough]];
+            case state::after_retain:
+
+                    if (auto const & match = (*head)[0]; match.first != match.second )
+                    {
+                        stat = state::after_remove;
+                        return remove<C, I>{ match.first, match.second };
+                    }
+
+            [[fallthrough]];
+            case state::after_remove:
+
+                    if (!buff.empty())
+                    {
+                        stat = state::after_insert;
+                        return insert<C>(buff);
+                    }
+
+            [[fallthrough]];
+            case state::after_insert:
+
+                    prev = (*head)[0].second;
+                }
+
+                stat = state::stopped;
+                if (prev != last)
+                    return retain<C, I>{ prev, last };
+
+            [[fallthrough]];
+            case state::stopped:
+
+                return std::monostate{};
+            }
+        }
+
+    public:
+        constexpr generator(std::shared_ptr<shared> const& context, I first, I last)
+            noexcept(noexcept(first = last, first = std::move(last)))
+            : stat(state::starting)
+            , ctxt(context)
+            , prev(first)
+            , last(last)
+            , head(std::move(first), std::move(last), ctxt->pattern)
+            , tail()
+            , buff()
+        {}
+
     private:
         enum struct state
         {
@@ -135,154 +246,47 @@ public:
             stopped,
         };
 
-        using          buffer_type = std::basic_string<C>;
-        using         context_type = std::shared_ptr<shared>;
-        using target_iterator_type = I;
-        using worker_iterator_type = std::regex_iterator<I, C>;
-
-    public:
-        generator(std::shared_ptr<shared> const & context, I && first, I && last);
-
-    public:
-        auto operator ()()->change<C, I>;
-
-    private:
-                       state stat;
-                context_type ctxt;
-        target_iterator_type prev;
-        worker_iterator_type head;
-        worker_iterator_type tail;
-                 buffer_type buff;
+        state                   stat;
+        std::shared_ptr<shared> ctxt;
+        I                       prev;
+        I                       last;
+        std::regex_iterator<I>  head;
+        std::regex_iterator<I>  tail;
+        std::basic_string<C>    buff;
     };
 
 public:
     template<::far::cep::matcher<C> P, ::far::cep::matcher<C> R>
-    faregex(P const & pattern, R const & replace, bool ignore_case = false);
+    faregex(P const & pattern, R const & replace, bool ignore_case = false)
+        : data(std::make_shared<shared>
+            // note: C++20 needed
+            // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0960r3.html
+            ( std::basic_regex<C>
+                ( detail::begin(pattern)
+                , detail::end  (pattern)
+                , static_cast<std::regex_constants::syntax_option_type>
+                    ( (ignore_case ? std::regex_constants::icase : 0)
+                    | (std::regex_constants::ECMAScript) ) )
+            , std::basic_string<C>
+                ( detail::begin(replace)
+                , detail::end  (replace) ) ) )
+    {}
 
 public:
     template<::far::cep::matched<C> R>
-    auto operator()(R const & something) -> generator<std::ranges::iterator_t<R const>>;
+    auto constexpr operator()(R & container) const -> generator<std::ranges::iterator_t<R>>
+    {
+        return this->operator()
+            ( detail::begin(container)
+            , detail::end  (container) );
+    }
 
     template<::far::cep::matched_iter<C> I>
-    auto operator()(I && first, I && last) -> generator<I>;
+    auto constexpr operator()(I first, I last) const -> generator<I>
+    {
+        return generator<I>(data, std::move(first), std::move(last));
+    }
 
-private:
+public:
     std::shared_ptr<shared> data;
 };
-
-template<::far::cep::char_type C>
-template<::far::cep::matcher<C> P, ::far::cep::matcher<C> R>
-inline far::faregex<C>::
-faregex(P const & pattern, R const & replace, bool ignore_case)
-    : data(std::make_shared<shared>
-        // note: C++20 needed
-        // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0960r3.html
-        ( std::basic_regex<C>
-            ( std::ranges::begin(pattern)
-            , std::ranges::end  (pattern)
-            , static_cast<std::regex::flag_type>
-                ( (ignore_case ? std::regex::icase : 0)
-                | (std::regex::ECMAScript) ) )
-        , std::basic_string<C>
-            ( std::ranges::begin(replace)
-            , std::ranges::end  (replace) ) ) )
-{}
-
-template<::far::cep::char_type C>
-template<::far::cep::matched<C> R>
-inline auto far::faregex<C>::faregex::
-operator()(R const & container) -> generator<std::ranges::iterator_t<R const>>
-{
-    return this->operator()
-        ( std::ranges::begin(container)
-        , std::ranges::end  (container) );
-}
-
-template<::far::cep::char_type C>
-template<::far::cep::matched_iter<C> I>
-inline auto far::faregex<C>::faregex::
-operator()(I && first, I && last) -> generator<I>
-{
-    return generator<I>(data, std::forward<I>(first), std::forward<I>(last));
-}
-
-template<::far::cep::char_type C>
-template<::far::cep::matched_iter<C> I>
-inline far::faregex<C>::generator<I>::
-generator(std::shared_ptr<::far::faregex<C>::shared> const & ctxt, I && first, I && last)
-    : stat(state::starting)
-    , ctxt(ctxt)
-    , prev(std::forward<I>(first))
-    , head(prev, std::forward<I>(last), ctxt->pattern)
-    , tail()
-    , buff()
-{}
-
-template<::far::cep::char_type C>
-template<::far::cep::matched_iter<C> I>
-inline auto far::faregex<C>::generator<I>::
-operator ()() -> change<C, I>
-{
-    // note: because coroutines from C++20 are hard to use and have poor
-    // performance (in contrast to for-loop), so I choose duff's device.
-    // https://www.reddit.com/r/cpp/comments/gqi0io
-    // https://stackoverflow.com/questions/57726401
-
-    switch (stat)
-    {
-    default:
-    case state::starting:
-
-        for (; head != tail; ++ head)
-        {
-            if (head->empty()) [[unlikely]]
-                continue;
-
-            buff.clear();
-            head->format(std::back_inserter(buff), ctxt->replace);
-
-            if  ( auto const & match = (*head)[0]
-                ; std::equal
-                    ( std::execution::unseq
-                    , buff.begin(), buff.end()
-                    , match.first, match.second ) ) [[unlikely]]
-                continue;
-
-            if (auto const & match = (*head)[0]; prev != match.first )
-            {
-                stat = state::after_retain;
-                return retain<C, I>{ prev, match.first };
-            }
-
-    [[fallthrough]];
-    case state::after_retain:
-
-            if (auto const & match = (*head)[0]; match.first != match.second )
-            {
-                stat = state::after_remove;
-                return remove<C, I>{ match.first, match.second };
-            }
-
-    [[fallthrough]];
-    case state::after_remove:
-
-            if (!buff.empty())
-            {
-                stat = state::after_insert;
-                return insert<C>(buff);
-            }
-
-    [[fallthrough]];
-    case state::after_insert:
-
-            prev = (*head)[0].second;
-        }
-
-        stat = state::stopped;
-
-    [[fallthrough]];
-    case state::stopped:
-
-        return std::monostate{};
-    }
-}
