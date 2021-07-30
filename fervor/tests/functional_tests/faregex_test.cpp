@@ -11,6 +11,7 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
     {
         static_assert(far::cep::char_type<char>);
         auto f = far::faregex("", "");
+        REQUIRE(f == true);
         auto g = f("");
         while (true)
         {
@@ -35,6 +36,7 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         static_assert(far::cep::matcher<std::wstring, wchar_t>);
         auto w = std::wstring();
         auto f = far::faregex(w, w);
+        REQUIRE(f == true);
         auto g = f(w);
         while (true)
         {
@@ -58,6 +60,7 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
     {
         auto l = std::list<wchar_t>{};
         auto f = far::faregex(l, l);
+        REQUIRE(f == true);
         auto g = f(l);
         while (true)
         {
@@ -82,6 +85,7 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         auto x = std::wstring();
         auto const & w = x;
         auto f = far::faregex(w, w);
+        REQUIRE(f == true);
         auto g = f(w);
         while (true)
         {
@@ -101,6 +105,12 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
                 break;
         }
     }
+}
+
+TEST_CASE("error regexp", "[faregex]")
+{
+    auto f = far::faregex(R"(((()))", "");
+    REQUIRE(f == false);
 }
 
 TEST_CASE("a sample lazy loop", "[faregex]")

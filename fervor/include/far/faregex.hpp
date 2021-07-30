@@ -140,8 +140,6 @@ namespace far { namespace detail
 
 //// implementation starts from here
 
-
-
 template<::far::cep::char_type C>
 class far::faregex
 {
@@ -185,10 +183,10 @@ public:
                             , match.first, match.second ) ) [[unlikely]]
                         continue;
 
-                    if (auto const & match = (*head)[0]; prev != match.first )
+                    if (auto const & match = (*head)[0]; curr != match.first )
                     {
                         stat = state::after_retain;
-                        return retain<C, I>{ prev, match.first };
+                        return retain<C, I>{ curr, match.first };
                     }
 
             [[fallthrough]];
@@ -212,12 +210,12 @@ public:
             [[fallthrough]];
             case state::after_insert:
 
-                    prev = (*head)[0].second;
+                    curr = (*head)[0].second;
                 }
 
                 stat = state::stopped;
-                if (prev != last)
-                    return retain<C, I>{ prev, last };
+                if (curr != done)
+                    return retain<C, I>{ curr, done };
 
             [[fallthrough]];
             case state::stopped:
@@ -227,16 +225,21 @@ public:
         }
 
     public:
-        constexpr generator(std::shared_ptr<shared> const& context, I first, I last)
+        constexpr generator(std::shared_ptr<shared> const & context, I first, I last)
             noexcept(noexcept(first = last, first = std::move(last)))
             : stat(state::starting)
             , ctxt(context)
-            , prev(first)
-            , last(last)
-            , head(std::move(first), std::move(last), ctxt->pattern)
+            , curr(std::move(first))
+            , done(std::move(last))
+            , head()
             , tail()
             , buff()
-        {}
+        {
+            if (ctxt == nullptr || curr == done) [[unlikely]]
+                stat = state::stopped;
+            else
+                head = std::regex_iterator<I>(curr, done, ctxt->pattern);
+        }
 
     private:
         enum struct state
@@ -250,8 +253,8 @@ public:
 
         state                   stat;
         std::shared_ptr<shared> ctxt;
-        I                       prev;
-        I                       last;
+        I                       curr;
+        I                       done;
         std::regex_iterator<I>  head;
         std::regex_iterator<I>  tail;
         std::basic_string<C>    buff;
@@ -260,19 +263,30 @@ public:
 public:
     template<::far::cep::matcher<C> P, ::far::cep::matcher<C> R>
     faregex(P const & pattern, R const & replace, bool ignore_case = false)
-        : data(std::make_shared<shared>
-            // note: C++20 needed
-            // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0960r3.html
-            ( std::basic_regex<C>
-                ( detail::begin(pattern)
-                , detail::end  (pattern)
-                , static_cast<std::regex_constants::syntax_option_type>
-                    ( (ignore_case ? std::regex_constants::icase : 0)
-                    | (std::regex_constants::ECMAScript) ) )
-            , std::basic_string<C>
-                ( detail::begin(replace)
-                , detail::end  (replace) ) ) )
-    {}
+        : data()
+    {
+        // function-try-blocks always ends with re-throwing
+        // it forces me to give up initializer
+        try
+        {
+            data = std::make_shared<shared>
+                // note: C++20 needed
+                // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0960r3.html
+                ( std::basic_regex<C>
+                    ( detail::begin(pattern)
+                    , detail::end  (pattern)
+                    , static_cast<std::regex_constants::syntax_option_type>
+                        ( (ignore_case ? std::regex_constants::icase : 0)
+                        | (std::regex_constants::ECMAScript) ) )
+                , std::basic_string<C>
+                    ( detail::begin(replace)
+                    , detail::end  (replace) ) );
+        }
+        catch ([[maybe_unused]] std::regex_error const & ex)
+        {
+            // TODO: save the error message
+        }
+    }
 
 public:
     template<::far::cep::matched<C> R>
@@ -287,6 +301,11 @@ public:
     auto constexpr operator()(I first, I last) const -> generator<I>
     {
         return generator<I>(data, std::move(first), std::move(last));
+    }
+
+    constexpr operator bool() const
+    {
+        return data != nullptr;
     }
 
 public:
