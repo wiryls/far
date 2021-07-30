@@ -6,8 +6,8 @@
 /// https://github.com/wiryls/far/blob/deprecated/gtk4-rs/src/far/faregex.rs
 
 #include <concepts>
-#include <execution> // std::execution::unseq
-#include <algorithm> // std::equal
+#include <execution>
+#include <algorithm>
 #include <iterator>
 #include <ranges>
 #include <memory>
@@ -65,6 +65,42 @@ namespace far { namespace cep
         ;
 }}
 
+namespace far { namespace detail
+{
+    //// helpers
+
+    namespace cpo
+    {
+        struct end
+        {
+        private:
+            template<std::ranges::range R>
+            struct zero_suffixed : std::false_type {};
+
+            template<typename C, std::size_t N>
+            requires (N > 0) && requires (C const (&c)[N]) { {c + N } -> std::random_access_iterator; }
+            struct zero_suffixed<C(&)[N]> : std::true_type
+            {
+                static constexpr std::ptrdiff_t N = N;
+            };
+
+        public:
+            template<std::ranges::range R>
+            auto constexpr operator()(R && r) const
+            noexcept(noexcept(std::ranges::end(std::forward<R>(r))))
+            {
+                if constexpr (zero_suffixed<R>::value)
+                    return std::forward<R>(r) + zero_suffixed<R>::N - 1;
+                else
+                    return std::ranges::end(std::forward<R>(r));
+            }
+        };
+    }
+
+    inline constexpr auto begin = std::ranges::begin;
+    inline constexpr auto end   = cpo::end{};
+}}
+
 namespace far
 {
     //// changes
@@ -103,41 +139,6 @@ namespace far
     faregex(P &&, R &&, bool = false) -> faregex<std::ranges::range_value_t<P>>;
 }
 
-namespace far { namespace detail
-{
-    //// helpers
-
-    namespace cpo
-    {
-        struct end
-        {
-        private:
-            template<std::ranges::range R>
-            struct zero_suffixed : std::false_type {};
-
-            template<typename C, std::size_t N>
-            requires (N > 0)
-            struct zero_suffixed<C(&)[N]> : std::true_type
-            {
-                static constexpr std::ptrdiff_t N = N;
-            };
-
-        public:
-            template<std::ranges::range R>
-            auto constexpr operator()(R && r) const noexcept(noexcept(std::ranges::end(r)))
-            {
-                if constexpr  (zero_suffixed<R>::value)
-                    return r + zero_suffixed<R>::N - 1;
-                else
-                    return std::ranges::end(std::forward<R>(r));
-            }
-        };
-    }
-
-    inline constexpr auto begin = std::ranges::begin;
-    inline constexpr auto end   = cpo::end{};
-}}
-
 //// implementation starts from here
 
 template<::far::cep::char_type C>
@@ -158,7 +159,7 @@ public:
         auto constexpr operator ()() -> change<C, I>
         {
             // Note: because coroutines from C++20 are hard to use and have
-            // poor performance (in contrast to for-loop), so I choose duff's
+            // poor performance (in contrast to for-loop), I choose duff's
             // device.
             // https://www.reddit.com/r/cpp/comments/gqi0io
             // https://stackoverflow.com/questions/57726401
@@ -265,8 +266,8 @@ public:
     faregex(P const & pattern, R const & replace, bool ignore_case = false)
         : data()
     {
-        // function-try-blocks always ends with re-throwing
-        // it forces me to give up initializer
+        // function-try-blocks always ends with re-throwing in constructors,
+        // that forces me to give up initializer
         try
         {
             data = std::make_shared<shared>
@@ -290,7 +291,7 @@ public:
 
 public:
     template<::far::cep::matched<C> R>
-    auto constexpr operator()(R & container) const -> generator<std::ranges::iterator_t<R>>
+    [[nodiscard]] auto constexpr operator()(R & container) const -> generator<std::ranges::iterator_t<R>>
     {
         return this->operator()
             ( detail::begin(container)
@@ -298,12 +299,12 @@ public:
     }
 
     template<::far::cep::matched_iter<C> I>
-    auto constexpr operator()(I first, I last) const -> generator<I>
+    [[nodiscard]] auto constexpr operator()(I first, I last) const -> generator<I>
     {
         return generator<I>(data, std::move(first), std::move(last));
     }
 
-    constexpr operator bool() const
+    [[nodiscard]] constexpr operator bool() const
     {
         return data != nullptr;
     }
