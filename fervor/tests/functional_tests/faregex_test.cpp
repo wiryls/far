@@ -119,55 +119,71 @@ TEST_CASE("a sample lazy loop", "[faregex]")
 
     SECTION("char const & [N]")
     {
-        auto f = far::faregex(R"(log)", "ln");
-        auto g = f("log(😅) = 💧 log(😄)");
+        auto const & pattern = R"(log)";
+        auto const & replace = R"(ln)";
+        auto const & example = R"(log(😅) = 💧 log(😄))";
 
-        using C = std::ranges::range_value_t<decltype("")>;
-        using I = far::insert<C>;
-        using R = far::retain<C, std::ranges::iterator_t<decltype("")>>;
-        using D = far::remove<C, std::ranges::iterator_t<decltype("")>>;
+        for (auto const & f : {
+            far::faregex(pattern, replace),
+            far::faregex(pattern, replace, far::option::ignore_case),
+            far::faregex(pattern, replace, far::option::normal_mode),
+            far::faregex(pattern, replace, far::option(far::option::normal_mode | far::option::ignore_case)) })
+        {
+            auto g = f(example);
 
-        {
-            auto v = g();
-            auto u = std::get_if<D>(&v);
-            auto x = "log"s;
-            REQUIRE(u != nullptr);
-            REQUIRE(std::equal(x.begin(), x.end(), u->first, u->second));
-        }
-        {
-            auto v = g();
-            auto u = std::get_if<I>(&v);
-            auto x = "ln"s;
-            REQUIRE(u != nullptr);
-            REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
-        }
-        {
-            auto v = g();
-            auto u = std::get_if<R>(&v);
-            auto x = "(😅) = 💧 "s;
-            REQUIRE(u != nullptr);
-            REQUIRE(std::equal(x.begin(), x.end(), u->first, u->second));
-        }
-        {
-            auto v = g();
-            auto u = std::get_if<D>(&v);
-            auto x = "log"s;
-            REQUIRE(u != nullptr);
-            REQUIRE(std::equal(x.begin(), x.end(), u->first, u->second));
-        }
-        {
-            auto v = g();
-            auto u = std::get_if<I>(&v);
-            auto x = "ln"s;
-            REQUIRE(u != nullptr);
-            REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
-        }
-        {
-            auto v = g();
-            auto u = std::get_if<R>(&v);
-            auto x = "(😄)"s;
-            REQUIRE(u != nullptr);
-            REQUIRE(std::equal(x.begin(), x.end(), u->first, u->second));
+            using C = std::ranges::range_value_t<decltype("")>;
+            using M = std::monostate;
+            using I = far::insert<C>;
+            using R = far::retain<C, std::ranges::iterator_t<decltype("")>>;
+            using D = far::remove<C, std::ranges::iterator_t<decltype("")>>;
+
+            {
+                auto v = g();
+                auto u = std::get_if<D>(&v);
+                auto x = "log"s;
+                REQUIRE(u != nullptr);
+                REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
+            }
+            {
+                auto v = g();
+                auto u = std::get_if<I>(&v);
+                auto x = "ln"s;
+                REQUIRE(u != nullptr);
+                REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
+            }
+            {
+                auto v = g();
+                auto u = std::get_if<R>(&v);
+                auto x = "(😅) = 💧 "s;
+                REQUIRE(u != nullptr);
+                REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
+            }
+            {
+                auto v = g();
+                auto u = std::get_if<D>(&v);
+                auto x = "log"s;
+                REQUIRE(u != nullptr);
+                REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
+            }
+            {
+                auto v = g();
+                auto u = std::get_if<I>(&v);
+                auto x = "ln"s;
+                REQUIRE(u != nullptr);
+                REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
+            }
+            {
+                auto v = g();
+                auto u = std::get_if<R>(&v);
+                auto x = "(😄)"s;
+                REQUIRE(u != nullptr);
+                REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
+            }
+            {
+                auto v = g();
+                auto u = std::get_if<M>(&v);
+                REQUIRE(u != nullptr);
+            }
         }
     }
 }
