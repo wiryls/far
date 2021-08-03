@@ -5,6 +5,8 @@
 /// https://github.com/wiryls/far/blob/deprecated/gtk4-rs/src/far/diff.rs and
 /// https://github.com/wiryls/far/blob/deprecated/gtk4-rs/src/far/faregex.rs
 
+#include <concepts>
+#include <type_traits>
 #include <execution>
 #include <algorithm>
 #include <functional>
@@ -16,8 +18,91 @@
 #include <variant>
 #include <string>
 #include <string_view>
+#include <regex>
 
-#include "foundation.hpp"
+namespace far { namespace cep
+{
+    /// common concepts of far
+
+    template<typename C>
+    concept char_type
+        // note:
+        // should I use "std::convertible_to" or just "std::same_as"?
+        = std::same_as<typename std::regex_traits<C>::char_type, C>
+       && std::same_as<typename std:: char_traits<C>::char_type, C>
+        ;
+
+    // iterators for any char sequence
+    template<typename I, typename C>
+    concept char_iter
+        = char_type<C>
+       && std::input_or_output_iterator<I>
+       && std::same_as<std::iter_value_t<I>, C>
+        ;
+
+    // iterators of pattern and template string for matching
+    template<typename I, typename C>
+    concept matcher_iter
+        = char_iter<I, C>
+       && std::forward_iterator<I>
+        ;
+
+    // iterators of matched source string
+    template<typename I, typename C>
+    concept matched_iter
+        = char_iter<I, C>
+       && std::bidirectional_iterator<I>
+        ;
+
+    // containers for matching
+    template<typename R, typename C>
+    concept matcher
+        = std::ranges::range<R>
+       && matcher_iter<std::ranges::iterator_t<R>, C>
+        ;
+
+    // containers of matched
+    template<typename R, typename C>
+    concept matched
+        = std::ranges::range<R>
+       && matched_iter<std::ranges::iterator_t<R>, C>
+        ;
+}}
+
+namespace far { namespace aux
+{
+    namespace detail
+    {
+        //// rewite std::ranges::end("string literal") to that - 1
+        struct end
+        {
+        private:
+            template<std::ranges::range R>
+            struct zero_suffixed : std::false_type {};
+
+            template<typename C, std::size_t N>
+            requires (N > 0) && requires (C const (&c)[N]) { {c + N } -> std::contiguous_iterator; }
+            struct zero_suffixed<C(&)[N]> : std::true_type
+            {
+                static constexpr std::ptrdiff_t N = N;
+            };
+
+        public:
+            template<std::ranges::range R>
+            auto constexpr operator()(R && r) const
+            noexcept(noexcept(std::ranges::end(std::forward<R>(r))))
+            {
+                if constexpr (zero_suffixed<R>::value)
+                    return std::forward<R>(r) + zero_suffixed<R>::N - 1;
+                else
+                    return std::ranges::end(std::forward<R>(r));
+            }
+        };
+    }
+
+    inline constexpr auto begin = std::ranges::begin;
+    inline constexpr auto end   = detail::end{};
+}}
 
 namespace far { namespace detail
 {
@@ -123,6 +208,7 @@ public:
         using         group = std::variant<default_group, icase_group>;
 
         group                searcher;
+        std::basic_string<C> pattern;
         std::basic_string<C> replace;
     };
 
@@ -166,19 +252,21 @@ public:
                     else
                         break;
 
-                    if (head != next.first)
+                    if (next.first != next.second)
                     {
-                        stage = state::after_retain;
-                        return retain<C, I>{ head, next.first };
-                    }
+                        if (head != next.first)
+                        {
+                            stage = state::after_retain;
+                            return retain<C, I>{ head, next.first };
+                        }
 
             [[fallthrough]];
             case state::after_retain:
 
-                    if (next.first != next.second)
-                    {
-                        stage = state::after_remove;
-                        return remove<C, I>(next);
+                        {
+                            stage = state::after_remove;
+                            return remove<C, I>(next);
+                        }
 
             [[fallthrough]];
             case state::after_remove:
@@ -195,6 +283,10 @@ public:
 
                     head = next.second;
                 }
+
+
+            [[fallthrough]];
+            case state::before_stopped:
 
                 if (head != tail)
                 {
@@ -221,11 +313,16 @@ public:
             , tail(std::move(last))
         {
             if (context == nullptr || head == tail)
-                stage = state::stopped;
+            {
+                if (context->pattern == context->replace)
+                    stage = state::before_stopped;
+                else
+                    stage = state::stopped;
+            }
         }
 
     private:
-        enum struct state { starting, after_retain, after_remove, after_insert, stopped };
+        enum struct state { starting, after_retain, after_remove, after_insert, before_stopped, stopped };
 
         state           stage;
         context_pointer context;
@@ -252,24 +349,26 @@ public:
                     buffer.clear();
                     head->format(std::back_inserter(buffer), context->replace);
 
-                    if  ( auto const & match = (*head)[0]
-                        ; std::equal
-                            ( std::execution::unseq
-                            , buffer.begin(), buffer.end()
-                            , match.first, match.second ) ) [[unlikely]]
-                        continue;
-
-                    if (auto const & match = (*head)[0]; current != match.first )
                     {
-                        stage = state::after_retain;
-                        return retain<C, I>{ current, match.first };
+                        auto const & match = (*head)[0];
+
+                        if (match.first == match.second ||
+                            std::equal(std::execution::unseq, buffer.begin(), buffer.end(), match.first, match.second) )
+                            [[unlikely]]
+                            continue;
+
+                        if (current != match.first)
+                        {
+                            stage = state::after_retain;
+                            return retain<C, I>{ current, match.first };
+                        }
                     }
 
             [[fallthrough]];
             case state::after_retain:
 
-                    if (auto const & match = (*head)[0]; match.first != match.second )
                     {
+                        auto const & match = (*head)[0];
                         stage = state::after_remove;
                         return remove<C, I>{ match.first, match.second };
                     }
@@ -375,38 +474,28 @@ public:
             using       normal = requirement<mode::normal>::      fallback_searcher;
             using icase_faster = requirement<mode::normal>::icase_prefered_searcher;
             using icase_normal = requirement<mode::normal>::icase_fallback_searcher;
-            using tag = typename std::iterator_traits<std::ranges::iterator_t<P>>::iterator_category;
 
-            auto copied = std::basic_string<C>(aux::begin(replace), aux::end(replace));
-            auto buffer = std::basic_string<C>();
-            auto viewer = std::basic_string_view<C>();
-
-            if constexpr (std::is_base_of_v<std::random_access_iterator_tag, tag>)
-            {
-                viewer = std::basic_string_view<C>(aux::begin(pattern), aux::end(pattern));
-            }
-            else
-            {
-                buffer = std::basic_string     <C>(aux::begin(pattern), aux::end(pattern));
-                viewer = std::basic_string_view<C>(aux::begin( buffer), aux::end( buffer));
-            }
+            auto p = std::basic_string<C>(aux::begin(pattern), aux::end(pattern));
+            auto r = std::basic_string<C>(aux::begin(replace), aux::end(replace));
 
             if (do_ignore_case)
             {
                 auto compare = typename requirement<mode::normal>::comparator{ std::locale() };
                 pointer = std::make_shared<requirement<mode::normal>>
                     ( std::make_tuple
-                        ( icase_faster(viewer.begin(), viewer.end(), std::hash<C>(), compare)
-                        , icase_normal(viewer.begin(), viewer.end(), compare) )
-                    , copied );
+                        ( icase_faster(p.begin(), p.end(), std::hash<C>(), compare)
+                        , icase_normal(p.begin(), p.end(), compare) )
+                    , p
+                    , r );
             }
             else
             {
                 pointer = std::make_shared<requirement<mode::normal>>
                     ( std::make_tuple
-                        ( faster(viewer.begin(), viewer.end())
-                        , normal(viewer.begin(), viewer.end()) )
-                    , copied );
+                        ( faster(p.begin(), p.end())
+                        , normal(p.begin(), p.end()) )
+                    , p
+                    , r );
             }
         }
         else try
