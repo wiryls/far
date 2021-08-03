@@ -81,7 +81,8 @@ namespace far { namespace aux
             struct zero_suffixed : std::false_type {};
 
             template<typename C, std::size_t N>
-            requires (N > 0) && requires (C const (&c)[N]) { {c + N } -> std::contiguous_iterator; }
+            requires (N > 0) &&
+            requires (C const (&c)[N]) { {c + N } -> std::contiguous_iterator; }
             struct zero_suffixed<C(&)[N]> : std::true_type
             {
                 static constexpr std::ptrdiff_t N = N;
@@ -125,29 +126,39 @@ namespace far { namespace detail
 
 namespace far
 {
-    //// changes
-
-    template<::far::cep::char_type C, ::far::cep::matched_iter<C> I>
-    struct retain : detail::iter_pair<I>
+    //// change
+    namespace change
     {
-        using detail::iter_pair<I>::iter_pair;
-    };
+        template<::far::cep::char_type C, ::far::cep::matched_iter<C> I>
+        struct retain : detail::iter_pair<I>
+        {
+            using detail::iter_pair<I>::iter_pair;
+        };
 
-    template<::far::cep::char_type C, ::far::cep::matched_iter<C> I>
-    struct remove : detail::iter_pair<I>
+        template<::far::cep::char_type C, ::far::cep::matched_iter<C> I>
+        struct remove : detail::iter_pair<I>
+        {
+            using detail::iter_pair<I>::iter_pair;
+        };
+
+        template<::far::cep::char_type C>
+        using insert = std::basic_string_view<C>;
+
+        template<::far::cep::char_type C, std::bidirectional_iterator I>
+        using variant = std::variant
+            < std::monostate
+            , retain<C, I>
+            , remove<C, I>
+            , insert<C> >;
+    }
+
+    enum change_type
     {
-        using detail::iter_pair<I>::iter_pair;
+        none   = 0,
+        retain = 1,
+        remove = 2,
+        insert = 3,
     };
-
-    template<::far::cep::char_type C>
-    using insert = std::basic_string_view<C>;
-
-    template<::far::cep::char_type C, std::bidirectional_iterator I>
-    using change = std::variant
-        < std::monostate
-        , retain<C, I>
-        , remove<C, I>
-        , insert<C> >;
 
     //// iterator
     template<::far::cep::char_type C>
@@ -157,14 +168,14 @@ namespace far
     template<::far::cep::char_type C>
     class faregex;
 
-    enum option
+    enum option : int
     {
         normal_mode = 0b01,
         ignore_case = 0b10,
     };
 
     template<std::ranges::forward_range P, std::ranges::forward_range R>
-    faregex(P &&, R &&, option = 0) -> faregex<std::ranges::range_value_t<P>>;
+    faregex(P &&, R &&, option = option{}) -> faregex<std::ranges::range_value_t<P>>;
 }
 
 //// implementation starts from here
@@ -172,7 +183,7 @@ namespace far
 template<::far::cep::char_type C>
 class far::faregex
 {
-public:
+private:
     enum struct mode
     {
         normal,
@@ -194,22 +205,54 @@ public:
             }
         };
 
-        using prefered_searcher = std::boyer_moore_searcher
-            < typename std::basic_string_view<C>::iterator >;
-        using fallback_searcher = std::default_searcher
-            < typename std::basic_string_view<C>::iterator >;
-        using icase_prefered_searcher = std::boyer_moore_searcher
-            < typename std::basic_string_view<C>::iterator, std::hash<C>, comparator >;
-        using icase_fallback_searcher = std::default_searcher
-            < typename std::basic_string_view<C>::iterator, comparator >;
+        using string_type = std::basic_string<C>;
+        using string_iterator_type = typename string_type::const_iterator;
 
+        using       prefered_searcher = std::boyer_moore_searcher<string_iterator_type>;
+        using       fallback_searcher = std::    default_searcher<string_iterator_type>;
+        using icase_prefered_searcher = std::boyer_moore_searcher<string_iterator_type, std::hash<C>, comparator>;
+        using icase_fallback_searcher = std::    default_searcher<string_iterator_type, comparator>;
         using default_group = std::tuple<      prefered_searcher,       fallback_searcher>;
         using   icase_group = std::tuple<icase_prefered_searcher, icase_fallback_searcher>;
         using         group = std::variant<default_group, icase_group>;
 
-        group                searcher;
-        std::basic_string<C> pattern;
-        std::basic_string<C> replace;
+        template<::far::cep::matcher<C> P, ::far::cep::matcher<C> R>
+        requirement(P const & pattern, R const & replace, bool ignore_case)
+            : pattern(aux::begin(pattern), aux::end(pattern))
+            , replace(aux::begin(replace), aux::end(replace))
+            // Note: searcher may have a reference to pattern, so I store pattern as a member.
+            // Be careful that do not change pattern. Any reallocation may break our searcher,
+            // as well as move a (SSOed) small string.
+            , searcher(make_group(this->pattern, ignore_case))
+        {}
+
+        // Disable copy and move in order to avoid breaking searcher.
+        // Otherwise we need to rebind searcher to pattern manually.
+        requirement            (requirement &&) = delete;
+        requirement & operator=(requirement &&) = delete;
+        requirement            (requirement const &) = delete;
+        requirement & operator=(requirement const &) = delete;
+
+        auto static make_group(string_type const & string, bool ignore_case) -> group
+        {
+            if (ignore_case)
+            {
+                auto compare = comparator{ std::locale() };
+                return std::make_tuple
+                    ( icase_prefered_searcher(string.begin(), string.end(), std::hash<C>(), compare)
+                    , icase_fallback_searcher(string.begin(), string.end(), compare) );
+            }
+            else
+            {
+                return std::make_tuple
+                    ( prefered_searcher(string.begin(), string.end())
+                    , fallback_searcher(string.begin(), string.end()) );
+            }
+        }
+
+        string_type pattern;
+        string_type replace;
+        group       searcher;
     };
 
     template<>
@@ -226,7 +269,7 @@ public:
     struct generator<mode::normal, I>
     {
     public:
-        auto constexpr operator ()() -> change<C, I>
+        auto constexpr operator ()() -> change::variant<C, I>
         {
             // Note: because coroutines from C++20 are hard to use and have
             // poor performance (in contrast to for-loop), I choose duff's
@@ -245,37 +288,37 @@ public:
                     using   tag = std::iterator_traits<I>::iterator_category;
                     enum { index = !std::is_base_of_v<std::random_access_iterator_tag, tag> };
 
-                    if /**/ (auto u = std::get_if<ucase>(&(context->searcher)))
+                    if /**/ (auto const u = std::get_if<ucase>(&(context->searcher)))
                         next = std::get<index>(*u)(head, tail);
-                    else if (auto i = std::get_if<icase>(&(context->searcher)))
+                    else if (auto const i = std::get_if<icase>(&(context->searcher)))
                         next = std::get<index>(*i)(head, tail);
                     else
                         break;
 
-                    if (next.first != next.second)
+                    if (next.first == next.second)
+                        break;
+
+                    if (head != next.first)
                     {
-                        if (head != next.first)
-                        {
-                            stage = state::after_retain;
-                            return retain<C, I>{ head, next.first };
-                        }
+                        stage = state::after_retain;
+                        return change::retain<C, I>{ head, next.first };
+                    }
 
             [[fallthrough]];
             case state::after_retain:
 
-                        {
-                            stage = state::after_remove;
-                            return remove<C, I>(next);
-                        }
+                    {
+                        stage = state::after_remove;
+                        return change::remove<C, I>(next);
+                    }
 
             [[fallthrough]];
             case state::after_remove:
 
-                        if (!context->replace.empty())
-                        {
-                            stage = state::after_insert;
-                            return insert<C>(context->replace);
-                        }
+                    if (!context->replace.empty())
+                    {
+                        stage = state::after_insert;
+                        return change::insert<C>(context->replace);
                     }
 
             [[fallthrough]];
@@ -291,7 +334,7 @@ public:
                 if (head != tail)
                 {
                     stage = state::stopped;
-                    return retain<C, I>{ head, tail };
+                    return change::retain<C, I>{ head, tail };
                 }
 
             [[fallthrough]];
@@ -305,21 +348,18 @@ public:
     public:
         using context_pointer = std::shared_ptr<requirement<mode::normal> const>;
         constexpr generator(context_pointer const & context, I first, I last)
-            noexcept(noexcept(first = last, first = std::move(last)))
-            : stage(state::starting)
+            noexcept(noexcept(first = last, first == last, first = std::move(last)))
+            : stage
+                { context == nullptr || first == last
+                ? state::stopped
+                : context->pattern == context->replace
+                ? state::before_stopped
+                : state::starting }
             , context(context)
             , next()
             , head(std::move(first))
             , tail(std::move(last))
-        {
-            if (context == nullptr || head == tail)
-            {
-                if (context->pattern == context->replace)
-                    stage = state::before_stopped;
-                else
-                    stage = state::stopped;
-            }
-        }
+        {}
 
     private:
         enum struct state { starting, after_retain, after_remove, after_insert, before_stopped, stopped };
@@ -335,7 +375,7 @@ public:
     struct generator<mode::regexp, I>
     {
     public:
-        auto constexpr operator ()() -> change<C, I>
+        auto constexpr operator ()() -> change::variant<C, I>
         {
             switch (stage)
             {
@@ -351,7 +391,6 @@ public:
 
                     {
                         auto const & match = (*head)[0];
-
                         if (match.first == match.second ||
                             std::equal(std::execution::unseq, buffer.begin(), buffer.end(), match.first, match.second) )
                             [[unlikely]]
@@ -360,7 +399,7 @@ public:
                         if (current != match.first)
                         {
                             stage = state::after_retain;
-                            return retain<C, I>{ current, match.first };
+                            return change::retain<C, I>{ current, match.first };
                         }
                     }
 
@@ -370,7 +409,7 @@ public:
                     {
                         auto const & match = (*head)[0];
                         stage = state::after_remove;
-                        return remove<C, I>{ match.first, match.second };
+                        return change::remove<C, I>{ match.first, match.second };
                     }
 
             [[fallthrough]];
@@ -379,7 +418,7 @@ public:
                     if (!buffer.empty())
                     {
                         stage = state::after_insert;
-                        return insert<C>(buffer);
+                        return change::insert<C>(buffer);
                     }
 
             [[fallthrough]];
@@ -390,7 +429,7 @@ public:
 
                 stage = state::stopped;
                 if (current != done)
-                    return retain<C, I>{ current, done };
+                    return change::retain<C, I>{ current, done };
 
             [[fallthrough]];
             case state::stopped:
@@ -433,17 +472,17 @@ public:
 public:
 
     template<::far::cep::matched<C> R>
-    [[nodiscard]] auto constexpr operator()(R & container) const -> std::function<change<C, std::ranges::iterator_t<R>>()>
+    [[nodiscard]] auto constexpr operator()(R & container) const
+        -> std::function<change::variant<C, std::ranges::iterator_t<R>>()>
     {
-        return this->operator()
-            ( aux::begin(container)
-            , aux::end  (container) );
+        return this->operator()(aux::begin(container), aux::end(container));
     }
 
     template<::far::cep::matched_iter<C> I>
-    [[nodiscard]] auto constexpr operator()(I first, I last) const -> std::function<change<C, I> ()>
+    [[nodiscard]] auto constexpr operator()(I first, I last) const
+        -> std::function<change::variant<C, I> ()>
     {
-        using return_type = std::function<change<C, I> ()>;
+        using return_type = std::function<change::variant<C, I> ()>;
         using normal_type = std::shared_ptr<requirement<mode::normal> const>;
         using regexp_type = std::shared_ptr<requirement<mode::regexp> const>;
 
@@ -452,7 +491,7 @@ public:
         else if (auto regexp = std::get_if<regexp_type>(&pointer))
             return generator<mode::regexp, I>(*regexp, std::move(first), std::move(last));
         else
-            return []() -> change<C, I> { return std::monostate{}; };
+            return []() -> change::variant<C, I> { return std::monostate{}; };
     }
 
     [[nodiscard]] constexpr operator bool() const
@@ -462,7 +501,7 @@ public:
 
 public:
     template<::far::cep::matcher<C> P, ::far::cep::matcher<C> R>
-    faregex(P const & pattern, R const & replace, option options = option(0))
+    faregex(P const & pattern, R const & replace, option options = option{})
         : pointer()
     {
         auto is_normal_mode = (options & option::normal_mode) != 0;
@@ -470,38 +509,12 @@ public:
 
         if (is_normal_mode)
         {
-            using       faster = requirement<mode::normal>::      prefered_searcher;
-            using       normal = requirement<mode::normal>::      fallback_searcher;
-            using icase_faster = requirement<mode::normal>::icase_prefered_searcher;
-            using icase_normal = requirement<mode::normal>::icase_fallback_searcher;
-
-            auto p = std::basic_string<C>(aux::begin(pattern), aux::end(pattern));
-            auto r = std::basic_string<C>(aux::begin(replace), aux::end(replace));
-
-            if (do_ignore_case)
-            {
-                auto compare = typename requirement<mode::normal>::comparator{ std::locale() };
-                pointer = std::make_shared<requirement<mode::normal>>
-                    ( std::make_tuple
-                        ( icase_faster(p.begin(), p.end(), std::hash<C>(), compare)
-                        , icase_normal(p.begin(), p.end(), compare) )
-                    , p
-                    , r );
-            }
-            else
-            {
-                pointer = std::make_shared<requirement<mode::normal>>
-                    ( std::make_tuple
-                        ( faster(p.begin(), p.end())
-                        , normal(p.begin(), p.end()) )
-                    , p
-                    , r );
-            }
+            pointer = std::make_shared<requirement<mode::normal>>(pattern, replace, do_ignore_case);
         }
         else try
         {
             pointer = std::make_shared<requirement<mode::regexp>>
-                // note: C++20 needed
+                // Note: C++20 needed
                 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0960r3.html
                 ( std::basic_regex<C>
                     ( aux::begin(pattern)
@@ -522,7 +535,7 @@ public:
 public:
     std::variant<
         std::monostate,
-        std::shared_ptr<requirement<mode::normal> const>,
+        std::shared_ptr<requirement<mode::normal> const>, // Safety: const is necessary.
         std::shared_ptr<requirement<mode::regexp> const>
     > pointer;
 };

@@ -15,19 +15,14 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         auto g = f("");
         while (true)
         {
-            using C = std::ranges::range_value_t<decltype("")>;
-            using I = far::insert<C>;
-            using R = far::retain<C, std::ranges::iterator_t<decltype("")>>;
-            using D = far::remove<C, std::ranges::iterator_t<decltype("")>>;
-
             auto s = g();
-            if /**/ (std::get_if<I>(&s))
+            if /**/ (std::get_if<far::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<R>(&s))
+            else if (std::get_if<far::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<D>(&s))
+            else if (std::get_if<far::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<std::monostate>(&s))
+            else if (std::get_if<far::none>(&s))
                 break;
         }
     }
@@ -40,19 +35,14 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         auto g = f(w);
         while (true)
         {
-            using C = std::ranges::range_value_t<decltype(w)>;
-            using I = far::insert<C>;
-            using R = far::retain<C, std::ranges::iterator_t<decltype(w)>>;
-            using D = far::remove<C, std::ranges::iterator_t<decltype(w)>>;
-
             auto s = g();
-            if /**/ (std::get_if<I>(&s))
+            if /**/ (std::get_if<far::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<R>(&s))
+            else if (std::get_if<far::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<D>(&s))
+            else if (std::get_if<far::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<std::monostate>(&s))
+            else if (std::get_if<far::none>(&s))
                 break;
         }
     }
@@ -64,19 +54,14 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         auto g = f(l);
         while (true)
         {
-            using C = std::ranges::range_value_t<decltype(l)>;
-            using I = far::insert<C>;
-            using R = far::retain<C, std::ranges::iterator_t<decltype(l)>>;
-            using D = far::remove<C, std::ranges::iterator_t<decltype(l)>>;
-
             auto s = g();
-            if /**/ (std::get_if<I>(&s))
+            if /**/ (std::get_if<far::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<R>(&s))
+            else if (std::get_if<far::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<D>(&s))
+            else if (std::get_if<far::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<std::monostate>(&s))
+            else if (std::get_if<far::none>(&s))
                 break;
         }
     }
@@ -89,19 +74,14 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         auto g = f(w);
         while (true)
         {
-            using C = std::ranges::range_value_t<decltype(w)>;
-            using I = far::insert<C>;
-            using R = far::retain<C, std::ranges::iterator_t<decltype(w)>>;
-            using D = far::remove<C, std::ranges::iterator_t<decltype(w)>>;
-
             auto s = g();
-            if /**/ (std::get_if<I>(&s))
+            if /**/ (std::get_if<far::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<R>(&s))
+            else if (std::get_if<far::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<D>(&s))
+            else if (std::get_if<far::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<std::monostate>(&s))
+            else if (std::get_if<far::none>(&s))
                 break;
         }
     }
@@ -132,56 +112,51 @@ TEST_CASE("a sample lazy loop", "[faregex]")
             auto g = f(example);
 
             using C = std::ranges::range_value_t<decltype("")>;
-            using M = std::monostate;
-            using I = far::insert<C>;
-            using R = far::retain<C, std::ranges::iterator_t<decltype("")>>;
-            using D = far::remove<C, std::ranges::iterator_t<decltype("")>>;
-
             {
                 auto v = g();
-                auto u = std::get_if<D>(&v);
+                auto u = std::get_if<far::remove>(&v);
                 auto x = "log"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<I>(&v);
+                auto u = std::get_if<far::insert>(&v);
                 auto x = "ln"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<R>(&v);
+                auto u = std::get_if<far::retain>(&v);
                 auto x = "(😅) = 💧 "s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<D>(&v);
+                auto u = std::get_if<far::remove>(&v);
                 auto x = "log"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<I>(&v);
+                auto u = std::get_if<far::insert>(&v);
                 auto x = "ln"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<R>(&v);
+                auto u = std::get_if<far::retain>(&v);
                 auto x = "(😄)"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<M>(&v);
+                auto u = std::get_if<far::none>(&v);
                 REQUIRE(u != nullptr);
             }
         }
