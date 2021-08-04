@@ -13,7 +13,7 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         auto f = far::faregex("", "");
         REQUIRE(f == true);
         auto g = f("");
-        while (true)
+        for (;;)
         {
             auto s = g();
             if /**/ (std::get_if<far::insert>(&s))
@@ -33,7 +33,7 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         auto f = far::faregex(w, w);
         REQUIRE(f == true);
         auto g = f(w);
-        while (true)
+        for (;;)
         {
             auto s = g();
             if /**/ (std::get_if<far::insert>(&s))
@@ -52,7 +52,7 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         auto f = far::faregex(l, l);
         REQUIRE(f == true);
         auto g = f(l);
-        while (true)
+        for (;;)
         {
             auto s = g();
             if /**/ (std::get_if<far::insert>(&s))
@@ -72,7 +72,7 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         auto f = far::faregex(w, w);
         REQUIRE(f == true);
         auto g = f(w);
-        while (true)
+        for (;;)
         {
             auto s = g();
             if /**/ (std::get_if<far::insert>(&s))
@@ -161,4 +161,17 @@ TEST_CASE("a sample lazy loop", "[faregex]")
             }
         }
     }
+}
+
+
+TEST_CASE("iterator", "[faregex]")
+{
+    auto const & pattern = R"(log)";
+    auto const & replace = R"(ln)";
+    auto const & example = R"(log(😅) = 💧 log(😄))";
+
+    auto f = far::faregex(pattern, replace);
+    auto head = far::faregex<char>::iterator<char const *>(f(example));
+    auto tail = far::faregex<char>::iterator<char const *>();
+    REQUIRE(head != tail);
 }

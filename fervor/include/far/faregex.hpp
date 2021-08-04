@@ -160,10 +160,6 @@ namespace far
         insert = 3,
     };
 
-    //// iterator
-    template<::far::cep::char_type C>
-    class iterator;
-
     //// faregex
     template<::far::cep::char_type C>
     class faregex;
@@ -184,6 +180,7 @@ template<::far::cep::char_type C>
 class far::faregex
 {
 private:
+
     enum struct mode
     {
         normal,
@@ -228,8 +225,8 @@ private:
 
         // Disable copy and move in order to avoid breaking searcher.
         // Otherwise we need to rebind searcher to pattern manually.
-        requirement            (requirement &&) = delete;
-        requirement & operator=(requirement &&) = delete;
+        requirement            (requirement      &&) = delete;
+        requirement & operator=(requirement      &&) = delete;
         requirement            (requirement const &) = delete;
         requirement & operator=(requirement const &) = delete;
 
@@ -471,6 +468,137 @@ private:
 
 public:
 
+    template<::far::cep::matched_iter<C> I>
+    struct iterator
+    {
+    public:
+        using iterator_category = std::input_iterator_tag;
+        using difference_type   = std::ptrdiff_t;
+        using value_type        = change::variant<C, I>;
+        using pointer           = change::variant<C, I> const *;
+        using reference         = change::variant<C, I> const &;
+
+    public:
+        using generator_type = std::function<value_type()>;
+        explicit constexpr iterator(generator_type g = nullptr) noexcept
+            : generator(g)
+            , next(std::monostate{})
+            , last(std::monostate{})
+        {
+            ++ *this;
+        }
+
+    public:
+        auto constexpr operator*() const noexcept -> reference
+        {
+            return last;
+        }
+
+        auto constexpr operator->() const noexcept -> pointer
+        {
+            return &last;
+        }
+
+        auto constexpr operator++() noexcept -> iterator &
+        {
+            if (!static_cast<bool>(generator)) [[unlikely]]
+                return *this;
+
+            // generate last
+            // generate next
+            // if last can merge with next (#3)
+            //    merge last with next
+            //    generate next
+            //    retry #3
+
+            if (last.index() == far::none) [[unlikely]]
+            {
+                last = generator();
+            }
+            else
+            {
+                last = std::move(next);
+            }
+
+            if (last.index() == far::none)
+            {
+                generator = nullptr;
+                return *this;
+            }
+
+            
+            for (next = generator(); last.index() == next.index(); next = generator())
+            {
+                switch (last.index())
+                {
+                default:
+                case far::none: // should never arrive here, or maybe throw ?
+                {
+                    last = std::monostate{};
+                    next = std::monostate{};
+                    generator = nullptr;
+                    return *this;
+                }
+                case far::retain:
+                {
+                    auto l = std::get_if<far::retain>(&last);
+                    auto r = std::get_if<far::retain>(&next);
+                    if (l->second == r->first)
+                        l->second = r->second;
+                    else
+                        return *this;
+                }
+                case far::remove:
+                {
+                    auto l = std::get_if<far::remove>(&last);
+                    auto r = std::get_if<far::remove>(&next);
+                    if (l->second == r->first)
+                        l->second = r->second;
+                    else
+                        return *this;
+                }
+                case far::insert:
+                {
+                    auto l = std::get_if<far::insert>(&last);
+                    auto r = std::get_if<far::insert>(&next);
+                    if (l->end() == r->begin())
+                        *l = std::string_view(l->begin(), r->end());
+                    else
+                        return *this;
+                }
+                }
+            }
+
+            return *this;
+        }
+
+        auto constexpr operator++(int) noexcept -> iterator
+        {
+            auto iter = *this;
+            ++ *this;
+            return iter;
+        }
+
+    private:
+        friend auto constexpr operator==(iterator const & lhs, iterator const & rhs) -> bool
+        {
+            return (!static_cast<bool>(lhs.generator) && !static_cast<bool>(rhs.generator))
+                // TODO: check whether generators are equal
+                ;
+        }
+
+        friend auto constexpr operator!=(iterator const & lhs, iterator const & rhs) -> bool
+        {
+            return !(lhs == rhs);
+        }
+
+        generator_type  generator;
+        value_type      next;
+        value_type      last;
+    };
+
+public:
+
     template<::far::cep::matched<C> R>
     [[nodiscard]] auto constexpr operator()(R & container) const
         -> std::function<change::variant<C, std::ranges::iterator_t<R>>()>
@@ -500,6 +628,7 @@ public:
     }
 
 public:
+
     template<::far::cep::matcher<C> P, ::far::cep::matcher<C> R>
     faregex(P const & pattern, R const & replace, option options = option{})
         : pointer()
@@ -533,6 +662,7 @@ public:
     }
 
 public:
+
     std::variant<
         std::monostate,
         std::shared_ptr<requirement<mode::normal> const>, // Safety: const is necessary.
