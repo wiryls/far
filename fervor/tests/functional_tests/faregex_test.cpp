@@ -163,7 +163,6 @@ TEST_CASE("a sample lazy loop", "[faregex]")
     }
 }
 
-
 TEST_CASE("iterator", "[faregex]")
 {
     auto const & pattern = R"(log)";
@@ -174,4 +173,6 @@ TEST_CASE("iterator", "[faregex]")
     auto head = far::faregex<char>::iterator<char const *>(f(example));
     auto tail = far::faregex<char>::iterator<char const *>();
     REQUIRE(head != tail);
+
+    // TODO:
 }

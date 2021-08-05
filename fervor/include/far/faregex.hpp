@@ -526,7 +526,6 @@ public:
                 return *this;
             }
 
-            
             for (next = generator(); last.index() == next.index(); next = generator())
             {
                 switch (last.index())
@@ -543,28 +542,28 @@ public:
                 {
                     auto l = std::get_if<far::retain>(&last);
                     auto r = std::get_if<far::retain>(&next);
-                    if (l->second == r->first)
-                        l->second = r->second;
-                    else
+                    if (l->second != r->first)
                         return *this;
+                    l->second = r->second;
+                    break;
                 }
                 case far::remove:
                 {
                     auto l = std::get_if<far::remove>(&last);
                     auto r = std::get_if<far::remove>(&next);
-                    if (l->second == r->first)
-                        l->second = r->second;
-                    else
+                    if (l->second != r->first)
                         return *this;
+                    l->second = r->second;
+                    break;
                 }
                 case far::insert:
                 {
                     auto l = std::get_if<far::insert>(&last);
                     auto r = std::get_if<far::insert>(&next);
-                    if (l->end() == r->begin())
-                        *l = std::string_view(l->begin(), r->end());
-                    else
+                    if (l->end() != r->begin())
                         return *this;
+                    *l = std::string_view(l->begin(), r->end());
+                    break;
                 }
                 }
             }
@@ -582,9 +581,9 @@ public:
     private:
         friend auto constexpr operator==(iterator const & lhs, iterator const & rhs) -> bool
         {
-            return (!static_cast<bool>(lhs.generator) && !static_cast<bool>(rhs.generator))
-                // TODO: check whether generators are equal
-                ;
+            // Note: it seems no easy way to compare std::function
+            // https://stackoverflow.com/q/3629835
+            return (lhs.generator == nullptr && rhs.generator == nullptr) || (&lhs == &rhs);
         }
 
         friend auto constexpr operator!=(iterator const & lhs, iterator const & rhs) -> bool
