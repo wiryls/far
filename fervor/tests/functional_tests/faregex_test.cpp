@@ -239,9 +239,8 @@ TEST_CASE("iterator", "[faregex]")
             REQUIRE(++head == tail);
         }
     }
-    SECTION("unicode")
+    SECTION("unicode with regex")
     {
-        std::cout << "不太对劲" << std::endl;
         auto const & pattern = R"(不.+?。|，恶.+?？|悲.+?不)";
         auto const & replace = R"()";
         auto const & example =
