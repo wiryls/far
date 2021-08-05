@@ -129,6 +129,19 @@ namespace far
     //// change
     namespace change
     {
+        enum struct type : int
+        {
+            none   = 0,
+            retain = 1,
+            remove = 2,
+            insert = 3,
+        };
+
+        inline auto constexpr operator*(type t) noexcept
+        {
+            return static_cast<std::underlying_type_t<type>>(t);
+        }
+
         template<::far::cep::char_type C, ::far::cep::matched_iter<C> I>
         struct retain : detail::iter_pair<I>
         {
@@ -151,14 +164,6 @@ namespace far
             , remove<C, I>
             , insert<C> >;
     }
-
-    enum change_type
-    {
-        none   = 0,
-        retain = 1,
-        remove = 2,
-        insert = 3,
-    };
 
     //// faregex
     template<::far::cep::char_type C>
@@ -480,13 +485,24 @@ public:
 
     public:
         using generator_type = std::function<value_type()>;
-        explicit constexpr iterator(generator_type g = nullptr) noexcept
-            : generator(g)
+
+        template<std::convertible_to<generator_type> T>
+        requires!std::is_same_v<std::remove_cvref_t<T>, generator_type>
+        explicit constexpr iterator(T && g) noexcept
+            : generator(std::forward<T>(g))
             , next(std::monostate{})
             , last(std::monostate{})
+            , identify(generator.target<T>())
         {
             ++ *this;
         }
+
+        constexpr iterator() noexcept
+            : generator()
+            , next(std::monostate{})
+            , last(std::monostate{})
+            , identify(nullptr)
+        {}
 
     public:
         auto constexpr operator*() const noexcept -> reference
@@ -501,6 +517,7 @@ public:
 
         auto constexpr operator++() noexcept -> iterator &
         {
+            using type = change::type;
             if (!static_cast<bool>(generator)) [[unlikely]]
                 return *this;
 
@@ -511,7 +528,7 @@ public:
             //    generate next
             //    retry #3
 
-            if (last.index() == far::none) [[unlikely]]
+            if (last.index() == *type::none) [[unlikely]]
             {
                 last = generator();
             }
@@ -520,7 +537,7 @@ public:
                 last = std::move(next);
             }
 
-            if (last.index() == far::none)
+            if (last.index() == *type::none)
             {
                 generator = nullptr;
                 return *this;
@@ -531,39 +548,38 @@ public:
                 switch (last.index())
                 {
                 default:
-                case far::none: // should never arrive here, or maybe throw ?
+                case *type::none: [[unlikely]]
                 {
+                    // should never arrive here, or maybe throw ?
                     last = std::monostate{};
                     next = std::monostate{};
                     generator = nullptr;
                     return *this;
                 }
-                case far::retain:
+                case *type::retain:
                 {
-                    auto l = std::get_if<far::retain>(&last);
-                    auto r = std::get_if<far::retain>(&next);
+                    auto l = std::get_if<*type::retain>(&last);
+                    auto r = std::get_if<*type::retain>(&next);
                     if (l->second != r->first)
                         return *this;
+
                     l->second = r->second;
                     break;
                 }
-                case far::remove:
+                case *type::remove:
                 {
-                    auto l = std::get_if<far::remove>(&last);
-                    auto r = std::get_if<far::remove>(&next);
+                    auto l = std::get_if<*type::remove>(&last);
+                    auto r = std::get_if<*type::remove>(&next);
                     if (l->second != r->first)
                         return *this;
+
                     l->second = r->second;
                     break;
                 }
-                case far::insert:
+                case *type::insert:
                 {
-                    auto l = std::get_if<far::insert>(&last);
-                    auto r = std::get_if<far::insert>(&next);
-                    if (l->end() != r->begin())
-                        return *this;
-                    *l = std::string_view(l->begin(), r->end());
-                    break;
+                    // not a good idea to expand std::string_view
+                    return *this;
                 }
                 }
             }
@@ -581,9 +597,11 @@ public:
     private:
         friend auto constexpr operator==(iterator const & lhs, iterator const & rhs) -> bool
         {
-            // Note: it seems no easy way to compare std::function
+            // Note: it seems not easy to compare std::function
             // https://stackoverflow.com/q/3629835
-            return (lhs.generator == nullptr && rhs.generator == nullptr) || (&lhs == &rhs);
+            // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2004/n1667.pdf
+            return (lhs.generator == nullptr && rhs.generator == nullptr)
+                || (lhs.identify != nullptr && lhs.identify == rhs.identify);
         }
 
         friend auto constexpr operator!=(iterator const & lhs, iterator const & rhs) -> bool
@@ -594,65 +612,85 @@ public:
         generator_type  generator;
         value_type      next;
         value_type      last;
+        void const *    identify;
+    };
+
+    template<::far::cep::matched_iter<C> I>
+    struct iterator_pair : detail::iter_pair<iterator<I>>
+    {
+        using detail::iter_pair<iterator<I>>::iter_pair;
     };
 
 public:
 
     template<::far::cep::matched<C> R>
-    [[nodiscard]] auto constexpr operator()(R & container) const
+    [[nodiscard]] auto constexpr generate(R & container) const
         -> std::function<change::variant<C, std::ranges::iterator_t<R>>()>
     {
-        return this->operator()(aux::begin(container), aux::end(container));
+        return generate(aux::begin(container), aux::end(container));
     }
 
     template<::far::cep::matched_iter<C> I>
-    [[nodiscard]] auto constexpr operator()(I first, I last) const
+    [[nodiscard]] auto constexpr generate(I first, I last) const
         -> std::function<change::variant<C, I> ()>
     {
-        using return_type = std::function<change::variant<C, I> ()>;
-        using normal_type = std::shared_ptr<requirement<mode::normal> const>;
-        using regexp_type = std::shared_ptr<requirement<mode::regexp> const>;
-
-        if /**/ (auto normal = std::get_if<normal_type>(&pointer))
+        if /**/ (auto normal = std::get_if<normal_type>(&maybe))
             return generator<mode::normal, I>(*normal, std::move(first), std::move(last));
-        else if (auto regexp = std::get_if<regexp_type>(&pointer))
+        else if (auto regexp = std::get_if<regexp_type>(&maybe))
             return generator<mode::regexp, I>(*regexp, std::move(first), std::move(last));
         else
-            return []() -> change::variant<C, I> { return std::monostate{}; };
+            return []() -> change::variant<C, I> { return failed_type{}; };
+    }
+
+    template<::far::cep::matched<C> R>
+    [[nodiscard]] auto constexpr iterate(R & container) const
+        -> iterator_pair<std::ranges::iterator_t<R>>
+    {
+        return iterate(aux::begin(container), aux::end(container));
+    }
+
+    template<::far::cep::matched_iter<C> I>
+    [[nodiscard]] auto constexpr iterate(I first, I last) const
+        -> iterator_pair<I>
+    {
+        using type = iterator<I>;
+        auto value = iterator_pair<I>{};
+        if /**/ (auto normal = std::get_if<normal_type>(&maybe))
+            value.first = type(generator<mode::normal, I>(*normal, std::move(first), std::move(last)));
+        else if (auto regexp = std::get_if<regexp_type>(&maybe))
+            value.first = type(generator<mode::regexp, I>(*regexp, std::move(first), std::move(last)));
+        return value;
     }
 
     [[nodiscard]] constexpr operator bool() const
     {
-        return pointer.index() != 0;
+        return maybe.index() != 0;
     }
 
 public:
 
     template<::far::cep::matcher<C> P, ::far::cep::matcher<C> R>
     faregex(P const & pattern, R const & replace, option options = option{})
-        : pointer()
+        : maybe()
     {
         auto is_normal_mode = (options & option::normal_mode) != 0;
         auto do_ignore_case = (options & option::ignore_case) != 0;
 
         if (is_normal_mode)
         {
-            pointer = std::make_shared<requirement<mode::normal>>(pattern, replace, do_ignore_case);
+            maybe = std::make_shared<requirement<mode::normal>>(pattern, replace, do_ignore_case);
         }
         else try
         {
-            pointer = std::make_shared<requirement<mode::regexp>>
+            auto option = static_cast<std::regex_constants::syntax_option_type>
+                ( (do_ignore_case ? std::regex_constants::icase : 0)
+                | (std::regex_constants::ECMAScript) );
+
+            maybe = std::make_shared<requirement<mode::regexp>>
                 // Note: C++20 needed
                 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0960r3.html
-                ( std::basic_regex<C>
-                    ( aux::begin(pattern)
-                    , aux::end  (pattern)
-                    , static_cast<std::regex_constants::syntax_option_type>
-                        ( (do_ignore_case ? std::regex_constants::icase : 0)
-                        | (std::regex_constants::ECMAScript) ) )
-                , std::basic_string<C>
-                    ( aux::begin(replace)
-                    , aux::end  (replace) ) );
+                ( std::basic_regex <C>(aux::begin(pattern), aux::end(pattern), option)
+                , std::basic_string<C>(aux::begin(replace), aux::end(replace)) );
         }
         catch ([[maybe_unused]] std::regex_error const& ex)
         {
@@ -660,11 +698,12 @@ public:
         }
     }
 
-public:
+private:
 
-    std::variant<
-        std::monostate,
-        std::shared_ptr<requirement<mode::normal> const>, // Safety: const is necessary.
-        std::shared_ptr<requirement<mode::regexp> const>
-    > pointer;
+    using failed_type = std::monostate;
+    using normal_type = std::shared_ptr<requirement<mode::normal> const>;
+    using regexp_type = std::shared_ptr<requirement<mode::regexp> const>;
+    // Safety: const is necessary.
+
+    std::variant<failed_type, normal_type, regexp_type> maybe;
 };
