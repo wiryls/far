@@ -5,7 +5,7 @@
 #include <string_view>
 #include <sstream>
 #include <regex>
-#include <far/faregex.hpp>
+#include <far/far.hpp>
 #include "tool.hpp"
 
 TEST_CASE("regex", "[faregex]")

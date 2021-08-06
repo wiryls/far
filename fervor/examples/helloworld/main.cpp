@@ -2,7 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <far/faregex.hpp>
+#include <far/far.hpp>
 
 auto main() -> int
 {

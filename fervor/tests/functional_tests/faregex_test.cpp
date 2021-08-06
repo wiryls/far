@@ -3,7 +3,7 @@
 #include <list>
 #include <vector>
 #include <sstream>
-#include <far/faregex.hpp>
+#include <far/far.hpp>
 
 TEST_CASE("helpers", "[faregex]")
 {
