@@ -137,8 +137,11 @@ namespace far
             insert = 3,
         };
 
-        inline auto constexpr operator*(type t) noexcept
+        template<typename T>
+        requires std::same_as<type, std::remove_cvref_t<T>> && (!std::is_reference_v<T>)
+        auto inline consteval operator&(T && t) noexcept
         {
+            // Let us treat underlying_type_t as "address" of our enum.
             return static_cast<std::underlying_type_t<type>>(t);
         }
 
@@ -528,7 +531,7 @@ public:
             //    generate next
             //    retry #3
 
-            if (last.index() == *type::none) [[unlikely]]
+            if (last.index() == &type::none) [[unlikely]]
             {
                 last = generator();
             }
@@ -537,7 +540,7 @@ public:
                 last = std::move(next);
             }
 
-            if (last.index() == *type::none)
+            if (last.index() == &type::none)
             {
                 generator = nullptr;
                 return *this;
@@ -548,7 +551,7 @@ public:
                 switch (last.index())
                 {
                 default:
-                case *type::none: [[unlikely]]
+                case &type::none: [[unlikely]]
                 {
                     // should never arrive here, or maybe throw ?
                     last = std::monostate{};
@@ -556,27 +559,27 @@ public:
                     generator = nullptr;
                     return *this;
                 }
-                case *type::retain:
+                case &type::retain:
                 {
-                    auto l = std::get_if<*type::retain>(&last);
-                    auto r = std::get_if<*type::retain>(&next);
+                    auto l = std::get_if<&type::retain>(&last);
+                    auto r = std::get_if<&type::retain>(&next);
                     if (l->second != r->first)
                         return *this;
 
                     l->second = r->second;
                     break;
                 }
-                case *type::remove:
+                case &type::remove:
                 {
-                    auto l = std::get_if<*type::remove>(&last);
-                    auto r = std::get_if<*type::remove>(&next);
+                    auto l = std::get_if<&type::remove>(&last);
+                    auto r = std::get_if<&type::remove>(&next);
                     if (l->second != r->first)
                         return *this;
 
                     l->second = r->second;
                     break;
                 }
-                case *type::insert:
+                case &type::insert:
                 {
                     // not a good idea to expand std::string_view
                     return *this;

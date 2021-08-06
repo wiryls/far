@@ -2,7 +2,19 @@
 
 #include <list>
 #include <vector>
+#include <sstream>
 #include <far/faregex.hpp>
+
+TEST_CASE("helpers", "[faregex]")
+{
+    SECTION("change::type operator&")
+    {
+        using far::change::type;
+        REQUIRE(&type::none == 0);
+        auto i = type::none;
+        REQUIRE(&i != 0);
+    }
+}
 
 TEST_CASE("constructor, trait, deduction guide", "[faregex]")
 {
@@ -18,13 +30,13 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         {
             auto s = g();
             using far::change::type;
-            if /**/ (std::get_if<*type::insert>(&s))
+            if /**/ (std::get_if<&type::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::retain>(&s))
+            else if (std::get_if<&type::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::remove>(&s))
+            else if (std::get_if<&type::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::none>(&s))
+            else if (std::get_if<&type::none>(&s))
                 break;
         }
     }
@@ -39,13 +51,13 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         {
             auto s = g();
             using far::change::type;
-            if /**/ (std::get_if<*type::insert>(&s))
+            if /**/ (std::get_if<&type::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::retain>(&s))
+            else if (std::get_if<&type::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::remove>(&s))
+            else if (std::get_if<&type::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::none>(&s))
+            else if (std::get_if<&type::none>(&s))
                 break;
         }
     }
@@ -59,13 +71,13 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         {
             auto s = g();
             using far::change::type;
-            if /**/ (std::get_if<*type::insert>(&s))
+            if /**/ (std::get_if<&type::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::retain>(&s))
+            else if (std::get_if<&type::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::remove>(&s))
+            else if (std::get_if<&type::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::none>(&s))
+            else if (std::get_if<&type::none>(&s))
                 break;
         }
     }
@@ -80,13 +92,13 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
         {
             auto s = g();
             using far::change::type;
-            if /**/ (std::get_if<*type::insert>(&s))
+            if /**/ (std::get_if<&type::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::retain>(&s))
+            else if (std::get_if<&type::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::remove>(&s))
+            else if (std::get_if<&type::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<*type::none>(&s))
+            else if (std::get_if<&type::none>(&s))
                 break;
         }
     }
@@ -119,56 +131,54 @@ TEST_CASE("a sample lazy loop", "[faregex]")
             using C = std::ranges::range_value_t<decltype("")>;
             {
                 auto v = g();
-                auto u = std::get_if<*type::remove>(&v);
+                auto u = std::get_if<&type::remove>(&v);
                 auto x = "log"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<*type::insert>(&v);
+                auto u = std::get_if<&type::insert>(&v);
                 auto x = "ln"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<*type::retain>(&v);
+                auto u = std::get_if<&type::retain>(&v);
                 auto x = "(😅) = 💧 "s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<*type::remove>(&v);
+                auto u = std::get_if<&type::remove>(&v);
                 auto x = "log"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<*type::insert>(&v);
+                auto u = std::get_if<&type::insert>(&v);
                 auto x = "ln"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<*type::retain>(&v);
+                auto u = std::get_if<&type::retain>(&v);
                 auto x = "(😄)"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<*type::none>(&v);
+                auto u = std::get_if<&type::none>(&v);
                 REQUIRE(u != nullptr);
             }
         }
     }
 }
-
-#include <iostream>
 
 TEST_CASE("iterator", "[faregex]")
 {
@@ -184,11 +194,11 @@ TEST_CASE("iterator", "[faregex]")
         {
             using defer = std::shared_ptr<void>;
             using far::change::type;
-            defer _(nullptr, [&](...){ ++head; });
 
-            if (head == tail && var.index() != *type::none)
+            if (head == tail && var.index() != &type::none)
                 return false;
 
+            defer _(nullptr, [&](...){ ++head; });
             if (static_cast<std::size_t>(head->first) != var.index())
                 return false;
 
@@ -232,7 +242,7 @@ TEST_CASE("iterator", "[faregex]")
             auto [head, tail] = f.iterate(l);
             REQUIRE(head != tail);
 
-            auto retain = std::get_if<*far::change::type::retain>(&*head);
+            auto retain = std::get_if<&far::change::type::retain>(&*head);
             REQUIRE(retain != nullptr);
             REQUIRE(retain->begin() == l.begin());
             REQUIRE(retain->end() == l.end());
@@ -241,6 +251,8 @@ TEST_CASE("iterator", "[faregex]")
     }
     SECTION("unicode with regex")
     {
+        // '?' makes ".+" non-greedy
+        // https://stackoverflow.com/a/2824314
         auto const & pattern = R"(不.+?。|，恶.+?？|悲.+?不)";
         auto const & replace = R"()";
         auto const & example =
@@ -249,6 +261,8 @@ TEST_CASE("iterator", "[faregex]")
             "为当下奋斗者，不可使其淹没于尘埃。"
             "为未来奠基者，不可使其从宽而入窄。"
             "悲兮叹兮，若善者不得善终，恶者可更恶乎？";
+        auto const & output =
+            "为众人抱薪者，为苍生治水者，为当下奋斗者，为未来奠基者，得善终";
 
         auto f = far::faregex(pattern, replace);
         auto i = f.iterate(example);
@@ -268,7 +282,15 @@ TEST_CASE("iterator", "[faregex]")
             { type::remove, "，恶者可更恶乎？" },
         });
 
+        auto oss = std::ostringstream();
         for (auto & c : i)
+        {
             REQUIRE(m(c));
+            if /**/ (auto ins = std::get_if<&type::insert>(&c))
+                oss << *ins;
+            else if (auto ret = std::get_if<&type::retain>(&c))
+                oss << std::string_view(ret->begin(), ret->end());
+        }
+        REQUIRE(output == oss.str());
     }
 }
