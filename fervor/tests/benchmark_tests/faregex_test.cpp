@@ -24,7 +24,20 @@ TEST_CASE("regex", "[faregex]")
     auto const & pattern = R"([a-z])";
     auto const & replace = R"(_)";
 
-    BENCHMARK(R"(far::faregex regex with "[a-z]" to "_")")
+    BENCHMARK(R"(std::regex "[a-z]" to "_")")
+    {
+        auto const r = std::regex(pattern);
+
+        auto head = input.begin();
+        auto tail = input.end();
+
+        auto o = std::ostringstream();
+        auto i = std::ostreambuf_iterator(o);
+        std::regex_replace(i, head, tail, r, replace);
+        return o.str();
+    };
+
+    BENCHMARK(R"(far::faregex regex "[a-z]" to "_")")
     {
         auto f = far::faregex(pattern, replace);
         auto o = std::ostringstream();
@@ -38,18 +51,6 @@ TEST_CASE("regex", "[faregex]")
         return o.str();
     };
 
-    BENCHMARK(R"(std::regex with "[a-z]" to "_")")
-    {
-        auto const r = std::regex(pattern);
-
-        auto head = input.begin();
-        auto tail = input.end  ();
-
-        auto o = std::ostringstream();
-        auto i = std::ostreambuf_iterator(o);
-        std::regex_replace(i, head, tail, r, replace);
-        return o.str();
-    };
 }
 
 TEST_CASE("plain text", "[faregex]")
@@ -58,25 +59,11 @@ TEST_CASE("plain text", "[faregex]")
     using far::change::type;
 
     auto const & chars = "01";
-    auto input = std::string(8192, '\0');
+    auto input = std::string(1024, '\0');
     fill_random(input.begin(), input.end(), far::aux::begin(chars), far::aux::end(chars));
 
     auto const & pattern = "0011";
     auto const & replace = "1100";
-
-    BENCHMARK(R"(far::faregex normal)")
-    {
-        auto f = far::faregex(pattern, replace, far::normal_mode);
-        auto o = std::ostringstream();
-        for (auto& c : f.iterate(input))
-        {
-            if /**/ (auto ins = std::get_if<&type::insert>(&c))
-                o << *ins;
-            else if (auto ret = std::get_if<&type::retain>(&c))
-                o << std::string_view(ret->begin(), ret->end());
-        }
-        return o.str();
-    };
 
     BENCHMARK(R"(std::string.find)")
     {
@@ -98,6 +85,20 @@ TEST_CASE("plain text", "[faregex]")
         if (head != tail)
             o << std::string_view(std::next(s, head), std::next(s, tail));
 
+        return o.str();
+    };
+
+    BENCHMARK(R"(far::faregex normal)")
+    {
+        auto f = far::faregex(pattern, replace, far::normal_mode);
+        auto o = std::ostringstream();
+        for (auto & c : f.iterate(input))
+        {
+            if /**/ (auto ins = std::get_if<&type::insert>(&c))
+                o << *ins;
+            else if (auto ret = std::get_if<&type::retain>(&c))
+                o << std::string_view(ret->begin(), ret->end());
+        }
         return o.str();
     };
 }
