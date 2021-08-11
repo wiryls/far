@@ -8,8 +8,8 @@ project(far
     LANGUAGES CXX)
 
 # provide options for users
-option(UNCAT_BUILD_TESTS    "build all test programs"   ON)
-option(UNCAT_BUILD_EXAMPLES "build all sample programs" ON)
+option(FAR_BUILD_TESTS    "build all test programs"   ON)
+option(FAR_BUILD_EXAMPLES "build all sample programs" ON)
 
 # global properties or options
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -20,11 +20,11 @@ add_subdirectory(third_party)
 add_subdirectory(src)
 
 # add executable
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND UNCAT_BUILD_EXAMPLES)
-    add_subdirectory(examples)
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND FAR_BUILD_EXAMPLES)
+    add_subdirectory(apps)
 endif()
 
 # add tests
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND UNCAT_BUILD_TESTS)
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND FAR_BUILD_TESTS)
     add_subdirectory(tests)
 endif()

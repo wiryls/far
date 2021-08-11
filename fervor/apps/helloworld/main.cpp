@@ -2,9 +2,10 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <far/far.hpp>
+#include <thread>
 
 auto main() -> int
 {
+    auto t = std::thread([]() {});
     return 0;
 }

@@ -4,7 +4,7 @@ set(name "far")
 # collect all header files and source files
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/*.hpp")
 set(sources
-    "export.cpp")
+    "fever.cpp")
 
 # build as a library
 add_library(${name} ${sources} ${headers})
@@ -13,9 +13,9 @@ add_library(${name} ${sources} ${headers})
 source_group              (TREE "${PROJECT_SOURCE_DIR}" FILES ${headers})
 set_target_properties     (${name} PROPERTIES FOLDER "${PROJECT_NAME}")
 set_target_properties     (${name} PROPERTIES CXX_STANDARD 20)
-target_include_directories(${name} INTERFACE "${PROJECT_SOURCE_DIR}/include")
-target_link_libraries     (${name} INTERFACE "$<$<CXX_COMPILER_ID:GNU>:pthread>")
-target_compile_options    (${name} INTERFACE
+target_include_directories(${name} PUBLIC "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries     (${name} PRIVATE "$<$<CXX_COMPILER_ID:GNU>:pthread>")
+target_compile_options    (${name} PRIVATE 
     "$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-pedantic-errors;-Wall;-Wextra;-Wconversion;-Werror>"
     "$<$<AND:$<CONFIG:RELEASE>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-O3>"
     "$<$<AND:$<CONFIG:DEBUG>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-g>"

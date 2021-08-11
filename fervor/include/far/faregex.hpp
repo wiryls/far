@@ -1,5 +1,8 @@
 #pragma once
 
+/// This file is useless but still reserved. I leave it here in order to
+/// remind me not to over-design.
+
 /// Note:
 /// this file is base on a RUST version:
 /// https://github.com/wiryls/far/blob/deprecated/gtk4-rs/src/far/diff.rs and
@@ -597,7 +600,7 @@ public:
                 }
                 case &type::insert:
                 {
-                    // not a good idea to expand std::string_view
+                    // not a good idea to expand std::basic_string_view
                     return *this;
                 }
                 }
