@@ -40,8 +40,8 @@ namespace far { namespace fun
     {
     public:
 
-        // the current status.
-        auto peek() const->flap;
+        // Peek the current status.
+        auto peek() const -> flap;
 
         // Try to clam down.
         //
@@ -53,7 +53,7 @@ namespace far { namespace fun
         auto wait() const -> void;
 
     public:
-        subscriber(publisher const& ex);
+        subscriber(publisher && ex);
 
     private:
 
@@ -73,7 +73,7 @@ namespace far { namespace fun
         // Set the total.
         auto max(std::size_t i) const -> void;
 
-        // should i keep running.
+        // Whether it receives a halting message.
         auto stop() const -> bool;
 
         // All tasks have been all done. No more waiting!

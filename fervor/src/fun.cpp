@@ -27,8 +27,8 @@ auto far::fun::fact::subscriber::wait() const -> void
     data->state.wait(fettle::halting, std::memory_order_acquire);
 }
 
-far::fun::fact::subscriber::subscriber(publisher const & ex)
-    : data(ex.data)
+far::fun::fact::subscriber::subscriber(publisher && ex)
+    : data(std::move(ex.data))
 {}
 
 auto far::fun::fact::publisher::add(std::size_t i) const -> void
