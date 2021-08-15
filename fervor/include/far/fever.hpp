@@ -2,8 +2,8 @@
 
 #include <concepts>
 #include <functional>
+#include <memory>
 #include <deque>
-#include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <thread>
@@ -19,32 +19,38 @@ struct far::fever
 public:
     using task = std::function<void()>;
 
-    template<std::convertible_to<task> T>
-    auto operator()(T && todo) -> void;
+    template<std::convertible_to<::far::fever::task> T>
+    auto operator()(T && todo) -> bool;
+    auto operator()() -> void;
 
 public:
     explicit fever(std::size_t size = std::thread::hardware_concurrency());
             ~fever();
 
 private:
+    template<bool R /* eleasable */>
     auto loop() -> void;
 
 private:
     bool                     running;
+    std::size_t              holding;
     std::deque<task>         tasks;
     std::mutex               mutex;
     std::condition_variable  condition;
     std::vector<std::thread> executors;
 };
 
-template<std::convertible_to<far::fever::task> T>
-auto far::fever::operator()(T && todo) -> void
+template<std::convertible_to<::far::fever::task> T>
+auto far::fever::operator()(T && todo) -> bool
 {
     auto o = true;
     {
         std::scoped_lock _(mutex);
         if ((o = running, o))
+        {
+            ++holding;
             tasks.push_back(std::forward<T>(todo));
+        }
     }
 
     if (o)
@@ -53,32 +59,48 @@ auto far::fever::operator()(T && todo) -> void
     return o;
 }
 
-struct far::fettle
+template<bool R /* eleasable */>
+auto far::fever::loop() -> void
 {
-public:
-    struct progress
+    auto loop = true;
+    while (loop)
     {
-        std::size_t done;
-        std::size_t total;
-    };
+        auto todo = task();
+        {
+            auto lock = std::unique_lock(mutex);
+            condition.wait(lock, [&]
+            {
+                if constexpr (R)
+                    return holding == 0 || !running;
+                else
+                    return !tasks.empty() || !running;
+            });
 
-    // the current progress.
-    auto peek() -> progress;
+            while (!tasks.empty() && todo == nullptr)
+            {
+                todo = std::move(tasks.front());
+                tasks.pop_front();
+            }
+        }
 
-    // Try to clam down.
-    // - Blocked until canceled.
-    // - Also may be ignored.
-    auto clam() -> void;
+        if (todo != nullptr)
+        {
+            todo();
 
-private:
-    enum struct status
-    {
-        running = 0,
-        halting = 1,
-        stopped = 2,
-    };
-
-    std::atomic<std::size_t> done;
-    std::atomic<std::size_t> total;
-    std::atomic<status>      stage;
-};
+            mutex.lock();
+            if (--holding == 0)
+                condition.notify_all();
+        }
+        else
+        {
+            mutex.lock();
+        }
+        {
+            if constexpr (R)
+                loop = !tasks.empty() || holding != 0;
+            else
+                loop = !tasks.empty() || running;
+            mutex.unlock();
+        }
+    }
+}
