@@ -46,7 +46,7 @@ auto far::fun::fact::publisher::max(std::size_t i) const -> void
     data->total.store(i, std::memory_order_relaxed);
 }
 
-auto far::fun::fact::publisher::stop() const -> bool
+auto far::fun::fact::publisher::drop() const -> bool
 {
     return data->state.load(std::memory_order_relaxed) != fettle::running;
 }

@@ -1,7 +1,7 @@
 #pragma once
 
-/// This file is useless but still reserved. I leave it here in order to
-/// remind me not to over-design.
+/// Most code in this file is useless but still is reserved. I leave it
+/// here in order to remind me not to over-design.
 
 /// Note:
 /// this file is base on a RUST version:
@@ -115,12 +115,22 @@ namespace far { namespace detail
     {
         using std::pair<I, I>::pair;
 
-        auto constexpr begin() const noexcept -> I
+        auto constexpr begin() noexcept -> std::add_lvalue_reference_t<I>
         {
             return this->first;
         }
 
-        auto constexpr end() const noexcept -> I
+        auto constexpr end() noexcept -> std::add_lvalue_reference_t<I>
+        {
+            return this->second;
+        }
+
+        auto constexpr begin() const noexcept -> std::add_lvalue_reference_t<std::add_const_t<I>>
+        {
+            return this->first;
+        }
+
+        auto constexpr end() const noexcept -> std::add_lvalue_reference_t<std::add_const_t<I>>
         {
             return this->second;
         }
@@ -190,7 +200,7 @@ namespace far
 template<::far::cep::char_type C>
 class far::faregex
 {
-private:
+private: // shared data types
 
     enum struct mode
     {
@@ -279,7 +289,7 @@ private:
         std::basic_string<C> replace;
     };
 
-private:
+private: // generator style and generators
 
     template<mode M, ::far::cep::matched_iter<C> I, typename = void>
     struct generator;
@@ -493,7 +503,7 @@ private:
         std::basic_string<C>   buff;
     };
 
-public:
+public: // iterator style and iterator
 
     template<::far::cep::matched_iter<C> I>
     struct iterator
@@ -643,7 +653,7 @@ public:
         using detail::iter_pair<iterator<I>>::iter_pair;
     };
 
-public:
+public: // API
 
     template<::far::cep::matched<C> R>
     [[nodiscard]] auto constexpr generate(R & container) const

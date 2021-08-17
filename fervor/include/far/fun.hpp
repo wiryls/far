@@ -2,7 +2,6 @@
 
 #include <concepts>
 #include <type_traits>
-//#include <iostream>
 #include <thread>
 #include <ranges>
 #include <filesystem>
@@ -22,7 +21,7 @@ namespace far { namespace fun
     struct flap
     {
         std::size_t count;
-        std::size_t total; // zero if total is unknown
+        std::size_t total; // maybe 0 if unknown
         fettle      state; // state of a fact
     };
 
@@ -74,10 +73,13 @@ namespace far { namespace fun
         auto max(std::size_t i) const -> void;
 
         // Whether it receives a halting message.
-        auto stop() const -> bool;
+        auto drop() const -> bool;
 
         // All tasks have been all done. No more waiting!
         auto done() const -> void;
+
+        // If not drop then perform add
+        //auto drop_or_add() const -> bool;
 
     private:
 
@@ -98,7 +100,11 @@ namespace far { namespace fun
         >
     requires std::convertible_to<std::ranges::range_value_t<I>, std::filesystem::path>
           && std::same_as<std::invoke_result_t<O, std::filesystem::path>, bool>
-    auto import(E & executor, I const & input, bool recursive, O & output) -> fact::subscriber
+    auto import
+        ( E & executor
+        , I const & input
+        , bool recursive
+        , O & output ) -> fact::subscriber
     {
         auto pub = fact::publisher();
 
@@ -109,16 +115,17 @@ namespace far { namespace fun
                 using std::filesystem::recursive_directory_iterator;
                 for (auto & item : input)
                     for (auto & entry : recursive_directory_iterator(item))
-                        if (pub.stop()) [[unlikely]]
+                        if (pub.drop()) [[unlikely]]
                             break;
                         else if (output(entry.path()))
                             pub.add(1);
             }
             else
             {
-                auto cast = [](auto && x) { return static_cast<std::filesystem::path>(x); };
+                using std::filesystem::path;
+                auto cast = []<typename T>(T && x) { return static_cast<path>(std::forward<T>(x)); };
                 for (auto item : input | std::ranges::views::transform(cast))
-                    if (pub.stop()) [[unlikely]]
+                    if (pub.drop()) [[unlikely]]
                         break;
                     else if (output(std::move(item)))
                         pub.add(1);
@@ -130,16 +137,21 @@ namespace far { namespace fun
         return pub;
     }
 
+    namespace detail
+    {
+
+    }
+
     template
         < typename E // executor type
         , typename L // item list
         , typename P // pattern type
         , typename T // template type
         , typename G // member getter
-        , typename U // result updater
-        , typename I // insert-formatter
         , typename R // retain-formatter
         , typename D // remove-formatter
+        , typename I // insert-formatter
+        , typename U // result updater
         , typename C = std::ranges::range_value_t<P> // char type
         >
     requires
@@ -159,7 +171,7 @@ namespace far { namespace fun
             , G getter
             , U updater
             , std::iter_difference_t<std::ranges::range_value_t<L>> const n
-            , std::basic_string<C> accumulator )
+            , std::basic_string<C> & accumulator )
         {
             {  getter(item)              } -> std::ranges::random_access_range;
             {  getter(item)[n]           } -> std::convertible_to<C>;
@@ -170,25 +182,25 @@ namespace far { namespace fun
             , D remove
             , I insert
             , std::ranges::iterator_t<std::ranges::range_value_t<L>> iterator
-            , std::basic_string_view<C> buffer
-            , std::basic_string     <C> accumulator )
+            , std::basic_string_view<C> const & buffer
+            , std::basic_string     <C> & accumulator )
         {
             { retain(iterator, iterator, accumulator) } -> std::same_as<void>;
             { remove(iterator, iterator, accumulator) } -> std::same_as<void>;
             { insert(buffer,             accumulator) } -> std::same_as<void>;
         }
     auto differ
-        ( E executor
+        ( E & executor
         , L & items
-        , P & pattern
-        , T & replace
+        , P const & pattern
+        , T const & replace
         , bool normal_mode
         , bool ignore_case
-        , G get
-        , U update
-        , I insert
-        , R retain
-        , D remove )->fact::subscriber
+        , G source_get
+        , R format_retain
+        , D format_remove
+        , I format_insert
+        , U result_update ) -> fact::subscriber
     {
         if (normal_mode)
         {
