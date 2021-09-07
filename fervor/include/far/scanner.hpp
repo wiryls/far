@@ -83,7 +83,7 @@ namespace far { namespace scan { namespace aux
             requires (N > 0) &&
             requires (C const (&c)[N])
             {
-                {c + N } -> std::contiguous_iterator;
+                { c + N } -> std::contiguous_iterator;
             }
             struct zero_suffixed<C(&)[N]> : std::true_type
             {
@@ -147,37 +147,37 @@ namespace far { namespace scan
     public: // data
         string   pattern;
         string   replace;
-        switcher package;
+        switcher chooser;
 
     public: // constructors and assignments
         template<::far::scan::sequence<C> P, ::far::scan::sequence<C> R>
         basic_or_icase_immutable_field(P const & p, R const & r)
             : pattern(::far::scan::aux::begin(p), ::far::scan::aux::end(p))
             , replace(::far::scan::aux::begin(r), ::far::scan::aux::end(r))
-            , package(bind(pattern))
+            , chooser(bind(pattern))
         {}
         basic_or_icase_immutable_field(basic_or_icase_immutable_field && rhs)
             : pattern(std::move(rhs.pattern))
             , replace(std::move(rhs.replace))
-            , package(bind(pattern))
+            , chooser(bind(pattern))
         {}
         basic_or_icase_immutable_field(basic_or_icase_immutable_field const & rhs)
-            : pattern(std::move(rhs.pattern))
-            , replace(std::move(rhs.replace))
-            , package(bind(pattern))
+            : pattern(rhs.pattern)
+            , replace(rhs.replace)
+            , chooser(bind(pattern))
         {}
         basic_or_icase_immutable_field & operator=(basic_or_icase_immutable_field && rhs)
         {
             pattern = std::move(rhs.pattern);
             replace = std::move(rhs.replace);
-            package = bind(pattern);
+            chooser = bind(pattern);
             return this;
         }
         basic_or_icase_immutable_field & operator=(basic_or_icase_immutable_field const & rhs)
         {
-            pattern = std::move(rhs.pattern);
-            replace = std::move(rhs.replace);
-            package = bind(pattern);
+            pattern = rhs.pattern;
+            replace = rhs.replace;
+            chooser = bind(pattern);
             return this;
         }
 
@@ -187,9 +187,9 @@ namespace far { namespace scan
         {
             using tag = std::iterator_traits<I>::iterator_category;
             if constexpr (std::is_base_of_v<std::random_access_iterator_tag, tag>)
-                return package. first(std::forward<I>(head), std::forward<I>(last));
+                return chooser. first(std::forward<I>(head), std::forward<I>(last));
             else
-                return package.second(std::forward<I>(head), std::forward<I>(last));
+                return chooser.second(std::forward<I>(head), std::forward<I>(last));
         }
 
     private: // helper
@@ -198,15 +198,14 @@ namespace far { namespace scan
             // Note: searcher may have a reference to pattern, so I store pattern
             // as a member. Be careful that do not change pattern. Any reallocation
             // may break our searcher, as well as move a (SSOed) small string.
-            return std::make_pair<fallback, switcher>
+            return std::make_pair
                 ( prefered(that.begin(), that.end(), std::hash<C>(), F())
                 , fallback(that.begin(), that.end(), F()) );
         }
     };
 
     template<::far::scan::scannable C>
-    struct immutable_field<mode::basic, C>
-        : basic_or_icase_immutable_field<C>
+    struct immutable_field<mode::basic, C> : basic_or_icase_immutable_field<C>
     {
         using basic_or_icase_immutable_field<C>::basic_or_icase_immutable_field;
     };
@@ -229,9 +228,11 @@ namespace far { namespace scan
         {
             try
             {
-                auto option = static_cast<std::regex_constants::syntax_option_type>
-                    ( std::regex_constants::ECMAScript
-                    | (ignore_case ? std::regex_constants::icase : 0) );
+                using option_type = std::regex_constants::syntax_option_type;
+                auto constexpr basic = std::regex_constants::ECMAScript;
+                auto constexpr icase = std::regex_constants::icase;
+
+                auto option = static_cast<option_type>(basic | (ignore_case ? icase : 0));
                 pattern = std::basic_regex<C>(aux::begin(pattern), aux::end(pattern), option);
             }
             catch (std::regex_error const & ex)
@@ -259,13 +260,38 @@ namespace far { namespace scan
     };
 
     template<::far::scan::scannable C, ::far::scan::bidirectional_iterative<C> I>
-    struct mutable_field<mode::basic, C, I>
+    struct basic_or_icase_mutable_field
     {
         using iterator = I;
 
-        status   stat;
-        iterator head;
-        iterator tail;
+        status                        stat;
+        std::pair<iterator, iterator> curr;
+        iterator                      head;
+        iterator                      tail;
+    };
 
+    template<::far::scan::scannable C, ::far::scan::bidirectional_iterative<C> I>
+    struct mutable_field<mode::basic, C, I> : basic_or_icase_mutable_field<C, I>
+    {
+        using basic_or_icase_mutable_field<C, I>::basic_or_icase_mutable_field;
+    };
+
+    template<::far::scan::scannable C, ::far::scan::bidirectional_iterative<C> I>
+    struct mutable_field<mode::icase, C, I> : basic_or_icase_mutable_field<C, I>
+    {
+        using basic_or_icase_mutable_field<C, I>::basic_or_icase_mutable_field;
+    };
+
+    template<::far::scan::scannable C, ::far::scan::bidirectional_iterative<C> I>
+    struct mutable_field<mode::regex, C, I>
+    {
+        using iterator = I;
+
+        status                        stat;
+        iterator                      curr;
+        iterator                      last;
+        std::regex_iterator<iterator> head;
+        std::regex_iterator<iterator> tail;
+        std::basic_string<C>          buff;
     };
 }}
