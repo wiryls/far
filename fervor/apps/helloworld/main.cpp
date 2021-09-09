@@ -7,29 +7,16 @@
 
 #include <far/fever.hpp>
 #include <far/fun.hpp>
-
-namespace change
-{
-    enum struct retain;
-    enum struct remove;
-    enum struct insert;
-}
-
-auto f(change::retain) -> void
-{
-    std::cout << "a" << std::endl;
-}
-
-auto f(change::remove) -> void
-{
-    std::cout << "b" << std::endl;
-}
-
-
+#include <far/scanner.hpp>
 
 auto main() -> int
 {
-    f(change::retain{});
+    auto i = far::scan::immutable_field<far::scan::mode::icase, char>("", "");
+    auto m = far::scan::  mutable_field<far::scan::mode::icase, char, char const *>();
+    auto f = std::function<void (char const *, char const *)>();
+    auto g = std::function<void (std::string::const_iterator, std::string::const_iterator)>();
+
+    far::scan::next(i, m, f, f, g);
 
     //auto m = machine();
     //m.import(cancel, status, finish_callback);
