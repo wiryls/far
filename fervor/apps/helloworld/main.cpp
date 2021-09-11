@@ -11,12 +11,29 @@
 
 auto main() -> int
 {
-    auto i = far::scan::immutable_field<far::scan::mode::icase, char>("", "");
-    auto m = far::scan::  mutable_field<far::scan::mode::icase, char, char const *>();
-    auto f = std::function<void (char const *, char const *)>();
-    auto g = std::function<void (std::string::const_iterator, std::string::const_iterator)>();
+    auto oss = std::ostream_iterator<char>(std::cout);
+    auto out = std::string();
+    auto retain = [&](auto first, auto last)
+    {
+        std::format_to(oss, "retain {}\n", std::string_view(first, last));
+        out.append(first, last);
+    };
+    auto remove = [&](auto first, auto last)
+    {
+        std::format_to(oss, "remove {}\n", std::string_view(first, last));
+    };
+    auto insert = [&](std::string::const_iterator first, std::string::const_iterator last)
+    {
+        std::format_to(oss, "insert {}\n", std::string_view(first, last));
+        out.append(first, last);
+    };
 
-    far::scan::next(i, m, f, f, g);
+    auto i = far::scan::core<far::scan::mode::icase, char>("0", "1");
+    auto s = std::string("0101010101111010");
+    auto m = far::scan::generator(i, retain, remove, insert, std::begin(s), std::end(s));
+
+    while (m());
+    std::cout << out << std::endl;
 
     //auto m = machine();
     //m.import(cancel, status, finish_callback);

@@ -4,7 +4,9 @@
 
 #include <type_traits>
 #include <concepts>
-#include <functional>
+#include <iterator>
+#include <execution>
+#include <algorithm>
 #include <ranges>
 #include <optional>
 #include <string>
@@ -113,26 +115,9 @@ namespace far { namespace scan { namespace aux
     inline constexpr auto end   = detail::end{};
 }}}
 
-namespace far { namespace scan { namespace detail
-{
-
-}}}
-
 namespace far { namespace scan
 {
-    //// shared
-
-    enum struct mode
-    {
-        basic,
-        icase,
-        regex,
-    };
-
-    //// immutable
-
-    template<mode M, ::far::scan::scannable C>
-    struct immutable_field;
+    //// helpers
 
     template<::far::scan::scannable C>
     struct icase_comparator
@@ -145,7 +130,7 @@ namespace far { namespace scan
     };
 
     template<::far::scan::scannable C, std::invocable<C, C> F = std::equal_to<>>
-    struct basic_or_icase_immutable_field
+    struct basic_or_icase_core
     {
     public: // types
         using string          = std::basic_string<C>;
@@ -161,29 +146,29 @@ namespace far { namespace scan
 
     public: // constructors and assignments
         template<::far::scan::sequence<C> P, ::far::scan::sequence<C> R>
-        basic_or_icase_immutable_field(P const & p, R const & r)
+        basic_or_icase_core(P const & p, R const & r)
             : pattern(::far::scan::aux::begin(p), ::far::scan::aux::end(p))
             , replace(::far::scan::aux::begin(r), ::far::scan::aux::end(r))
             , chooser(bind(pattern))
         {}
-        basic_or_icase_immutable_field(basic_or_icase_immutable_field && rhs)
+        basic_or_icase_core(basic_or_icase_core && rhs)
             : pattern(std::move(rhs.pattern))
             , replace(std::move(rhs.replace))
             , chooser(bind(pattern))
         {}
-        basic_or_icase_immutable_field(basic_or_icase_immutable_field const & rhs)
+        basic_or_icase_core(basic_or_icase_core const & rhs)
             : pattern(rhs.pattern)
             , replace(rhs.replace)
             , chooser(bind(pattern))
         {}
-        basic_or_icase_immutable_field & operator=(basic_or_icase_immutable_field && rhs)
+        basic_or_icase_core & operator=(basic_or_icase_core && rhs)
         {
             pattern = std::move(rhs.pattern);
             replace = std::move(rhs.replace);
             chooser = bind(pattern);
             return this;
         }
-        basic_or_icase_immutable_field & operator=(basic_or_icase_immutable_field const & rhs)
+        basic_or_icase_core & operator=(basic_or_icase_core const & rhs)
         {
             pattern = rhs.pattern;
             replace = rhs.replace;
@@ -191,53 +176,100 @@ namespace far { namespace scan
             return this;
         }
 
-    public: // operator
-        template<::far::scan::bidirectional_iterative I>
-        auto inline operator()(I && head, I && last)
-        {
-            using tag = std::iterator_traits<I>::iterator_category;
-            if constexpr (std::is_base_of_v<std::random_access_iterator_tag, tag>)
-                return chooser. first(std::forward<I>(head), std::forward<I>(last));
-            else
-                return chooser.second(std::forward<I>(head), std::forward<I>(last));
-        }
-
-    private: // helper
+    private:
         auto static bind(string const & that) -> switcher
         {
             // Note: searcher may have a reference to pattern, so I store pattern
             // as a member. Be careful that do not change pattern. Any reallocation
             // may break our searcher, as well as move a (SSOed) small string.
             return std::make_pair
-                ( prefered(that.begin(), that.end(), std::hash<C>(), F())
-                , fallback(that.begin(), that.end(), F()) );
+                ( prefered(that.begin(), that.end(), std::hash<C>{}, F{})
+                , fallback(that.begin(), that.end(), F{}) );
         }
     };
 
+    template<typename T>
+    struct to_predicate
+    {
+        using type = T &;
+    };
+
+    template<typename T>
+    requires (sizeof(T) <= sizeof(void *)
+        &&   (std::is_trivially_copy_constructible_v<T>))
+        &&   (std::is_trivially_destructible_v<T>)
+    struct to_predicate<T>
+    {
+        using type = T;
+    };
+
+    template<typename T>
+    using predicate = typename to_predicate<T>::type;
+
+    template
+        < ::far::scan::scannable C
+        , ::far::scan::bidirectional_iterative<C> I
+        , ::far::scan::output<I> R /* retain */
+        , ::far::scan::output<I> O /* remove */
+        , ::far::scan::output<typename std::basic_string<C>::const_iterator> N /* insert */
+        >
+    struct collector
+    {
+        predicate<std::remove_reference_t<R>> retain;
+        predicate<std::remove_reference_t<O>> remove;
+        predicate<std::remove_reference_t<N>> insert;
+    };
+
+    enum struct execution_status
+    {
+        stopped,
+        startup,
+        after_retain,
+        after_remove,
+        after_insert,
+        before_stopped,
+    };
+}}
+
+namespace far { namespace scan
+{
+    //// shared
+
+    enum struct mode
+    {
+        basic,
+        icase,
+        regex,
+    };
+
+    //// core (immutable)
+
+    template<mode M, ::far::scan::scannable C>
+    struct core;
+
     template<::far::scan::scannable C>
-    struct immutable_field<mode::basic, C> : basic_or_icase_immutable_field<C>
+    struct core<mode::basic, C> : basic_or_icase_core<C>
     {
         template<::far::scan::sequence<C> P, ::far::scan::sequence<C> R>
-        immutable_field(P const & p, R const & r)
-            : basic_or_icase_immutable_field<C>(p, r)
+        core(P const & pattern, R const & replace)
+            : basic_or_icase_core<C>(pattern, replace)
         {}
     };
 
     template<::far::scan::scannable C>
-    struct immutable_field<mode::icase, C>
-        : basic_or_icase_immutable_field<C, icase_comparator<C>>
+    struct core<mode::icase, C> : basic_or_icase_core<C, icase_comparator<C>>
     {
         template<::far::scan::sequence<C> P, ::far::scan::sequence<C> R>
-        immutable_field(P const & p, R const & r)
-            : basic_or_icase_immutable_field<C, icase_comparator<C>>(p, r)
+        core(P const & pattern, R const & replace)
+            : basic_or_icase_core<C, icase_comparator<C>>(pattern, replace)
         {}
     };
 
     template<::far::scan::scannable C>
-    struct immutable_field<mode::regex, C>
+    struct core<mode::regex, C>
     {
         template<::far::scan::forward_sequence<C> P, ::far::scan::sequence<C> R>
-        immutable_field(P const & pattern, R const & replace, bool ignore_case)
+        core(P const & pattern, R const & replace, bool ignore_case)
             : pattern()
             , replace(aux::begin(replace), aux::end(replace))
             , error()
@@ -248,8 +280,8 @@ namespace far { namespace scan
                 auto constexpr basic = std::regex_constants::ECMAScript;
                 auto constexpr icase = std::regex_constants::icase;
 
-                auto option = static_cast<option_type>(basic | (ignore_case ? icase : 0));
-                pattern = std::basic_regex<C>(aux::begin(pattern), aux::end(pattern), option);
+                auto o = static_cast<option_type>(basic | (ignore_case ? icase : 0));
+                this->pattern = std::basic_regex<C>(aux::begin(pattern), aux::end(pattern), o);
             }
             catch (std::regex_error const & ex)
             {
@@ -262,58 +294,36 @@ namespace far { namespace scan
         std::optional<std::regex_constants::error_type> error;
     };
 
-    //// mutable
+    //// generator
 
-    template<mode M, ::far::scan::scannable C, ::far::scan::bidirectional_iterative<C> I>
-    struct mutable_field;
+    template
+        < mode M
+        , ::far::scan::scannable C
+        , ::far::scan::bidirectional_iterative<C> I
+        , ::far::scan::output<I> R /* retain */
+        , ::far::scan::output<I> O /* remove */
+        , ::far::scan::output<typename std::basic_string<C>::const_iterator> N /* insert */
+        >
+    class generator;
 
-    enum struct status
-    {
-        stopped,
-        startup,
-        after_retain,
-        after_remove,
-        after_insert,
-        before_stopped,
-    };
-
-    template<::far::scan::scannable C, ::far::scan::bidirectional_iterative<C> I>
-    struct basic_or_icase_mutable_field
-    {
-        using iterator = I;
-
-        status                        stat;
-        std::pair<iterator, iterator> curr;
-        iterator                      head;
-        iterator                      tail;
-    };
-
-    template<::far::scan::scannable C, ::far::scan::bidirectional_iterative<C> I>
-    struct mutable_field<mode::basic, C, I> : basic_or_icase_mutable_field<C, I>
-    {
-        using basic_or_icase_mutable_field<C, I>::basic_or_icase_mutable_field;
-    };
-
-    template<::far::scan::scannable C, ::far::scan::bidirectional_iterative<C> I>
-    struct mutable_field<mode::icase, C, I> : basic_or_icase_mutable_field<C, I>
-    {
-        using basic_or_icase_mutable_field<C, I>::basic_or_icase_mutable_field;
-    };
-
-    template<::far::scan::scannable C, ::far::scan::bidirectional_iterative<C> I>
-    struct mutable_field<mode::regex, C, I>
-    {
-        using iterator = I;
-
-        status                        stat;
-        iterator                      curr;
-        iterator                      last;
-        std::regex_iterator<iterator> head;
-        std::regex_iterator<iterator> tail;
-        std::basic_string<C>          buff;
-    };
-
-    //// next
+    // attention:
+    // lifetime of references must be longer than this generator.
+    template
+        < mode M
+        , ::far::scan::scannable C
+        , ::far::scan::bidirectional_iterative<C> I
+        , ::far::scan::output<I> R
+        , ::far::scan::output<I> O
+        , ::far::scan::output<typename std::basic_string<C>::const_iterator> N
+        >
+    generator(core<M, C> const &, R &, O &, N &, I, I) -> generator
+        < M
+        , C
+        , I
+        , std::remove_reference_t<R>
+        , std::remove_reference_t<O>
+        , std::remove_reference_t<N>
+        >;
 
     template
         < mode M
@@ -324,89 +334,231 @@ namespace far { namespace scan
         , ::far::scan::output<typename std::basic_string<C>::const_iterator> N /* insert */
         >
     requires (M == mode::basic || M == mode::icase)
-    auto next
-        ( immutable_field<M, C> const & im
-        ,   mutable_field<M, C, I>    & mu
-        , R && retain
-        , O && remove
-        , N && insert
-        ) -> bool
+    class generator<M, C, I, R, O, N> : collector<C, I, R, O, N>
     {
-        // Note: because coroutines from C++20 are hard to use and have
-        // poor performance (in contrast to for-loop), I choose duff's
-        // device.
-        // https://stackoverflow.com/questions/57726401
-        // https://www.reddit.com/r/cpp/comments/gqi0io
+    public:
+        auto operator()() -> bool
+        {
+            // Note: function objects are passed by value when passed to and from functions.
+            // https://stackoverflow.com/questions/17626667
 
-        //switch (stat)
-        //{
-        //case stage::starting:
+            // Note: because coroutines from C++20 are hard to use and have
+            // poor performance (in contrast to for-loop), I choose duff's
+            // device.
+            // https://stackoverflow.com/questions/57726401
+            // https://www.reddit.com/r/cpp/comments/gqi0io
 
-        //    for (; head != tail; )
-        //    {
-        //        using input = std::iterator_traits<I>::iterator_category;
-        //        if constexpr (std::is_base_of_v<std::random_access_iterator_tag, input>)
-        //            next = (ctxt->searcher. first)(head, tail);
-        //        else
-        //            next = (ctxt->searcher.second)(head, tail);
+            using fun = collector<C, I, R, O, N>;
+            switch (stat)
+            {
+            case execution_status::startup:
 
-        //        if (next.first == next.second)
-        //            break;
+                while (head != tail)
+                {
+                    using tag = std::iterator_traits<I>::iterator_category;
+                    if constexpr (std::is_base_of_v<std::random_access_iterator_tag, tag>)
+                        curr = (rule.chooser. first)(head, tail);
+                    else
+                        curr = (rule.chooser.second)(head, tail);
 
-        //        if (head != next.first)
-        //        {
-        //            stat = stage::after_retain;
-        //            return change::retain<C, I>{ head, next.first };
-        //        }
+                    if (curr.first == curr.second)
+                        break;
 
-        //[[fallthrough]];
-        //case stage::after_retain:
+                    if (head != curr.first)
+                    {
+                        stat = execution_status::after_retain;
+                        fun::retain(head, curr.first);
+                        return true;
+                    }
 
-        //        {
-        //    stat = stage::after_remove;
-        //            return change::remove<C, I>(next);
-        //        }
+            [[fallthrough]];
+            case execution_status::after_retain:
 
-        //[[fallthrough]];
-        //case stage::after_remove:
+                    {
+                        stat = execution_status::after_remove;
+                        fun::remove(curr.first, curr.second);
+                        return true;
+                    }
 
-        //        if (!ctxt->replace.empty())
-        //        {
-        //            stat = stage::after_insert;
-        //            return change::insert<C>(ctxt->replace);
-        //        }
+            [[fallthrough]];
+            case execution_status::after_remove:
 
-        //[[fallthrough]];
-        //case stage::after_insert:
+                    if (!rule.replace.empty())
+                    {
+                        stat = execution_status::after_insert;
+                        fun::insert(rule.replace.begin(), rule.replace.end());
+                        return true;
+                    }
 
-        //        head = next.second;
-        //    }
+            [[fallthrough]];
+            case execution_status::after_insert:
 
+                    head = curr.second;
+                }
 
-        //[[fallthrough]];
-        //case stage::before_stopped:
+            [[fallthrough]];
+            case execution_status::before_stopped:
 
-        //    if (head != tail)
-        //    {
-        //        stat = stage::stopped;
-        //        return change::retain<C, I>{ head, tail };
-        //    }
+                if (head != tail)
+                {
+                    stat = execution_status::stopped;
+                    fun::retain(head, tail);
+                    return false;
+                }
 
-        //[[fallthrough]];
-        //case stage::stopped:
-        //default:
+            [[fallthrough]];
+            case execution_status::stopped:
+            default:
 
-        //    return std::monostate{};
-        //}
+                return false;
+            }
+        }
 
+    public:
+        constexpr generator
+            ( core<M, C> const & rule
+            , R & retain
+            , O & remove
+            , N & insert
+            , I first
+            , I last
+            ) noexcept
+            : collector<C, I, R, O, N>{ retain, remove, insert }
+            , rule(rule)
+            , head(first)
+            , tail(last)
+        {
+            /**/ if (first == last)
+                stat = execution_status::stopped;
+            else if (rule.pattern == rule.replace)
+                stat = execution_status::before_stopped;
+        }
 
-        return false;
-    }
+    private:
+        using iterator = I;
 
-    template<mode M, ::far::scan::scannable C, ::far::scan::bidirectional_iterative<C> I>
-    requires (M == mode::regex)
-    auto next() -> bool
+        core<M, C> const &            rule;
+        iterator                      head;
+        iterator                      tail;
+        std::pair<iterator, iterator> curr{};
+        execution_status              stat{ execution_status::startup };
+    };
+
+    template
+        < ::far::scan::scannable C
+        , ::far::scan::bidirectional_iterative<C> I
+        , ::far::scan::output<I> R /* retain */
+        , ::far::scan::output<I> O /* remove */
+        , ::far::scan::output<typename std::basic_string<C>::const_iterator> N /* insert */
+        >
+    class generator<mode::regex, C, I, R, O, N> : collector<C, I, R, O, N>
     {
-        return false;
-    }
+    public:
+        auto operator()() -> bool
+        {
+            using fun = collector<C, I, R, O, N>;
+            switch (stat)
+            {
+            case execution_status::startup:
+
+                for (; head != tail; ++ head)
+                {
+                    if (head->empty()) [[unlikely]]
+                        continue;
+
+                    buff.clear();
+                    head->format(std::back_inserter(buff), rule.replace);
+
+                    {
+                        auto constexpr e = std::execution::unseq;
+                        auto const &   m = (*head)[0];
+                        auto const &   b = buff;
+
+                        if (m.first == m.second ||
+                            std::equal(e, b.begin(), b.end(), m.first, m.second)) [[unlikely]]
+                            continue;
+
+                        if (curr != m.first)
+                        {
+                            stat = execution_status::after_retain;
+                            fun::retain(curr, m.first);
+                            return true;
+                        }
+                    }
+
+            [[fallthrough]];
+            case execution_status::after_retain:
+
+                    {
+                        auto const & match = (*head)[0];
+                        stat = execution_status::after_remove;
+                        fun::remove(match.first, match.second);
+                        return true;
+                    }
+
+            [[fallthrough]];
+            case execution_status::after_remove:
+
+                    if (!buff.empty())
+                    {
+                        stat = execution_status::after_insert;
+                        fun::insert(buff.begin(), buff.end());
+                        return true;
+                    }
+
+            [[fallthrough]];
+            case execution_status::after_insert:
+
+                    curr = (*head)[0].second;
+                }
+
+                stat = execution_status::stopped;
+                if (curr != last)
+                {
+                    fun::retain(curr, last);
+                    return false;
+                }
+
+            [[fallthrough]];
+            case execution_status::stopped:
+            default:
+
+                return false;
+            }
+        }
+
+    public:
+        constexpr generator
+            ( core<mode::regex, C> const & rule
+            , R & retain
+            , O & remove
+            , N & insert
+            , I first
+            , I last
+            ) noexcept
+            : collector<C, I, R, O, N>{ retain, remove, insert }
+            , rule(rule)
+            , curr(first)
+            , last(last)
+            , head()
+        {
+            if (first == last)
+                stat = execution_status::stopped;
+            else
+                head = std::regex_iterator<I>(first, last, rule.pattern);
+        }
+
+    private:
+        using iterator = I;
+
+        core<mode::regex, C> const &  rule;
+        iterator                      curr;
+        iterator                      last;
+        std::regex_iterator<iterator> head;
+        std::regex_iterator<iterator> tail{ std::regex_iterator<iterator>() };
+        std::basic_string<C>          buff{};
+        execution_status              stat{ execution_status::startup };
+    };
+
+    
 }}
