@@ -2,8 +2,9 @@
 
 #include <concepts>
 #include <type_traits>
-#include <thread>
+#include <algorithm>
 #include <ranges>
+#include <thread>
 #include <filesystem>
 #include <regex>
 #include <string>
@@ -124,7 +125,7 @@ namespace far { namespace fun
             {
                 using std::filesystem::path;
                 auto cast = []<typename T>(T && x) { return static_cast<path>(std::forward<T>(x)); };
-                for (auto item : input | std::ranges::views::transform(cast))
+                for (auto item : input | std::views::transform(cast))
                     if (pub.drop()) [[unlikely]]
                         break;
                     else if (output(std::move(item)))

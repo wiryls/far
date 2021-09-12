@@ -5,13 +5,13 @@ string(TOLOWER ${name} name)
 
 # source lists
 set(sources
-    faregex_test.cpp
+    scan_test.cpp
     tool.hpp)
 
 # executable
 add_executable       (${name} ${sources})
 set_target_properties(${name} PROPERTIES FOLDER "${PROJECT_NAME}/tests")
-set_target_properties(${name} PROPERTIES CXX_STANDARD 20)
+set_target_properties(${name} PROPERTIES CXX_STANDARD 23)
 target_link_libraries(${name} PRIVATE Catch2::Catch2WithMain far)
 
 # add for CTest

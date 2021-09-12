@@ -3,81 +3,82 @@
 #include <list>
 #include <vector>
 #include <sstream>
-#include <far/faregex.hpp>
+#include <far/scan.hpp>
 
-TEST_CASE("helpers", "[faregex]")
+using namespace std::string_literals;
+namespace aux = far::scan::aux;
+using op = far::scan::operation;
+using far::make_scanner, far::scan_mode;
+
+TEST_CASE("helpers", "[scan]")
 {
     SECTION("change::type operator&")
     {
-        using far::change::type;
-        REQUIRE(&type::none == 0);
-        auto i = type::none;
+        REQUIRE(&op::none == 0);
+        auto i = op::none;
         REQUIRE(&i != 0);
     }
 }
 
-TEST_CASE("constructor, trait, deduction guide", "[faregex]")
+TEST_CASE("constructor, trait, deduction guide", "[scan]")
 {
     // char type is limited by regex_traits
     // https://en.cppreference.com/w/cpp/regex/regex_traits
     SECTION("char const & [N]")
     {
-        static_assert(far::cep::char_type<char>);
-        auto f = far::faregex("", "");
+        static_assert(::far::scan::unit<char>);
+        auto f = make_scanner<scan_mode::regex>("", "");
         REQUIRE(f == true);
         auto g = f.generate("");
         for (;;)
         {
             auto s = g();
-            using far::change::type;
-            if /**/ (std::get_if<&type::insert>(&s))
+            if /**/ (std::get_if<&op::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::retain>(&s))
+            else if (std::get_if<&op::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::remove>(&s))
+            else if (std::get_if<&op::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::none>(&s))
+            else if (std::get_if<&op::none>(&s))
                 break;
         }
     }
     SECTION("std::wstring")
     {
-        static_assert(far::cep::matcher<std::wstring, wchar_t>);
+        static_assert(::far::scan::bidirectional_sequence<std::wstring, wchar_t>);
         auto w = std::wstring();
-        auto f = far::faregex(w, w);
+        auto f = make_scanner<scan_mode::regex>(w, w);
         REQUIRE(f == true);
         auto g = f.generate(w);
         for (;;)
         {
             auto s = g();
-            using far::change::type;
-            if /**/ (std::get_if<&type::insert>(&s))
+            if /**/ (std::get_if<&op::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::retain>(&s))
+            else if (std::get_if<&op::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::remove>(&s))
+            else if (std::get_if<&op::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::none>(&s))
+            else if (std::get_if<&op::none>(&s))
                 break;
         }
     }
     SECTION("std::list<wchar_t>")
     {
         auto l = std::list<wchar_t>{};
-        auto f = far::faregex(l, l);
+        auto f = make_scanner<scan_mode::regex>(l, l);
         REQUIRE(f == true);
         auto g = f.generate(l);
         for (;;)
         {
             auto s = g();
-            using far::change::type;
-            if /**/ (std::get_if<&type::insert>(&s))
+            if /**/ (std::get_if<&op::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::retain>(&s))
+            else if (std::get_if<&op::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::remove>(&s))
+            else if (std::get_if<&op::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::none>(&s))
+            else if (std::get_if<&op::none>(&s))
                 break;
         }
     }
@@ -85,32 +86,31 @@ TEST_CASE("constructor, trait, deduction guide", "[faregex]")
     {
         auto x = std::wstring();
         auto const & w = x;
-        auto f = far::faregex(w, w);
+        auto f = make_scanner<scan_mode::regex>(w, w);
         REQUIRE(f == true);
         auto g = f.generate(w);
         for (;;)
         {
             auto s = g();
-            using far::change::type;
-            if /**/ (std::get_if<&type::insert>(&s))
+            if /**/ (std::get_if<&op::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::retain>(&s))
+            else if (std::get_if<&op::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::remove>(&s))
+            else if (std::get_if<&op::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&type::none>(&s))
+            else if (std::get_if<&op::none>(&s))
                 break;
         }
     }
 }
 
-TEST_CASE("error regexp", "[faregex]")
+TEST_CASE("error regexp", "[scan]")
 {
-    auto f = far::faregex(R"(((()))", "");
+    auto f = make_scanner<scan_mode::regex>(R"(((()))", "");
     REQUIRE(f == false);
 }
 
-TEST_CASE("a sample lazy loop", "[faregex]")
+TEST_CASE("a sample lazy loop", "[scan]")
 {
     using namespace std::string_literals;
     SECTION("char const & [N]")
@@ -119,83 +119,83 @@ TEST_CASE("a sample lazy loop", "[faregex]")
         auto const & replace = R"(ln)";
         auto const & example = R"(log(😅) = 💧 log(😄))";
 
-        for (auto const & f : {
-            far::faregex(pattern, replace),
-            far::faregex(pattern, replace, far::option::ignore_case),
-            far::faregex(pattern, replace, far::option::normal_mode),
-            far::faregex(pattern, replace, far::option(far::option::normal_mode | far::option::ignore_case)) })
+        auto cases = std::make_tuple
+            ( make_scanner<scan_mode::basic>(pattern, replace)
+            , make_scanner<scan_mode::icase>(pattern, replace)
+            , make_scanner<scan_mode::regex>(pattern, replace)
+            , make_scanner<scan_mode::regex>(pattern, replace, true) );
+
+        auto tests = [&](auto const & f)
         {
             auto g = f.generate(example);
-
-            using far::change::type;
-            using C = std::ranges::range_value_t<decltype("")>;
             {
                 auto v = g();
-                auto u = std::get_if<&type::remove>(&v);
+                auto u = std::get_if<&op::remove>(&v);
                 auto x = "log"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&type::insert>(&v);
+                auto u = std::get_if<&op::insert>(&v);
                 auto x = "ln"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&type::retain>(&v);
+                auto u = std::get_if<&op::retain>(&v);
                 auto x = "(😅) = 💧 "s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&type::remove>(&v);
+                auto u = std::get_if<&op::remove>(&v);
                 auto x = "log"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&type::insert>(&v);
+                auto u = std::get_if<&op::insert>(&v);
                 auto x = "ln"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&type::retain>(&v);
+                auto u = std::get_if<&op::retain>(&v);
                 auto x = "(😄)"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&type::none>(&v);
+                auto u = std::get_if<&op::none>(&v);
                 REQUIRE(u != nullptr);
             }
-        }
+        };
+
+        std::apply([=](auto && ... f) { (tests(f), ...); }, cases);
     }
 }
 
-TEST_CASE("iterator", "[faregex]")
+TEST_CASE("iterator", "[scan]")
 {
-    auto make_matcher = []
-        <far::cep::char_type C>
-        (std::vector<std::pair<far::change::type, std::basic_string<C>>> && vec)
+    auto constexpr make_matcher = []
+        <::far::scan::unit C>
+        (std::vector<std::pair<op, std::basic_string<C>>> && vec)
     {
         auto head = vec.begin();
         auto tail = vec.end();
         return [head=head, tail=tail, vec=std::move(vec)]
-            <far::cep::matched_iter<C> I>
-            (far::change::variant<C, I> const & var) mutable
+            <::far::scan::bidirectional_iterative<C> I>
+            (::far::scan::change<C, I> const & var) mutable
         {
             using defer = std::shared_ptr<void>;
-            using far::change::type;
 
-            if (head == tail && var.index() != &type::none)
+            if (head == tail && var.index() != &op::none)
                 return false;
 
             defer _(nullptr, [&](...){ ++head; });
@@ -216,43 +216,51 @@ TEST_CASE("iterator", "[faregex]")
         };
     };
 
-    using namespace std::string_literals;
+    auto constexpr cases_maker = [](auto const & pattern, auto const & replace)
+    {
+        using value_type = std::ranges::range_value_t<decltype(pattern)>;
+        return std::make_tuple
+            ( make_scanner<scan_mode::basic>(pattern, replace)
+            , make_scanner<scan_mode::icase>(pattern, replace)
+            , make_scanner<scan_mode::regex>(pattern, replace)
+            , make_scanner<scan_mode::regex>(pattern, replace, true) );
+    };
+
     SECTION("empty")
     {
-        auto l = std::list<wchar_t>();
-        for (auto const & f : {
-            far::faregex(l, l),
-            far::faregex(l, l, far::option::ignore_case),
-            far::faregex(l, l, far::option::normal_mode),
-            far::faregex(l, l, far::option(far::option::normal_mode | far::option::ignore_case)) })
+        auto empty = std::list<wchar_t>();
+        auto cases = cases_maker(empty, empty);
+        auto tests = [&](auto const & f)
         {
-            auto [head, tail] = f.iterate(l);
+            auto && [head, tail] = f.iterate(empty);
             REQUIRE(head == tail);
-        }
+        };
+
+        std::apply([=](auto && ... f) { (tests(f), ...); }, cases);
     }
     SECTION("all the same")
     {
-        auto l = std::list<wchar_t>{'0'};
-        for (auto const& f : {
-            far::faregex(l, l),
-            far::faregex(l, l, far::option::ignore_case),
-            far::faregex(l, l, far::option::normal_mode),
-            far::faregex(l, l, far::option(far::option::normal_mode | far::option::ignore_case)) })
+        auto dummy = std::list<wchar_t>{'0'};
+        auto cases = cases_maker(dummy, dummy);
+        auto tests = [&](auto const & f)
         {
-            auto [head, tail] = f.iterate(l);
+            auto [head, tail] = f.iterate(dummy);
             REQUIRE(head != tail);
 
-            auto retain = std::get_if<&far::change::type::retain>(&*head);
+            auto retain = std::get_if<&op::retain>(&*head);
             REQUIRE(retain != nullptr);
-            REQUIRE(retain->begin() == l.begin());
-            REQUIRE(retain->end() == l.end());
+            REQUIRE(retain->begin() == dummy.begin());
+            REQUIRE(retain->  end() == dummy.  end());
             REQUIRE(++head == tail);
-        }
+        };
+
+        std::apply([=](auto && ... f) { (tests(f), ...); }, cases);
     }
     SECTION("unicode with regex")
     {
         // '?' makes ".+" non-greedy
         // https://stackoverflow.com/a/2824314
+
         auto const & pattern = R"(不.+?。|，恶.+?？|悲.+?不)";
         auto const & replace = R"()";
         auto const & example =
@@ -264,32 +272,31 @@ TEST_CASE("iterator", "[faregex]")
         auto const & output =
             "为众人抱薪者，为苍生治水者，为当下奋斗者，为未来奠基者，得善终";
 
-        auto f = far::faregex(pattern, replace);
+        auto f = make_scanner<scan_mode::regex>(pattern, replace);
         auto i = f.iterate(example);
 
-        using far::change::type;
-        auto m = make_matcher(std::vector<std::pair<type, std::string>>
+        auto m = make_matcher(std::vector<std::pair<op, std::string>>
         {
-            { type::retain, "为众人抱薪者，"},
-            { type::remove, "不可使其冻毙于风雪。" },
-            { type::retain, "为苍生治水者，" },
-            { type::remove, "不可使其沉溺于湖海。" },
-            { type::retain, "为当下奋斗者，" },
-            { type::remove, "不可使其淹没于尘埃。" },
-            { type::retain, "为未来奠基者，" },
-            { type::remove, "不可使其从宽而入窄。悲兮叹兮，若善者不" },
-            { type::retain, "得善终" },
-            { type::remove, "，恶者可更恶乎？" },
+            { op::retain, "为众人抱薪者，"},
+            { op::remove, "不可使其冻毙于风雪。" },
+            { op::retain, "为苍生治水者，" },
+            { op::remove, "不可使其沉溺于湖海。" },
+            { op::retain, "为当下奋斗者，" },
+            { op::remove, "不可使其淹没于尘埃。" },
+            { op::retain, "为未来奠基者，" },
+            { op::remove, "不可使其从宽而入窄。悲兮叹兮，若善者不" },
+            { op::retain, "得善终" },
+            { op::remove, "，恶者可更恶乎？" },
         });
 
         auto oss = std::ostringstream();
         for (auto & c : i)
         {
             REQUIRE(m(c));
-            if /**/ (auto ins = std::get_if<&type::insert>(&c))
-                oss << *ins;
-            else if (auto ret = std::get_if<&type::retain>(&c))
-                oss << std::string_view(ret->begin(), ret->end());
+            if /**/ (auto insert = std::get_if<&op::insert>(&c))
+                oss << std::string_view(*insert);
+            else if (auto retain = std::get_if<&op::retain>(&c))
+                oss << std::string_view(*retain);
         }
         REQUIRE(output == oss.str());
     }

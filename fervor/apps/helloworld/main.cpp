@@ -4,36 +4,60 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <format>
 
 #include <far/fever.hpp>
 #include <far/fun.hpp>
-#include <far/scanner.hpp>
+#include <far/scan.hpp>
 
 auto main() -> int
 {
     auto oss = std::ostream_iterator<char>(std::cout);
     auto out = std::string();
-    auto retain = [&](auto first, auto last)
-    {
-        std::format_to(oss, "retain {}\n", std::string_view(first, last));
-        out.append(first, last);
-    };
-    auto remove = [&](auto first, auto last)
-    {
-        std::format_to(oss, "remove {}\n", std::string_view(first, last));
-    };
-    auto insert = [&](std::string::const_iterator first, std::string::const_iterator last)
-    {
-        std::format_to(oss, "insert {}\n", std::string_view(first, last));
-        out.append(first, last);
-    };
+    auto x = std::string("0101010101111010");
 
-    auto i = far::scan::core<far::scan::mode::icase, char>("0", "1");
-    auto s = std::string("0101010101111010");
-    auto m = far::scan::generator(i, retain, remove, insert, std::begin(s), std::end(s));
+    auto scan = far::scanner<far::scan_mode::regex, char>("0", "1");
+    auto g = scan.generate(x);
+    for (;;)
+    {
+        auto s = g();
+        using op = far::scan::operation;
+        /**/ if (auto retain = std::get_if<&op::retain>(&s))
+        {
+            std::format_to(oss, "retain {}\n", std::string_view(retain->begin(), retain->end()));
+            out.append(retain->begin(), retain->end());
+        }
+        else if (auto remove = std::get_if<&op::remove>(&s))
+        {
+            std::format_to(oss, "remove {}\n", std::string_view(remove->begin(), remove->end()));
+        }
+        else if (auto insert = std::get_if<&op::insert>(&s))
+        {
+            std::format_to(oss, "insert {}\n", std::string_view(insert->begin(), insert->end()));
+            out.append(insert->begin(), insert->end());
+        }
+        else if (std::get_if<&op::none>(&s))
+            break;
+    }
 
-    while (m());
     std::cout << out << std::endl;
+
+    for (auto & s : scan.iterate(x))
+    {
+        using op = far::scan::operation;
+        /**/ if (auto retain = std::get_if<&op::retain>(&s))
+        {
+            std::format_to(oss, "retain {}\n", std::string_view(retain->begin(), retain->end()));
+        }
+        else if (auto remove = std::get_if<&op::remove>(&s))
+        {
+            std::format_to(oss, "remove {}\n", std::string_view(remove->begin(), remove->end()));
+        }
+        else if (auto insert = std::get_if<&op::insert>(&s))
+        {
+            std::format_to(oss, "insert {}\n", std::string_view(insert->begin(), insert->end()));
+        }
+    }
 
     //auto m = machine();
     //m.import(cancel, status, finish_callback);
