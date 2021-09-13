@@ -13,12 +13,12 @@
 #include <iterator>
 #include <functional>
 #include <execution>
-#include <algorithm>
 #include <ranges>
 #include <memory>
 #include <optional>
 #include <variant>
 #include <string>
+#include <string_view>
 #include <regex>
 
 namespace far { namespace scan
@@ -324,7 +324,7 @@ namespace far { namespace scan
 {
     //// generator
 
-    enum struct execution_status // TODO: rename to generator_status
+    enum struct generator_status
     {
         stopped,
         startup,
@@ -357,7 +357,7 @@ namespace far { namespace scan
 
             switch (stat)
             {
-            case execution_status::startup:
+            case generator_status::startup:
 
                 while (head != tail)
                 {
@@ -372,44 +372,44 @@ namespace far { namespace scan
 
                     if (head != curr.first)
                     {
-                        stat = execution_status::after_retain;
+                        stat = generator_status::after_retain;
                         return retain<C, I>(head, curr.first);
                     }
 
             [[fallthrough]];
-            case execution_status::after_retain:
+            case generator_status::after_retain:
 
                     {
-                        stat = execution_status::after_remove;
+                        stat = generator_status::after_remove;
                         return remove<C, I>(curr.first, curr.second);
                     }
 
             [[fallthrough]];
-            case execution_status::after_remove:
+            case generator_status::after_remove:
 
                     if (!rule.replace.empty())
                     {
-                        stat = execution_status::after_insert;
+                        stat = generator_status::after_insert;
                         return insert<C>(rule.replace.begin(), rule.replace.end());
                     }
 
             [[fallthrough]];
-            case execution_status::after_insert:
+            case generator_status::after_insert:
 
                     head = curr.second;
                 }
 
             [[fallthrough]];
-            case execution_status::before_stopped:
+            case generator_status::before_stopped:
 
                 if (head != tail)
                 {
-                    stat = execution_status::stopped;
+                    stat = generator_status::stopped;
                     return retain<C, I>(head, tail);
                 }
 
             [[fallthrough]];
-            case execution_status::stopped:
+            case generator_status::stopped:
             default:
 
                 return std::monostate{};
@@ -424,15 +424,15 @@ namespace far { namespace scan
             , curr{}
             , stat
                 { first == last
-                ? execution_status::stopped
+                ? generator_status::stopped
                 : rule.pattern == rule.replace
-                ? execution_status::before_stopped
-                : execution_status::startup }
+                ? generator_status::before_stopped
+                : generator_status::startup }
         {
             /**/ if (first == last)
-                stat = execution_status::stopped;
+                stat = generator_status::stopped;
             else if (rule.pattern == rule.replace)
-                stat = execution_status::before_stopped;
+                stat = generator_status::before_stopped;
         }
 
     private:
@@ -442,7 +442,7 @@ namespace far { namespace scan
         iterator                      head;
         iterator                      tail;
         std::pair<iterator, iterator> curr;
-        execution_status              stat;
+        generator_status              stat;
     };
 
     template<::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
@@ -453,7 +453,7 @@ namespace far { namespace scan
         {
             switch (stat)
             {
-            case execution_status::startup:
+            case generator_status::startup:
 
                 for (; head != tail; ++ head)
                 {
@@ -475,41 +475,41 @@ namespace far { namespace scan
 
                         if (curr != m.first)
                         {
-                            stat = execution_status::after_retain;
+                            stat = generator_status::after_retain;
                             return retain<C, I>(curr, m.first);
                         }
                     }
 
             [[fallthrough]];
-            case execution_status::after_retain:
+            case generator_status::after_retain:
 
                     {
                         auto const & match = (*head)[0];
-                        stat = execution_status::after_remove;
+                        stat = generator_status::after_remove;
                         return remove<C, I>(match.first, match.second);
                     }
 
             [[fallthrough]];
-            case execution_status::after_remove:
+            case generator_status::after_remove:
 
                     if (!buff.empty())
                     {
-                        stat = execution_status::after_insert;
+                        stat = generator_status::after_insert;
                         return insert<C>(buff.begin(), buff.end());
                     }
 
             [[fallthrough]];
-            case execution_status::after_insert:
+            case generator_status::after_insert:
 
                     curr = (*head)[0].second;
                 }
 
-                stat = execution_status::stopped;
+                stat = generator_status::stopped;
                 if (curr != last)
                     return retain<C, I>(curr, last);
 
             [[fallthrough]];
-            case execution_status::stopped:
+            case generator_status::stopped:
             default:
 
                 return std::monostate{};
@@ -524,7 +524,7 @@ namespace far { namespace scan
             , head()
         {
             if (first == last)
-                stat = execution_status::stopped;
+                stat = generator_status::stopped;
             else
                 head = std::regex_iterator<I>(first, last, rule.pattern);
         }
@@ -538,7 +538,7 @@ namespace far { namespace scan
         std::regex_iterator<iterator> head;
         std::regex_iterator<iterator> tail{ std::regex_iterator<iterator>() };
         std::basic_string<C>          buff{};
-        execution_status              stat{ execution_status::startup };
+        generator_status              stat{ generator_status::startup };
     };
 
     //// iterator
@@ -678,7 +678,7 @@ namespace far { namespace scan
 
     private:
         // As iterator is suggested to be copyable, we use std::shared_ptr
-        // to making a generator be owned by its iterators.
+        // to make a generator be owned by its iterators.
         using container = std::shared_ptr<generator<M, C, I>>;
 
         container  func;

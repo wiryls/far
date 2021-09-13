@@ -1,17 +1,11 @@
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-#include <string>
-#include <string_view>
 #include <sstream>
-#include <regex>
 #include <far/scan.hpp>
 #include "tool.hpp"
 
-using namespace std::string_literals;
-namespace aux = far::scan::aux;
-using op = far::scan::operation;
-using far::make_scanner, far::scan_mode;
+using far::scan::operation, far::make_scanner, far::scan_mode;
 
 TEST_CASE(R"(regex "[a-z]" to "_")", "[scan]")
 {
@@ -50,13 +44,13 @@ TEST_CASE(R"(regex "[a-z]" to "_")", "[scan]")
         for (;;)
         {
             auto s = g();
-            if /**/ (auto insert = std::get_if<&op::insert>(&s))
+            if /**/ (auto insert = std::get_if<&operation::insert>(&s))
                 o << std::string_view(*insert);
-            else if (auto retain = std::get_if<&op::retain>(&s))
+            else if (auto retain = std::get_if<&operation::retain>(&s))
                 o << std::string_view(*retain);
-            else if (std::get_if<&op::remove>(&s))
+            else if (std::get_if<&operation::remove>(&s))
                 continue;
-            else if (std::get_if<&op::none>(&s))
+            else if (std::get_if<&operation::none>(&s))
                 break;
         }
         return o.str();
@@ -68,9 +62,9 @@ TEST_CASE(R"(regex "[a-z]" to "_")", "[scan]")
         auto f = make_scanner<scan_mode::regex>(pattern, replace);
         for (auto & c : f.iterate(input))
         {
-            if /**/ (auto insert = std::get_if<&op::insert>(&c))
+            if /**/ (auto insert = std::get_if<&operation::insert>(&c))
                 o << std::string_view(*insert);
-            else if (auto retain = std::get_if<&op::retain>(&c))
+            else if (auto retain = std::get_if<&operation::retain>(&c))
                 o << std::string_view(*retain);
         }
         return o.str();
@@ -125,7 +119,8 @@ TEST_CASE(R"(plain text "0011" to "1100")", "[scan]")
             if ( i == std::string::npos )
                 break;
 
-            o << std::string_view(std::next(s, head), std::next(s, i)) << replace;
+            o   << std::string_view(std::next(s, head), std::next(s, i))
+                << replace;
             head = i + 1;
         }
 
@@ -143,13 +138,13 @@ TEST_CASE(R"(plain text "0011" to "1100")", "[scan]")
         for (;;)
         {
             auto s = g();
-            if /**/ (auto insert = std::get_if<&op::insert>(&s))
+            if /**/ (auto insert = std::get_if<&operation::insert>(&s))
                 o << std::string_view(*insert);
-            else if (auto retain = std::get_if<&op::retain>(&s))
+            else if (auto retain = std::get_if<&operation::retain>(&s))
                 o << std::string_view(*retain);
-            else if (std::get_if<&op::remove>(&s))
+            else if (std::get_if<&operation::remove>(&s))
                 continue;
-            else if (std::get_if<&op::none>(&s))
+            else if (std::get_if<&operation::none>(&s))
                 break;
         }
         return o.str();
@@ -162,9 +157,9 @@ TEST_CASE(R"(plain text "0011" to "1100")", "[scan]")
         auto f = make_scanner<scan_mode::basic>(pattern, replace);
         for (auto & c : f.iterate(input))
         {
-            if /**/ (auto insert = std::get_if<&op::insert>(&c))
+            if /**/ (auto insert = std::get_if<&operation::insert>(&c))
                 o << std::string_view(*insert);
-            else if (auto retain = std::get_if<&op::retain>(&c))
+            else if (auto retain = std::get_if<&operation::retain>(&c))
                 o << std::string_view(*retain);
         }
         return o.str();

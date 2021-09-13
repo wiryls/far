@@ -10,7 +10,7 @@
 #include <string>
 #include <string_view>
 
-namespace far { namespace fun
+namespace far { namespace task
 {
     enum struct fettle
     {
@@ -89,7 +89,7 @@ namespace far { namespace fun
     };
 }}
 
-namespace far { namespace fun
+namespace far { namespace task
 {
     template<typename R>
     concept task_executor = std::invocable<R, std::is_function<void()>>;

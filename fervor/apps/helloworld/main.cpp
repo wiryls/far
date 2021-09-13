@@ -6,8 +6,8 @@
 #include <thread>
 #include <format>
 
-#include <far/fever.hpp>
-#include <far/fun.hpp>
+#include <far/exec.hpp>
+#include <far/task.hpp>
 #include <far/scan.hpp>
 
 auto main() -> int

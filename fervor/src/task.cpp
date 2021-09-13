@@ -1,7 +1,7 @@
 #include <atomic>
-#include <far/fun.hpp>
+#include <far/task.hpp>
 
-auto far::fun::fact::subscriber::peek() const -> flap
+auto far::task::fact::subscriber::peek() const -> flap
 {
     return flap
     {
@@ -11,7 +11,7 @@ auto far::fun::fact::subscriber::peek() const -> flap
     };
 }
 
-auto far::fun::fact::subscriber::clam() -> void
+auto far::task::fact::subscriber::clam() -> void
 {
     auto current = fettle::running;
     data->state.compare_exchange_strong
@@ -21,37 +21,37 @@ auto far::fun::fact::subscriber::clam() -> void
         , std::memory_order_relaxed );
 }
 
-auto far::fun::fact::subscriber::wait() const -> void
+auto far::task::fact::subscriber::wait() const -> void
 {
     data->state.wait(fettle::running, std::memory_order_acquire);
     data->state.wait(fettle::halting, std::memory_order_acquire);
 }
 
-far::fun::fact::subscriber::subscriber(publisher && ex)
+far::task::fact::subscriber::subscriber(publisher && ex)
     : data(std::move(ex.data))
 {}
 
-auto far::fun::fact::publisher::add(std::size_t i) const -> void
+auto far::task::fact::publisher::add(std::size_t i) const -> void
 {
     data->count.fetch_add(i, std::memory_order_relaxed);
 }
 
-auto far::fun::fact::publisher::set(std::size_t i) const -> void
+auto far::task::fact::publisher::set(std::size_t i) const -> void
 {
     data->count.store(i, std::memory_order_relaxed);
 }
 
-auto far::fun::fact::publisher::max(std::size_t i) const -> void
+auto far::task::fact::publisher::max(std::size_t i) const -> void
 {
     data->total.store(i, std::memory_order_relaxed);
 }
 
-auto far::fun::fact::publisher::drop() const -> bool
+auto far::task::fact::publisher::drop() const -> bool
 {
     return data->state.load(std::memory_order_relaxed) != fettle::running;
 }
 
-auto far::fun::fact::publisher::done() const -> void
+auto far::task::fact::publisher::done() const -> void
 {
     data->state.store(fettle::stopped, std::memory_order_release);
     data->state.notify_all();

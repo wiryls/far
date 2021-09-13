@@ -5,17 +5,14 @@
 #include <sstream>
 #include <far/scan.hpp>
 
-using namespace std::string_literals;
-namespace aux = far::scan::aux;
-using op = far::scan::operation;
-using far::make_scanner, far::scan_mode;
+using far::scan::operation, far::make_scanner, far::scan_mode;
 
 TEST_CASE("helpers", "[scan]")
 {
     SECTION("change::type operator&")
     {
-        REQUIRE(&op::none == 0);
-        auto i = op::none;
+        REQUIRE(&operation::none == 0);
+        auto i = operation::none;
         REQUIRE(&i != 0);
     }
 }
@@ -33,13 +30,13 @@ TEST_CASE("constructor, trait, deduction guide", "[scan]")
         for (;;)
         {
             auto s = g();
-            if /**/ (std::get_if<&op::insert>(&s))
+            if /**/ (std::get_if<&operation::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::retain>(&s))
+            else if (std::get_if<&operation::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::remove>(&s))
+            else if (std::get_if<&operation::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::none>(&s))
+            else if (std::get_if<&operation::none>(&s))
                 break;
         }
     }
@@ -53,13 +50,13 @@ TEST_CASE("constructor, trait, deduction guide", "[scan]")
         for (;;)
         {
             auto s = g();
-            if /**/ (std::get_if<&op::insert>(&s))
+            if /**/ (std::get_if<&operation::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::retain>(&s))
+            else if (std::get_if<&operation::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::remove>(&s))
+            else if (std::get_if<&operation::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::none>(&s))
+            else if (std::get_if<&operation::none>(&s))
                 break;
         }
     }
@@ -72,13 +69,13 @@ TEST_CASE("constructor, trait, deduction guide", "[scan]")
         for (;;)
         {
             auto s = g();
-            if /**/ (std::get_if<&op::insert>(&s))
+            if /**/ (std::get_if<&operation::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::retain>(&s))
+            else if (std::get_if<&operation::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::remove>(&s))
+            else if (std::get_if<&operation::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::none>(&s))
+            else if (std::get_if<&operation::none>(&s))
                 break;
         }
     }
@@ -92,13 +89,13 @@ TEST_CASE("constructor, trait, deduction guide", "[scan]")
         for (;;)
         {
             auto s = g();
-            if /**/ (std::get_if<&op::insert>(&s))
+            if /**/ (std::get_if<&operation::insert>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::retain>(&s))
+            else if (std::get_if<&operation::retain>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::remove>(&s))
+            else if (std::get_if<&operation::remove>(&s))
                 FAIL("should never reach here");
-            else if (std::get_if<&op::none>(&s))
+            else if (std::get_if<&operation::none>(&s))
                 break;
         }
     }
@@ -112,7 +109,6 @@ TEST_CASE("error regexp", "[scan]")
 
 TEST_CASE("a sample lazy loop", "[scan]")
 {
-    using namespace std::string_literals;
     SECTION("char const & [N]")
     {
         auto const & pattern = R"(log)";
@@ -127,52 +123,53 @@ TEST_CASE("a sample lazy loop", "[scan]")
 
         auto tests = [&](auto const & f)
         {
+            using namespace std::string_literals;
             auto g = f.generate(example);
             {
                 auto v = g();
-                auto u = std::get_if<&op::remove>(&v);
+                auto u = std::get_if<&operation::remove>(&v);
                 auto x = "log"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&op::insert>(&v);
+                auto u = std::get_if<&operation::insert>(&v);
                 auto x = "ln"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&op::retain>(&v);
+                auto u = std::get_if<&operation::retain>(&v);
                 auto x = "(😅) = 💧 "s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&op::remove>(&v);
+                auto u = std::get_if<&operation::remove>(&v);
                 auto x = "log"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&op::insert>(&v);
+                auto u = std::get_if<&operation::insert>(&v);
                 auto x = "ln"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&op::retain>(&v);
+                auto u = std::get_if<&operation::retain>(&v);
                 auto x = "(😄)"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&op::none>(&v);
+                auto u = std::get_if<&operation::none>(&v);
                 REQUIRE(u != nullptr);
             }
         };
@@ -185,7 +182,7 @@ TEST_CASE("iterator", "[scan]")
 {
     auto constexpr make_matcher = []
         <::far::scan::unit C>
-        (std::vector<std::pair<op, std::basic_string<C>>> && vec)
+        (std::vector<std::pair<operation, std::basic_string<C>>> && vec)
     {
         auto head = vec.begin();
         auto tail = vec.end();
@@ -195,7 +192,7 @@ TEST_CASE("iterator", "[scan]")
         {
             using defer = std::shared_ptr<void>;
 
-            if (head == tail && var.index() != &op::none)
+            if (head == tail && var.index() != &operation::none)
                 return false;
 
             defer _(nullptr, [&](...){ ++head; });
@@ -216,9 +213,8 @@ TEST_CASE("iterator", "[scan]")
         };
     };
 
-    auto constexpr cases_maker = [](auto const & pattern, auto const & replace)
+    auto constexpr make_cases = [](auto const & pattern, auto const & replace)
     {
-        using value_type = std::ranges::range_value_t<decltype(pattern)>;
         return std::make_tuple
             ( make_scanner<scan_mode::basic>(pattern, replace)
             , make_scanner<scan_mode::icase>(pattern, replace)
@@ -229,7 +225,7 @@ TEST_CASE("iterator", "[scan]")
     SECTION("empty")
     {
         auto empty = std::list<wchar_t>();
-        auto cases = cases_maker(empty, empty);
+        auto cases = make_cases(empty, empty);
         auto tests = [&](auto const & f)
         {
             auto && [head, tail] = f.iterate(empty);
@@ -241,13 +237,13 @@ TEST_CASE("iterator", "[scan]")
     SECTION("all the same")
     {
         auto dummy = std::list<wchar_t>{'0'};
-        auto cases = cases_maker(dummy, dummy);
+        auto cases = make_cases(dummy, dummy);
         auto tests = [&](auto const & f)
         {
             auto [head, tail] = f.iterate(dummy);
             REQUIRE(head != tail);
 
-            auto retain = std::get_if<&op::retain>(&*head);
+            auto retain = std::get_if<&operation::retain>(&*head);
             REQUIRE(retain != nullptr);
             REQUIRE(retain->begin() == dummy.begin());
             REQUIRE(retain->  end() == dummy.  end());
@@ -258,7 +254,7 @@ TEST_CASE("iterator", "[scan]")
     }
     SECTION("unicode with regex")
     {
-        // '?' makes ".+" non-greedy
+        // Note: '?' makes ".+" non-greedy
         // https://stackoverflow.com/a/2824314
 
         auto const & pattern = R"(不.+?。|，恶.+?？|悲.+?不)";
@@ -275,27 +271,27 @@ TEST_CASE("iterator", "[scan]")
         auto f = make_scanner<scan_mode::regex>(pattern, replace);
         auto i = f.iterate(example);
 
-        auto m = make_matcher(std::vector<std::pair<op, std::string>>
+        auto m = make_matcher(std::vector<std::pair<operation, std::string>>
         {
-            { op::retain, "为众人抱薪者，"},
-            { op::remove, "不可使其冻毙于风雪。" },
-            { op::retain, "为苍生治水者，" },
-            { op::remove, "不可使其沉溺于湖海。" },
-            { op::retain, "为当下奋斗者，" },
-            { op::remove, "不可使其淹没于尘埃。" },
-            { op::retain, "为未来奠基者，" },
-            { op::remove, "不可使其从宽而入窄。悲兮叹兮，若善者不" },
-            { op::retain, "得善终" },
-            { op::remove, "，恶者可更恶乎？" },
+            { operation::retain, "为众人抱薪者，"},
+            { operation::remove, "不可使其冻毙于风雪。" },
+            { operation::retain, "为苍生治水者，" },
+            { operation::remove, "不可使其沉溺于湖海。" },
+            { operation::retain, "为当下奋斗者，" },
+            { operation::remove, "不可使其淹没于尘埃。" },
+            { operation::retain, "为未来奠基者，" },
+            { operation::remove, "不可使其从宽而入窄。悲兮叹兮，若善者不" },
+            { operation::retain, "得善终" },
+            { operation::remove, "，恶者可更恶乎？" },
         });
 
         auto oss = std::ostringstream();
         for (auto & c : i)
         {
             REQUIRE(m(c));
-            if /**/ (auto insert = std::get_if<&op::insert>(&c))
+            if /**/ (auto insert = std::get_if<&operation::insert>(&c))
                 oss << std::string_view(*insert);
-            else if (auto retain = std::get_if<&op::retain>(&c))
+            else if (auto retain = std::get_if<&operation::retain>(&c))
                 oss << std::string_view(*retain);
         }
         REQUIRE(output == oss.str());
