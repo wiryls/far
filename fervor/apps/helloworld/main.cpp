@@ -16,7 +16,7 @@ auto main() -> int
     auto out = std::string();
     auto x = std::string("0101010101111010");
 
-    auto scan = far::scanner<far::scan_mode::regex, char>("0", "1");
+    auto scan = far::scanner<far::scan_mode::icase, char>("0", "1");
     auto g = scan.generate(x);
     for (;;)
     {

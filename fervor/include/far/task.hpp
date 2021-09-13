@@ -10,84 +10,7 @@
 #include <string>
 #include <string_view>
 
-namespace far { namespace task
-{
-    enum struct fettle
-    {
-        running = 0,
-        halting = 1,
-        stopped = 2,
-    };
-
-    struct flap
-    {
-        std::size_t count;
-        std::size_t total; // maybe 0 if unknown
-        fettle      state; // state of a fact
-    };
-
-    struct fact
-    {
-        class publisher;
-        class subscriber;
-
-        std::atomic<std::size_t> count{};
-        std::atomic<std::size_t> total{};
-        std::atomic<fettle>      state{ fettle::running };
-    };
-
-    class fact::subscriber
-    {
-    public:
-
-        // Peek the current status.
-        auto peek() const -> flap;
-
-        // Try to clam down.
-        //
-        // - May be ignored.
-        // - Non-block operation.
-        auto clam() -> void;
-
-        // Wait until all done.
-        auto wait() const -> void;
-
-    public:
-        subscriber(publisher && ex);
-
-    private:
-
-        std::shared_ptr<fact> data;
-    };
-
-    class fact::publisher
-    {
-    public:
-
-        // Add the counter
-        auto add(std::size_t i) const -> void;
-
-        // Set the counter
-        auto set(std::size_t i) const -> void;
-
-        // Set the total.
-        auto max(std::size_t i) const -> void;
-
-        // Whether it receives a halting message.
-        auto drop() const -> bool;
-
-        // All tasks have been all done. No more waiting!
-        auto done() const -> void;
-
-        // If not drop then perform add
-        //auto drop_or_add() const -> bool;
-
-    private:
-
-        friend class subscriber;
-        std::shared_ptr<fact> data = std::make_shared<fact>();
-    };
-}}
+#include <far/stat.hpp>
 
 namespace far { namespace task
 {
@@ -105,9 +28,9 @@ namespace far { namespace task
         ( E & executor
         , I const & input
         , bool recursive
-        , O & output ) -> fact::subscriber
+        , O & output ) -> stat::subscriber
     {
-        auto pub = fact::publisher();
+        auto pub = stat::publisher();
 
         executor([&, pub=pub]
         {
@@ -201,7 +124,7 @@ namespace far { namespace task
         , R format_retain
         , D format_remove
         , I format_insert
-        , U result_update ) -> fact::subscriber
+        , U result_update ) -> stat::subscriber
     {
         if (normal_mode)
         {

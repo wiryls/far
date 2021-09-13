@@ -5,7 +5,7 @@ set(name "far")
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/*.hpp")
 set(sources
     "exec.cpp"
-    "task.cpp")
+    "stat.cpp")
 
 # build as a library
 add_library(${name} ${sources} ${headers})

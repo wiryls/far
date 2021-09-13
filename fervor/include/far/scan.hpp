@@ -149,8 +149,8 @@ namespace far { namespace scan
     public: // constructors and assignments
         template<::far::scan::sequence<C> P, ::far::scan::sequence<C> R>
         basic_or_icase_rule(P const & p, R const & r)
-            : pattern(::far::scan::aux::begin(p), ::far::scan::aux::end(p))
-            , replace(::far::scan::aux::begin(r), ::far::scan::aux::end(r))
+            : pattern(aux::begin(p), aux::end(p))
+            , replace(aux::begin(r), aux::end(r))
             , chooser(bind(pattern))
         {}
         basic_or_icase_rule(basic_or_icase_rule && rhs)
@@ -163,14 +163,14 @@ namespace far { namespace scan
             , replace(rhs.replace)
             , chooser(bind(pattern))
         {}
-        basic_or_icase_rule & operator=(basic_or_icase_rule && rhs)
+        auto operator=(basic_or_icase_rule && rhs) -> basic_or_icase_rule &
         {
             pattern = std::move(rhs.pattern);
             replace = std::move(rhs.replace);
             chooser = bind(pattern);
             return this;
         }
-        basic_or_icase_rule & operator=(basic_or_icase_rule const & rhs)
+        auto operator=(basic_or_icase_rule const & rhs) -> basic_or_icase_rule &
         {
             pattern = rhs.pattern;
             replace = rhs.replace;
@@ -179,7 +179,7 @@ namespace far { namespace scan
         }
 
     private:
-        auto static bind(string const & that) -> switcher
+        auto static inline bind(string const & that) -> switcher
         {
             // Note: searcher may have a reference to pattern, so I store pattern
             // as a member. Be careful that do not change pattern. Any reallocation
@@ -201,7 +201,7 @@ namespace far { namespace scan
         decltype(auto) constexpr   end()       noexcept { return this->second; }
         decltype(auto) constexpr   end() const noexcept { return this->second; }
 
-        explicit operator auto() const
+        explicit constexpr operator auto() const
         requires std::contiguous_iterator<I> && ::far::scan::unit<value_type>
         {
             return std::basic_string_view<value_type>(this->first, this->second);
@@ -417,7 +417,7 @@ namespace far { namespace scan
         }
 
     public:
-        constexpr generator(rule<M, C> const & rule, I first, I last) noexcept
+        generator(rule<M, C> const & rule, I first, I last) noexcept
             : rule(rule)
             , head(first)
             , tail(last)
@@ -517,7 +517,7 @@ namespace far { namespace scan
         }
 
     public:
-        constexpr generator(rule<mode::regex, C> const & rule, I first, I last) noexcept
+        generator(rule<mode::regex, C> const & rule, I first, I last) noexcept
             : rule(rule)
             , curr(first)
             , last(last)
@@ -560,17 +560,17 @@ namespace far { namespace scan
         using reference         = change<C, I> const &;
 
     public:
-        auto constexpr operator*() const noexcept -> reference
+        auto operator*() const noexcept -> reference
         {
             return last;
         }
 
-        auto constexpr operator->() const noexcept -> pointer
+        auto operator->() const noexcept -> pointer
         {
             return &last;
         }
 
-        auto constexpr operator++() noexcept -> iterator &
+        auto operator++() noexcept -> iterator &
         {
             if (func == nullptr) [[unlikely]]
                 return *this;
@@ -643,7 +643,7 @@ namespace far { namespace scan
             return *this;
         }
 
-        auto constexpr operator++(int) noexcept -> iterator
+        auto operator++(int) noexcept -> iterator
         {
             auto iter = *this;
             ++ *this;
@@ -651,7 +651,7 @@ namespace far { namespace scan
         }
 
     public:
-        friend auto constexpr operator==(iterator const & lhs, iterator const & rhs) -> bool
+        friend auto operator==(iterator const & lhs, iterator const & rhs) -> bool
         {
             auto & l = lhs.func;
             auto & r = rhs.func;
@@ -660,19 +660,19 @@ namespace far { namespace scan
                 ;
         }
 
-        friend auto constexpr operator!=(iterator const & lhs, iterator const & rhs) -> bool
+        friend auto operator!=(iterator const & lhs, iterator const & rhs) -> bool
         {
             return !(lhs == rhs);
         }
 
     public:
-        explicit constexpr iterator(generator<M, C, I> && gen) noexcept
+        explicit iterator(generator<M, C, I> && gen) noexcept
             : func(std::make_shared<generator<M, C, I>>(std::move(gen)))
         {
             ++ *this;
         }
 
-        constexpr iterator() noexcept
+        iterator() noexcept
             : func()
         {}
 
@@ -804,14 +804,14 @@ namespace far
     {
     public:
         template<::far::scan::bidirectional_sequence<C> R>
-        [[nodiscard]] auto inline constexpr generate(R & container) const
+        [[nodiscard]] auto inline generate(R & container) const
         {
             using namespace scan;
             return generate(aux::begin(container), aux::end(container));
         }
 
         template<::far::scan::bidirectional_iterative<C> I>
-        [[nodiscard]] auto inline constexpr generate(I first, I last) const
+        [[nodiscard]] auto inline generate(I first, I last) const
             -> scan::generator<M, C, I>
         {
             return scan::generator<M, C, I>(rule, std::move(first), std::move(last));
@@ -819,14 +819,14 @@ namespace far
 
     public:
         template<::far::scan::bidirectional_sequence<C> R>
-        [[nodiscard]] auto inline constexpr iterate(R & container) const
+        [[nodiscard]] auto inline iterate(R & container) const
         {
             using namespace scan;
             return iterate(aux::begin(container), aux::end(container));
         }
 
         template<::far::scan::bidirectional_iterative<C> I>
-        [[nodiscard]] auto inline constexpr iterate(I first, I last) const
+        [[nodiscard]] auto inline iterate(I first, I last) const
         {
             return scan::iterator_pair<scan::iterator<M, C, I>>
                 { scan::iterator<M, C, I>(generate(std::move(first), std::move(last)))
@@ -836,7 +836,7 @@ namespace far
     public:
         using mode = scan::mode;
 
-        [[nodiscard]] constexpr operator bool() const
+        [[nodiscard]] operator bool() const
         requires (M == mode::regex)
         {
             return !rule.error.has_value();
@@ -865,7 +865,7 @@ namespace far
         , std::ranges::forward_range R
         , ::far::scan::unit C = std::ranges::range_value_t<P>
         > requires (M == scan::mode::basic || M == scan::mode::icase)
-    auto inline constexpr make_scanner
+    [[nodiscard]] auto inline make_scanner
         ( P const & pattern
         , R const & replace )
     {
@@ -878,7 +878,7 @@ namespace far
         , std::ranges::forward_range R
         , ::far::scan::unit C = std::ranges::range_value_t<P>
         > requires (M == scan::mode::regex)
-    auto inline constexpr make_scanner
+    [[nodiscard]] auto inline make_scanner
         ( P const & pattern
         , R const & replace
         , bool ignore_case = false )
