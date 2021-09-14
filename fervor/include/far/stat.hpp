@@ -26,31 +26,6 @@ namespace far { namespace stat
         std::atomic<status>      state{ status::running };
     };
 
-    class publisher;
-    class subscriber
-    {
-    public:
-
-        // Peek the current status.
-        auto peek() const -> snapshot;
-
-        // Try to clam down.
-        //
-        // - May be ignored.
-        // - Non-block operation.
-        auto clam() -> void;
-
-        // Wait until all done.
-        auto wait() const -> void;
-
-    public:
-        subscriber(publisher && ex);
-
-    private:
-
-        std::shared_ptr<progress> data;
-    };
-
     class publisher
     {
     public:
@@ -77,5 +52,29 @@ namespace far { namespace stat
 
         friend class subscriber;
         std::shared_ptr<progress> data = std::make_shared<progress>();
+    };
+
+    class subscriber
+    {
+    public:
+
+        // Peek the current status.
+        auto peek() const -> snapshot;
+
+        // Try to clam down.
+        //
+        // - May be ignored.
+        // - Non-block operation.
+        auto clam() -> void;
+
+        // Wait until all done.
+        auto wait() const -> void;
+
+    public:
+        subscriber(publisher && ex);
+
+    private:
+
+        std::shared_ptr<progress> data;
     };
 }}

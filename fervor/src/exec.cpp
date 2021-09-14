@@ -1,11 +1,11 @@
 #include <far/exec.hpp>
 
-auto far::fever::operator()() -> void
+auto far::executor::operator()() -> void
 {
     loop<true>();
 }
 
-far::fever::fever(std::size_t size)
+far::executor::executor(std::size_t size)
     : running(size > 0)
     , holding()
     , tasks()
@@ -15,10 +15,10 @@ far::fever::fever(std::size_t size)
 {
     executors.reserve(size);
     while (size --> 0)
-        executors.emplace_back(&fever::loop<false>, this);
+        executors.emplace_back(&executor::loop<false>, this);
 }
 
-far::fever::~fever()
+far::executor::~executor()
 {
     {
         std::scoped_lock _(mutex);

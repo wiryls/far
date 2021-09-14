@@ -10,22 +10,21 @@
 
 namespace far
 {
-    struct fever;
-    struct fettle;
+    class executor;
 }
 
-struct far::fever
+class far::executor
 {
 public:
     using task = std::function<void()>;
 
-    template<std::convertible_to<::far::fever::task> T>
+    template<std::convertible_to<::far::executor::task> T>
     auto operator()(T && todo) -> bool;
     auto operator()() -> void;
 
 public:
-    explicit fever(std::size_t size = std::thread::hardware_concurrency());
-            ~fever();
+    explicit executor(std::size_t size = std::thread::hardware_concurrency());
+            ~executor();
 
 private:
     template<bool R /* eleasable */>
@@ -40,8 +39,8 @@ private:
     std::vector<std::thread> executors;
 };
 
-template<std::convertible_to<::far::fever::task> T>
-auto far::fever::operator()(T && todo) -> bool
+template<std::convertible_to<::far::executor::task> T>
+auto far::executor::operator()(T && todo) -> bool
 {
     auto o = true;
     {
@@ -60,7 +59,7 @@ auto far::fever::operator()(T && todo) -> bool
 }
 
 template<bool R /* eleasable */>
-auto far::fever::loop() -> void
+auto far::executor::loop() -> void
 {
     auto loop = true;
     while (loop)
