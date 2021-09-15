@@ -11,7 +11,7 @@ auto far::stat::subscriber::peek() const -> snapshot
     };
 }
 
-auto far::stat::subscriber::clam() -> void
+auto far::stat::subscriber::stop() -> void
 {
     auto current = status::running;
     data->state.compare_exchange_strong

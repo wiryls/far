@@ -16,7 +16,7 @@ namespace far { namespace stat
     {
         std::size_t count;
         std::size_t total; // maybe 0 if unknown
-        status      state; // state of a fact
+        status      state; // state of a task
     };
 
     struct progress
@@ -49,7 +49,6 @@ namespace far { namespace stat
         //auto drop_or_add() const -> bool;
 
     private:
-
         friend class subscriber;
         std::shared_ptr<progress> data = std::make_shared<progress>();
     };
@@ -61,20 +60,19 @@ namespace far { namespace stat
         // Peek the current status.
         auto peek() const -> snapshot;
 
-        // Try to clam down.
+        // Try to stop.
         //
         // - May be ignored.
         // - Non-block operation.
-        auto clam() -> void;
+        auto stop() -> void;
 
-        // Wait until all done.
+        // Wait until tasks done or stopped.
         auto wait() const -> void;
 
     public:
-        subscriber(publisher && ex);
+        subscriber(publisher && pub);
 
     private:
-
         std::shared_ptr<progress> data;
     };
 }}

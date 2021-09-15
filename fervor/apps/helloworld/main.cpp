@@ -22,8 +22,8 @@ auto main() -> int
     auto r = far::executor();
     auto f = far::task::import(r, i, true, o);
 
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-    f.clam();
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    f.stop();
 
     f.wait();
     auto && [count, _2, _3] = f.peek();
