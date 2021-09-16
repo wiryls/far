@@ -28,9 +28,9 @@ namespace far { namespace task
         ( E & executor
         , I const & input
         , bool recursive
-        , O & output ) -> stat::subscriber
+        , O & output ) -> stat::control
     {
-        auto pub = stat::publisher();
+        auto pub = stat::sensor();
 
         executor([&, pub=pub]
         {
@@ -39,7 +39,7 @@ namespace far { namespace task
                 using std::filesystem::recursive_directory_iterator;
                 for (auto & item : input)
                     for (auto & entry : recursive_directory_iterator(item))
-                        if (pub.drop()) [[unlikely]]
+                        if (pub.expired()) [[unlikely]]
                             break;
                         else if (output(entry.path()))
                             pub.add(1);
@@ -49,13 +49,11 @@ namespace far { namespace task
                 using std::filesystem::path;
                 auto cast = []<typename T>(T && x) { return static_cast<path>(std::forward<T>(x)); };
                 for (auto item : input | std::views::transform(cast))
-                    if (pub.drop()) [[unlikely]]
+                    if (pub.expired()) [[unlikely]]
                         break;
                     else if (output(std::move(item)))
                         pub.add(1);
             }
-
-            pub.done();
         });
 
         return pub;
@@ -124,7 +122,7 @@ namespace far { namespace task
         , R format_retain
         , D format_remove
         , I format_insert
-        , U result_update ) -> stat::subscriber
+        , U result_update ) -> stat::control
     {
         if (normal_mode)
         {

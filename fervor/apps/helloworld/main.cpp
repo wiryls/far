@@ -26,7 +26,7 @@ auto main() -> int
     f.stop();
 
     f.wait();
-    auto && [count, _2, _3] = f.peek();
+    auto && [count, _2] = f.peek();
     std::cout << count << std::endl;
 
     return 0;
