@@ -181,7 +181,7 @@ namespace far { namespace scan
     private:
         auto static inline bind(string const & that) -> switcher
         {
-            // Note: searcher may have a reference to pattern, so I store pattern
+            // note: searcher may have a reference to pattern, so I store pattern
             // as a member. Be careful that do not change pattern. Any reallocation
             // may break our searcher, as well as move a (SSOed) small string.
             return std::make_pair
@@ -337,7 +337,7 @@ namespace far { namespace scan
     template<mode M, ::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
     class generator;
 
-    // Attention:
+    // attention:
     // lifetime of rule must be longer than this generator.
     template<mode M, ::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
     generator(rule<M, C> const &, I, I) -> generator<M, C, I>;
@@ -349,7 +349,7 @@ namespace far { namespace scan
     public:
         auto operator()() -> change<C, I>
         {
-            // Note: because coroutines from C++20 are hard to use and have
+            // note: because coroutines from C++20 are hard to use and have
             // poor performance (in contrast to for-loop), I choose duff's
             // device.
             // https://stackoverflow.com/questions/57726401
@@ -677,7 +677,7 @@ namespace far { namespace scan
         {}
 
     private:
-        // As iterator is suggested to be copyable, we use std::shared_ptr
+        // as iterator is suggested to be copyable, we use std::shared_ptr
         // to make a generator be owned by its iterators.
         using container = std::shared_ptr<generator<M, C, I>>;
 

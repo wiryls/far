@@ -17,23 +17,23 @@ namespace far { namespace stat
     struct current
     {
         std::size_t count;
-        std::size_t total; // maybe 0 if unknown
+        std::size_t total; // maybe 0 if unknown.
     };
 
     class sensor
     {
     public:
 
-        // Add the counter
+        // add the counter.
         auto add(std::size_t i) const -> void;
 
-        // Set the counter
+        // set the counter.
         auto set(std::size_t i) const -> void;
 
-        // Set the total.
+        // set the total.
         auto max(std::size_t i) const -> void;
 
-        // Whether it should be cancelled.
+        // is it cancelled.
         auto expired() const -> bool;
 
     public:
@@ -53,19 +53,19 @@ namespace far { namespace stat
     {
     public:
 
-        // Peek the current progress.
+        // peek current progress.
         auto peek() const -> current;
 
         // status of execution;
         auto stat() const -> status;
 
-        // Try to stop.
+        // try to stop.
         //
-        // - May be ignored.
-        // - Non-block operation.
+        // - may be ignored.
+        // - non-block operation.
         auto stop() -> void;
 
-        // Wait until tasks done or stopped.
+        // wait until tasks done or stopped.
         auto wait() const -> void;
 
     public:

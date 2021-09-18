@@ -14,58 +14,89 @@
 
 namespace far { namespace task
 {
-    template<typename R>
-    concept task_executor = std::invocable<R, std::is_function<void()>>;
+    //// shared
+
+    template<typename E>
+    concept executor = requires(E execute)
+    {
+        { execute((void (*)())nullptr) };
+        { execute([] {}) };
+        { execute([=] () mutable {}) };
+        { execute([&] () mutable {}) };
+    };
+}}
+
+namespace far { namespace task
+{
+    //// import
+
+    template<typename I>
+    concept import_input
+        = std::ranges::input_range<I>
+       && std::convertible_to<std::ranges::range_value_t<I>, std::filesystem::path>
+        ;
+
+    template<typename O>
+    concept import_output = requires (O output, std::filesystem::path path)
+    {
+        { output(path) } -> std::same_as<bool>;
+    };
 
     template
-        < task_executor E
-        , std::ranges::input_range I
-        , std::invocable<std::filesystem::path> O
-        >
-    requires std::convertible_to<std::ranges::range_value_t<I>, std::filesystem::path>
-          && std::same_as<std::invoke_result_t<O, std::filesystem::path>, bool>
+        < executor E
+        , import_input I
+        , import_output O>
     auto import
         ( E & executor
+        , O & output
         , I const & input
-        , bool recursive
-        , O & output ) -> stat::control
+        , bool recursive) -> stat::control
     {
-        auto pub = stat::sensor();
+        auto rec = stat::sensor();
 
-        executor([&, pub=pub]
+        if (recursive)
         {
-            if (recursive)
+            executor([&, rec = rec]
             {
                 using std::filesystem::recursive_directory_iterator;
                 for (auto & item : input)
                     for (auto & entry : recursive_directory_iterator(item))
-                        if (pub.expired()) [[unlikely]]
+                        if (rec.expired()) [[unlikely]]
                             break;
                         else if (output(entry.path()))
-                            pub.add(1);
-            }
-            else
+                            rec.add(1);
+            });
+        }
+        else
+        {
+            executor([&, rec = rec]
             {
-                using std::filesystem::path;
-                auto cast = []<typename T>(T && x) { return static_cast<path>(std::forward<T>(x)); };
+                auto constexpr cast = []<typename T>(T && x)
+                {
+                    using std::filesystem::path;
+                    return static_cast<path>(std::forward<T>(x));
+                };
+
                 for (auto item : input | std::views::transform(cast))
-                    if (pub.expired()) [[unlikely]]
+                    if (rec.expired()) [[unlikely]]
                         break;
                     else if (output(std::move(item)))
-                        pub.add(1);
-            }
-        });
+                        rec.add(1);
+            });
+        }
 
-        return pub;
+        return rec;
     }
+}}
 
-    namespace detail
-    {
+namespace far { namespace task
+{
+    //// differ
 
-    }
+
 
     template
-        < typename E // executor type
+        < executor E
         , typename L // item list
         , typename P // pattern type
         , typename T // template type
@@ -79,7 +110,6 @@ namespace far { namespace task
     requires
            std::same_as<typename std::regex_traits<C>::char_type, C>
         && std::same_as<typename std:: char_traits<C>::char_type, C>
-        && task_executor<E>
         && std::ranges::random_access_range<L>
         && std::same_as<C, std::ranges::range_value_t<std::ranges::range_value_t<L>>>
         && std::ranges::random_access_range<P>
