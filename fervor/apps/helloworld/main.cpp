@@ -20,7 +20,7 @@ auto main() -> int
     };
 
     auto r = far::executor();
-    auto f = far::task::import(r, o, i, true);
+    auto f = far::import(r, o, i, true);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
     f.stop();

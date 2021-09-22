@@ -3,6 +3,7 @@
 #include <concepts>
 #include <type_traits>
 #include <algorithm>
+#include <functional>
 #include <ranges>
 #include <thread>
 #include <filesystem>
@@ -11,41 +12,40 @@
 #include <string_view>
 
 #include <far/stat.hpp>
+#include <far/scan.hpp>
 
 namespace far { namespace task
 {
     //// shared
 
     template<typename E>
-    concept executor = requires(E execute)
+    concept executor = requires(E execute, void (*fp)(), std::function<void()> fn)
     {
-        { execute((void (*)())nullptr) };
-        { execute([] {}) };
-        { execute([=] () mutable {}) };
-        { execute([&] () mutable {}) };
+        { execute(fp) };
+        { execute(fn) };
     };
 }}
 
-namespace far { namespace task
+namespace far { namespace task { namespace import
 {
     //// import
 
     template<typename I>
-    concept import_input
+    concept input
         = std::ranges::input_range<I>
        && std::convertible_to<std::ranges::range_value_t<I>, std::filesystem::path>
         ;
 
     template<typename O>
-    concept import_output = requires (O output, std::filesystem::path path)
+    concept output = requires (O output, std::filesystem::path path)
     {
         { output(path) } -> std::same_as<bool>;
     };
 
     template
         < executor E
-        , import_input I
-        , import_output O>
+        , input    I
+        , output   O >
     auto import
         ( E & executor
         , O & output
@@ -53,10 +53,11 @@ namespace far { namespace task
         , bool recursive) -> stat::control
     {
         auto rec = stat::sensor();
+        auto fun = std::function<void()>();
 
         if (recursive)
         {
-            executor([&, rec = rec]
+            fun = [&, rec = rec]
             {
                 using std::filesystem::recursive_directory_iterator;
                 for (auto & item : input)
@@ -65,11 +66,11 @@ namespace far { namespace task
                             break;
                         else if (output(entry.path()))
                             rec.add(1);
-            });
+            };
         }
         else
         {
-            executor([&, rec = rec]
+            fun = [&, rec = rec]
             {
                 auto constexpr cast = []<typename T>(T && x)
                 {
@@ -82,18 +83,44 @@ namespace far { namespace task
                         break;
                     else if (output(std::move(item)))
                         rec.add(1);
-            });
+            };
         }
 
+        executor(std::move(fun));
         return rec;
     }
-}}
+}}}
 
-namespace far { namespace task
+namespace far { namespace task { namespace differ
 {
     //// differ
 
+    template<typename T>
+    concept input
+        = std::ranges::random_access_range<T>
+       && true
+        ;
 
+    template<typename T>
+    concept output = requires(T o)
+    {
+        true;
+    };
+
+    template
+        < scan::mode M
+        , scan::unit C
+        , input I
+        , output O
+        >
+    auto differ
+        ( scanner<M, C> const & rule
+        , I const & input
+        , O       & output
+        ) -> stat::control
+    {
+        ;
+    }
 
     template
         < executor E
@@ -175,4 +202,11 @@ namespace far { namespace task
     //struct sort;
     //struct clear;
     //struct remove;
-}}
+}}}
+
+namespace far
+{
+    // export to task
+
+    using task::import::import;
+}

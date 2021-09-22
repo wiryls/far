@@ -14,19 +14,19 @@ private: // padding
     template<std::size_t ... N>
     auto inline constexpr static sum = (N + ...);
 
-    /* dummy type */
+    /* padding type */
     template<std::size_t ... N>
-    requires (pad > (N + ...))
+    requires (pad > sum<N ...>)
     using padding = std::uint8_t[pad - sum<N ...>];
 
 public: // members
     std::atomic<status>      state{ status::pending };
     std::atomic<std::size_t> refer{};
-    padding<sizeof state, sizeof refer> __0;
+    padding<sizeof state, sizeof refer> __0{};
 
     std::atomic<std::size_t> count{};
     std::atomic<std::size_t> total{};
-    padding<sizeof count, sizeof total> __1;
+    padding<sizeof count, sizeof total> __1{};
 
 public: // status
     auto inline status() const noexcept -> status;
