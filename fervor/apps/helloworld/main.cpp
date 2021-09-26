@@ -12,22 +12,34 @@
 
 auto main() -> int
 {
-    auto i = std::vector<const char*>{R"(C:\Users\)" };
-    auto o = []<typename T>(T && x)
+    auto i = 0;
+
+    struct
     {
-        std::cout << x << std::endl;
-        return true;
-    };
+        auto operator()()
+        {
+            x = 1;
+        }
 
-    auto r = far::executor();
-    auto f = far::import(r, o, i, true);
+        int & x { i };
+    } y;
 
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    f.stop();
+    //auto i = std::vector<const char*>{R"(C:\Users\)" };
+    //auto o = []<typename T>(T && x)
+    //{
+    //    std::cout << x << std::endl;
+    //    return true;
+    //};
 
-    f.wait();
-    auto && [count, _2] = f.peek();
-    std::cout << count << std::endl;
+    //auto r = far::executor();
+    //auto f = far::import(r, o, i, true);
+
+    //std::this_thread::sleep_for(std::chrono::seconds(1));
+    //f.stop();
+
+    //f.wait();
+    //auto && [count, _2] = f.peek();
+    //std::cout << count << std::endl;
 
     return 0;
 }

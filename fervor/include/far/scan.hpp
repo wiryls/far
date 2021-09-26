@@ -106,6 +106,8 @@ namespace far { namespace scan { namespace aux
             noexcept(noexcept(std::ranges::end(std::forward<R>(r))))
             {
                 if constexpr (zero_suffixed<R>::value)
+                    // or maybe return a custom sentinel?
+                    // see: https://www.foonathan.net/2020/03/iterator-sentinel/
                     return std::forward<R>(r) + zero_suffixed<R>::N - 1;
                 else
                     return std::ranges::end(std::forward<R>(r));

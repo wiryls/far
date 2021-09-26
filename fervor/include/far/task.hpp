@@ -95,107 +95,61 @@ namespace far { namespace task { namespace differ
 {
     //// differ
 
-    template<typename T>
+    template<typename C, typename R>
     concept input
-        = std::ranges::random_access_range<T>
-       && true
+        = std::ranges::random_access_range<R>
+       && scan::bidirectional_sequence<std::ranges::range_value_t<R>, C>
         ;
 
-    template<typename T>
-    concept output = requires(T o)
+    template<typename I, typename B, typename O>
+    concept output = requires(O output, B buffer, std::ranges::range_value_t<I> item)
     {
-        true;
+        { output(item, buffer) } -> std::same_as<void>;
     };
 
-    template
-        < scan::mode M
-        , scan::unit C
-        , input I
-        , output O
-        >
-    auto differ
-        ( scanner<M, C> const & rule
-        , I const & input
-        , O       & output
-        ) -> stat::control
-    {
-        ;
-    }
+    template<scan::unit C>
+    using buffer = std::basic_string<C>;
 
     template
         < executor E
-        , typename L // item list
-        , typename P // pattern type
-        , typename T // template type
-        , typename G // member getter
-        , typename R // retain-formatter
-        , typename D // remove-formatter
-        , typename I // insert-formatter
-        , typename U // result updater
-        , typename C = std::ranges::range_value_t<P> // char type
+        , scan::mode M
+        , scan::unit C
+        , input<C> I
+        , output<I, buffer<C>> O
         >
-    requires
-           std::same_as<typename std::regex_traits<C>::char_type, C>
-        && std::same_as<typename std:: char_traits<C>::char_type, C>
-        && std::ranges::random_access_range<L>
-        && std::same_as<C, std::ranges::range_value_t<std::ranges::range_value_t<L>>>
-        && std::ranges::random_access_range<P>
-        && std::same_as<C, std::ranges::range_value_t<P>>
-        && std::ranges::random_access_range<T>
-        && std::same_as<C, std::ranges::range_value_t<T>>
-        && std::invocable<G, std::ranges::range_reference_t<L>>
-        && std::invocable<U, std::ranges::range_reference_t<L>, std::basic_string<C>>
-        && requires
-            ( std::ranges::range_reference_t<L> item
-            , G getter
-            , U updater
-            , std::iter_difference_t<std::ranges::range_value_t<L>> const n
-            , std::basic_string<C> & accumulator )
-        {
-            {  getter(item)              } -> std::ranges::random_access_range;
-            {  getter(item)[n]           } -> std::convertible_to<C>;
-            { updater(item, accumulator) } -> std::same_as<void>;
-        }
-        && requires
-            ( R retain
-            , D remove
-            , I insert
-            , std::ranges::iterator_t<std::ranges::range_value_t<L>> iterator
-            , std::basic_string_view<C> const & buffer
-            , std::basic_string     <C> & accumulator )
-        {
-            { retain(iterator, iterator, accumulator) } -> std::same_as<void>;
-            { remove(iterator, iterator, accumulator) } -> std::same_as<void>;
-            { insert(buffer,             accumulator) } -> std::same_as<void>;
-        }
     auto differ
         ( E & executor
-        , L & items
-        , P const & pattern
-        , T const & replace
-        , bool normal_mode
-        , bool ignore_case
-        , G source_get
-        , R format_retain
-        , D format_remove
-        , I format_insert
-        , U result_update ) -> stat::control
+        , O output
+        , I & input
+        , scanner<M, C> const & rule
+        ) -> stat::control
     {
-        if (normal_mode)
+        auto rec = stat::sensor();
+        auto fun = [&executor, &output, &input, &rule]
+            <std::ranges::random_access_range V>(auto && fun, stat::sensor rec, V vec)
         {
-            if (ignore_case)
+            auto constexpr static batch = 100;
+            if (auto rest = std::views::drop{ vec, batch }; !rest.empty())
+                executor(/* TODO: fun(rec, std::move(rest)) */ );
+
+            auto todo = std::views::take{ vec, batch };
+            for (auto & item : todo)
             {
-                ;
+                using scan::operation;
+                auto buff = buffer<C>();
+                for (auto & c : rule.iterate(item))
+                {
+                    // TODO:
+                }
             }
-            else
-            {
-                ;
-            }
-        }
-        else // regexp_mode
+        };
+
+        executor([]
         {
             ;
-        }
+        });
+
+        return rec;
     }
 
     //struct rename;
