@@ -12,17 +12,33 @@
 
 auto main() -> int
 {
-    auto i = 0;
+    auto exec = far::executor();
 
-    struct
+    auto input = std::vector<std::string>
     {
-        auto operator()()
-        {
-            x = 1;
-        }
+        "a00", "0b0", "0bc", "ibb",
+    };
 
-        int & x { i };
-    } y;
+    auto output = [](std::string & item, std::string & buffer)
+    {
+        item = std::move(buffer);
+    };
+
+    auto collect = [](std::string & buffer, far::scan::change<char, std::string::iterator> const & change)
+    {
+        using far::scan::operation;
+        if /**/ (auto retain = std::get_if<&operation::retain>(&change); retain)
+        {
+            buffer.append(retain->begin(), retain->end());
+        }
+        else if (auto insert = std::get_if<&operation::insert>(&change); insert)
+        {
+            buffer.append(insert->begin(), insert->end());
+        }
+    };
+
+    auto scan = far::make_scanner<far::scan_mode::regex>("b", "1");
+    auto f = far::differ(exec, scan, output, collect, input);
 
     //auto i = std::vector<const char*>{R"(C:\Users\)" };
     //auto o = []<typename T>(T && x)
@@ -31,15 +47,14 @@ auto main() -> int
     //    return true;
     //};
 
-    //auto r = far::executor();
     //auto f = far::import(r, o, i, true);
 
     //std::this_thread::sleep_for(std::chrono::seconds(1));
     //f.stop();
 
-    //f.wait();
-    //auto && [count, _2] = f.peek();
-    //std::cout << count << std::endl;
+    f.wait();
+    auto && [count, _2] = f.peek();
+    std::cout << count << std::endl;
 
     return 0;
 }

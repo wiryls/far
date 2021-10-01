@@ -24,6 +24,27 @@ namespace far { namespace task
         { execute(fp) };
         { execute(fn) };
     };
+
+    namespace detail
+    {
+        template<typename F>
+        struct passing
+        {
+            // pass by reference
+            using type = std::add_lvalue_reference_t<F>;
+        };
+
+        template<std::copyable F>
+        requires (sizeof(F) <= sizeof(void *))
+        struct passing<F>
+        {
+            // pass by value
+            using type = F;
+        };
+    }
+
+    template<typename F>
+    using passing = detail::passing<F>::type;
 }}
 
 namespace far { namespace task { namespace import
@@ -95,60 +116,141 @@ namespace far { namespace task { namespace differ
 {
     //// differ
 
+    template<typename I>
+    using item = std::ranges::range_value_t<I>;
+
     template<typename C, typename R>
     concept input
         = std::ranges::random_access_range<R>
-       && scan::bidirectional_sequence<std::ranges::range_value_t<R>, C>
+       && scan::bidirectional_sequence<item<R>, C>
         ;
 
-    template<typename I, typename B, typename O>
-    concept output = requires(O output, B buffer, std::ranges::range_value_t<I> item)
+    template<scan::unit C>
+    using buffer = std::basic_string<C>;
+
+    template<typename F /* func */, typename C /* char */, typename I /* input item */>
+    concept output = requires
+        ( F output
+        , buffer<C> const & buffer
+        , item<I> & item )
     {
         { output(item, buffer) } -> std::same_as<void>;
     };
 
-    template<scan::unit C>
-    using buffer = std::basic_string<C>;
+    template<typename F /* func */, typename C /* char */, typename I /* input */>
+    concept collect = requires
+        ( F collect
+        , buffer<C> & buffer
+        , scan::change<C, std::ranges::iterator_t<item<I>>> const & item )
+    {
+        { collect(buffer, item) } -> std::same_as<void>;
+    };
+
+    //template
+    //    < executor E
+    //    , scan::mode M
+    //    , scan::unit C
+    //    //, input  <C> I
+    //    //, collect<C, I> F
+    //    //, output <C, I> O
+    //    , typename I
+    //    , typename F
+    //    , typename O
+    //    > struct differ
+    //{
+    //    auto operator()() const -> void
+    //    {
+    //        auto constexpr static batch = 1;
+    //        if (auto rest = std::views::drop(vec, batch); !rest.empty())
+    //        {
+    //            //auto todo = [rest, fun] { fun(rest, fun); };
+    //            //executor(todo);
+    //            //fun(rest, fun);
+    //        }
+
+    //        auto list = std::views::take(vec, batch);
+    //        for (auto & value : list)
+    //        {
+    //            using scan::operation;
+    //            auto buff = buffer<C>();
+    //            for (auto& change : rule.iterate(value))
+    //                collect(buff, change);
+    //            output(value, buff);
+    //        }
+    //    }
+
+    //    differ(E & executor, scanner<M, C> const & rule, O output, F collect, I & input)
+    //        : executor(executor)
+    //        , rule(rule)
+    //        , output(output)
+    //        , collect(collect)
+    //        , input(input)
+    //    {}
+
+    //    E &                   executor;
+    //    scanner<M, C> const & rule;
+    //    passing<O>            output;
+    //    passing<F>            collect;
+    //    I &                   input;
+    //};
 
     template
         < executor E
         , scan::mode M
         , scan::unit C
-        , input<C> I
-        , output<I, buffer<C>> O
+        //, input  <C> I
+        //, collect<C, I> F
+        //, output <C, I> O
+        , typename I
+        , typename F
+        , typename O
         >
     auto differ
         ( E & executor
-        , O output
-        , I & input
         , scanner<M, C> const & rule
+        , O output
+        , F collect
+        , I & input
         ) -> stat::control
     {
         auto rec = stat::sensor();
-        auto fun = [&executor, &output, &input, &rule]
-            <std::ranges::random_access_range V>(auto && fun, stat::sensor rec, V vec)
+        auto run = [&]
         {
-            auto constexpr static batch = 100;
-            if (auto rest = std::views::drop{ vec, batch }; !rest.empty())
-                executor(/* TODO: fun(rec, std::move(rest)) */ );
+            rec.max(input.size());
 
-            auto todo = std::views::take{ vec, batch };
-            for (auto & item : todo)
+            // use std::views::drop will cause infinite recursion.
+            // so i use iterators as a fallback.
+            auto fun = [&executor, &rule, &output, &collect]<std::forward_iterator I>
+                (I head, I tail, stat::sensor const & r, auto & f) -> void
             {
-                using scan::operation;
-                auto buff = buffer<C>();
-                for (auto & c : rule.iterate(item))
+                if (r.expired())
+                    return;
+
+                auto constexpr static batch = std::iter_difference_t<I>(1);
+                auto step = std::min(batch, std::ranges::distance(head, tail));
+                auto next = std::ranges::next(head, step);
+
+                if (next != tail)
+                    executor([head = next, tail, r, &f] { f(head, tail, r, f); });
+
+                for (auto & value : std::ranges::subrange(head, next))
                 {
-                    // TODO:
+                    using scan::operation;
+                    auto buff = buffer<C>();
+                    for (auto & change : rule.iterate(value))
+                    {
+                        collect(buff, change);
+                        r.add(1);
+                    }
+
+                    output(value, buff);
                 }
-            }
+            };
+            using std::ranges::begin, std::ranges::end;
+            return [&, rec] { fun(begin(input), end(input), rec, fun); };
         };
 
-        executor([]
-        {
-            ;
-        });
-
+        executor(run());
         return rec;
     }
 
@@ -163,4 +265,5 @@ namespace far
     // export to task
 
     using task::import::import;
+    using task::differ::differ;
 }

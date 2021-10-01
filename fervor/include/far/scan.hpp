@@ -149,8 +149,7 @@ namespace far { namespace scan
         switcher chooser;
 
     public: // constructors and assignments
-        template<::far::scan::sequence<C> P, ::far::scan::sequence<C> R>
-        basic_or_icase_rule(P const & p, R const & r)
+        basic_or_icase_rule(sequence<C> auto const & p, sequence<C> auto const & r)
             : pattern(aux::begin(p), aux::end(p))
             , replace(aux::begin(r), aux::end(r))
             , chooser(bind(pattern))
@@ -228,8 +227,7 @@ namespace far { namespace scan
     template<::far::scan::unit C>
     struct rule<mode::basic, C> : basic_or_icase_rule<C>
     {
-        template<::far::scan::sequence<C> P, ::far::scan::sequence<C> R>
-        rule(P const & pattern, R const & replace)
+        rule(sequence<C> auto const & pattern, sequence<C> auto const & replace)
             : basic_or_icase_rule<C>(pattern, replace)
         {}
     };
@@ -237,8 +235,7 @@ namespace far { namespace scan
     template<::far::scan::unit C>
     struct rule<mode::icase, C> : basic_or_icase_rule<C, icase_comparator<C>>
     {
-        template<::far::scan::sequence<C> P, ::far::scan::sequence<C> R>
-        rule(P const & pattern, R const & replace)
+        rule(sequence<C> auto const & pattern, sequence<C> auto const & replace)
             : basic_or_icase_rule<C, icase_comparator<C>>(pattern, replace)
         {}
     };
