@@ -162,6 +162,9 @@ namespace far { namespace task { namespace differ
         ) -> stat::control
     {
         auto job = stat::sensor(input.size());
+
+        // recursive lambda, see:
+        // https://stackoverflow.com/a/40873505
         auto fun = [&executor, &scan, output, collect]
             <std::forward_iterator I>
             // use std::views::drop will cause infinite recursion during type deduction,
