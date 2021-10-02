@@ -73,42 +73,41 @@ namespace far { namespace task { namespace import
         , I const & input
         , bool recursive) -> stat::control
     {
-        auto rec = stat::sensor();
+        auto job = stat::sensor();
         auto fun = std::function<void()>();
 
         if (recursive)
         {
-            fun = [&, rec = rec]
+            fun = [&, job]
             {
                 using std::filesystem::recursive_directory_iterator;
                 for (auto & item : input)
                     for (auto & entry : recursive_directory_iterator(item))
-                        if (rec.expired()) [[unlikely]]
+                        if (job.expired()) [[unlikely]]
                             break;
                         else if (output(entry.path()))
-                            rec.add(1);
+                            job.add(1);
             };
         }
         else
         {
-            fun = [&, rec = rec]
+            fun = [&, job]
             {
                 auto constexpr cast = []<typename T>(T && x)
                 {
                     using std::filesystem::path;
                     return static_cast<path>(std::forward<T>(x));
                 };
-
                 for (auto item : input | std::views::transform(cast))
-                    if (rec.expired()) [[unlikely]]
+                    if (job.expired()) [[unlikely]]
                         break;
                     else if (output(std::move(item)))
-                        rec.add(1);
+                        job.add(1);
             };
         }
 
         executor(std::move(fun));
-        return rec;
+        return job;
     }
 }}}
 
@@ -119,7 +118,7 @@ namespace far { namespace task { namespace differ
     template<typename I>
     using item = std::ranges::range_value_t<I>;
 
-    template<typename C, typename R>
+    template<typename R, typename C>
     concept input
         = std::ranges::random_access_range<R>
        && scan::bidirectional_sequence<item<R>, C>
@@ -128,11 +127,11 @@ namespace far { namespace task { namespace differ
     template<scan::unit C>
     using buffer = std::basic_string<C>;
 
-    template<typename F /* func */, typename C /* char */, typename I /* input item */>
+    template<typename F /* func */, typename C /* char */, typename I /* input */>
     concept output = requires
         ( F output
-        , buffer<C> const & buffer
-        , item<I> & item )
+        , item  <I> & item
+        , buffer<C> & buffer )
     {
         { output(item, buffer) } -> std::same_as<void>;
     };
@@ -146,112 +145,55 @@ namespace far { namespace task { namespace differ
         { collect(buffer, item) } -> std::same_as<void>;
     };
 
-    //template
-    //    < executor E
-    //    , scan::mode M
-    //    , scan::unit C
-    //    //, input  <C> I
-    //    //, collect<C, I> F
-    //    //, output <C, I> O
-    //    , typename I
-    //    , typename F
-    //    , typename O
-    //    > struct differ
-    //{
-    //    auto operator()() const -> void
-    //    {
-    //        auto constexpr static batch = 1;
-    //        if (auto rest = std::views::drop(vec, batch); !rest.empty())
-    //        {
-    //            //auto todo = [rest, fun] { fun(rest, fun); };
-    //            //executor(todo);
-    //            //fun(rest, fun);
-    //        }
-
-    //        auto list = std::views::take(vec, batch);
-    //        for (auto & value : list)
-    //        {
-    //            using scan::operation;
-    //            auto buff = buffer<C>();
-    //            for (auto& change : rule.iterate(value))
-    //                collect(buff, change);
-    //            output(value, buff);
-    //        }
-    //    }
-
-    //    differ(E & executor, scanner<M, C> const & rule, O output, F collect, I & input)
-    //        : executor(executor)
-    //        , rule(rule)
-    //        , output(output)
-    //        , collect(collect)
-    //        , input(input)
-    //    {}
-
-    //    E &                   executor;
-    //    scanner<M, C> const & rule;
-    //    passing<O>            output;
-    //    passing<F>            collect;
-    //    I &                   input;
-    //};
-
     template
         < executor E
         , scan::mode M
         , scan::unit C
-        //, input  <C> I
-        //, collect<C, I> F
-        //, output <C, I> O
-        , typename I
-        , typename F
-        , typename O
+        , input  <C> I
+        , collect<C, I> F
+        , output <C, I> O
         >
     auto differ
         ( E & executor
-        , scanner<M, C> const & rule
+        , scanner<M, C> const & scan
         , O output
         , F collect
         , I & input
         ) -> stat::control
     {
-        auto rec = stat::sensor();
-        auto run = [&]
+        auto job = stat::sensor(input.size());
+        auto fun = [&executor, &scan, output, collect]
+            <std::forward_iterator I>
+            // use std::views::drop will cause infinite recursion during type deduction,
+            // so i use a pair of iterators as a fallback.
+            (I head, I tail, stat::sensor const & job, auto & fun) -> void
         {
-            rec.max(input.size());
+            if (job.expired())
+                return;
 
-            // use std::views::drop will cause infinite recursion.
-            // so i use iterators as a fallback.
-            auto fun = [&executor, &rule, &output, &collect]<std::forward_iterator I>
-                (I head, I tail, stat::sensor const & r, auto & f) -> void
+            auto constexpr static batch = std::iter_difference_t<I>(1);
+            auto step = std::min(batch, std::ranges::distance(head, tail));
+            auto next = std::ranges::next(head, step);
+
+            if (next != tail)
+                executor([=] { fun(next, tail, job, fun); });
+
+            for (auto & value : std::ranges::subrange(head, next))
             {
-                if (r.expired())
-                    return;
-
-                auto constexpr static batch = std::iter_difference_t<I>(1);
-                auto step = std::min(batch, std::ranges::distance(head, tail));
-                auto next = std::ranges::next(head, step);
-
-                if (next != tail)
-                    executor([head = next, tail, r, &f] { f(head, tail, r, f); });
-
-                for (auto & value : std::ranges::subrange(head, next))
-                {
-                    using scan::operation;
-                    auto buff = buffer<C>();
-                    for (auto & change : rule.iterate(value))
-                    {
-                        collect(buff, change);
-                        r.add(1);
-                    }
-
-                    output(value, buff);
-                }
-            };
-            using std::ranges::begin, std::ranges::end;
-            return [&, rec] { fun(begin(input), end(input), rec, fun); };
+                auto buff = buffer<C>();
+                for (auto & change : scan.iterate(value))
+                    collect(buff, change);
+                output(value, buff);
+                job.add(1);
+            }
+        };
+        auto run = [=, head = std::ranges::begin(input), tail = std::ranges::end(input)]
+        {
+            fun(head, tail, job, fun);
         };
 
-        executor(run());
-        return rec;
+        executor(run);
+        return job;
     }
 
     //struct rename;

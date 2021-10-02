@@ -16,7 +16,7 @@ auto main() -> int
 
     auto input = std::vector<std::string>
     {
-        "a00", "0b0", "0bc", "ibb",
+        "a00", "0b0", "0bc", "ibb", "", "none", "0000000"
     };
 
     auto output = [](std::string & item, std::string & buffer)
@@ -28,13 +28,9 @@ auto main() -> int
     {
         using far::scan::operation;
         if /**/ (auto retain = std::get_if<&operation::retain>(&change); retain)
-        {
             buffer.append(retain->begin(), retain->end());
-        }
         else if (auto insert = std::get_if<&operation::insert>(&change); insert)
-        {
             buffer.append(insert->begin(), insert->end());
-        }
     };
 
     auto scan = far::make_scanner<far::scan_mode::regex>("b", "1");
@@ -53,8 +49,11 @@ auto main() -> int
     //f.stop();
 
     f.wait();
-    auto && [count, _2] = f.peek();
-    std::cout << count << std::endl;
+    auto && [count, total] = f.peek();
+    std::cout << count << "/" << total << std::endl;
+
+    for (auto const & out : input)
+        std::cout << out << std::endl;
 
     return 0;
 }

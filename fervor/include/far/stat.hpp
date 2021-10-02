@@ -38,7 +38,7 @@ namespace far { namespace stat
 
     public:
        ~sensor();
-        sensor();
+        sensor(std::size_t max = 0);
         sensor            (sensor const & rhs);
         sensor            (sensor      && rhs) noexcept;
         sensor & operator=(sensor const & rhs);

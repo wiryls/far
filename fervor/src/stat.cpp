@@ -183,10 +183,12 @@ far::stat::sensor::~sensor()
         data->decrease();
 }
 
-far::stat::sensor::sensor()
+far::stat::sensor::sensor(std::size_t max)
     : data(std::make_shared<progress>())
 {
     data->increase();
+    if (max != 0)
+        data->max(max);
 }
 
 far::stat::sensor::sensor(sensor && rhs) noexcept
