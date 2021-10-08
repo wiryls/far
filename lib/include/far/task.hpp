@@ -55,11 +55,11 @@ namespace far { namespace task { namespace import
     template<typename I>
     concept input
         = std::ranges::input_range<I>
-       && std::convertible_to<element<I>, std::filesystem::path>
+       && std::same_as<element<I>, std::filesystem::path>
         ;
 
     template<typename O>
-    concept output = requires (O output, std::filesystem::path path)
+    concept output = requires (O output, std::filesystem::path const & path)
     {
         { output(path) } -> std::same_as<bool>;
     };
@@ -83,8 +83,10 @@ namespace far { namespace task { namespace import
             fun = [&, job, output = std::move(output)]
             {
                 using std::filesystem::recursive_directory_iterator;
+                using std::filesystem::directory_options;
+                auto option = directory_options::skip_permission_denied;
                 for (auto & item : input)
-                    for (auto & entry : recursive_directory_iterator(item))
+                    for (auto & entry : recursive_directory_iterator(item, option))
                         if (job.expired()) [[unlikely]]
                             break;
                         else if (output(entry.path()))
@@ -95,12 +97,7 @@ namespace far { namespace task { namespace import
         {
             fun = [&, job, output = std::move(output)]
             {
-                auto constexpr cast = []<typename T>(T && x) -> decltype(auto)
-                {
-                    using std::filesystem::path;
-                    return static_cast<path>(std::forward<T>(x));
-                };
-                for (auto item : input | std::views::transform(cast))
+                for (auto item : input)
                     if (job.expired()) [[unlikely]]
                         break;
                     else if (output(std::move(item)))
