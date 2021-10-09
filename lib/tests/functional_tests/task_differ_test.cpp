@@ -7,7 +7,7 @@
 #include <far/exec.hpp>
 #include <far/task.hpp>
 
-TEST_CASE("basic", "[differ]")
+TEST_CASE("examples for task differ", "[differ]")
 {
     using far::scan::operation;
     auto exec = far::executor();

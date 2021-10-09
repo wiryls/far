@@ -48,62 +48,64 @@ namespace far { namespace task
 
     template<typename I>
     using element = std::ranges::range_value_t<I>;
+
+    using status = stat::control;
 }}
 
 namespace far { namespace task { namespace import
 {
-    template<typename I>
-    concept input
-        = std::ranges::input_range<I>
-       && std::same_as<element<I>, std::filesystem::path>
-        ;
-
-    template<typename O>
-    concept output = requires (O output, std::filesystem::path const & path)
+    template<typename R>
+    concept input = std::ranges::input_range<R> && requires(element<R> item)
     {
-        { output(path) } -> std::same_as<bool>;
+        // source item
+        { std::get<0>(item) };
+        // file path
+        { std::get<1>(item) } -> std::convertible_to<std::filesystem::path const &>;
     };
 
-    template
-        < executor E
-        , input    I
-        , output   O >
-    auto import
-        ( E & executor 
-        , I const & input
-        , O output
-        , bool recursive
-        ) -> stat::control
+    template<typename O, typename I>
+    concept callback = input<I> && requires(O o, element<I> item)
+    {
+        // report failure
+        { o.error  (std::get<0>(item)) };
+        // output a valid path and increase counter if return true
+        { o.collect(std::get<1>(item)) } -> std::same_as<bool>;
+    };
+
+    template<executor E, input I, callback<I> C>
+    auto import(E & executor, I && input, C callback, bool recursive) -> status
     {
         auto job = stat::sensor();
-        auto fun = std::function<void()>();
-
-        if (recursive)
+        auto fun = [&, job, input = std::forward<I>(input), action = std::move(callback)]
         {
-            fun = [&, job, output = std::move(output)]
+            using std::filesystem::recursive_directory_iterator;
+            using std::filesystem::directory_options;
+            auto constexpr option = directory_options::skip_permission_denied;
+
+            for (auto [item, path] : input)
             {
-                using std::filesystem::recursive_directory_iterator;
-                using std::filesystem::directory_options;
-                auto option = directory_options::skip_permission_denied;
-                for (auto & item : input)
-                    for (auto & entry : recursive_directory_iterator(item, option))
+                if /**/ (job.expired()) [[unlikely]]
+                {
+                    break;
+                }
+                else if (!std::filesystem::exists(path)) [[unlikely]]
+                {
+                    action.error(item);
+                }
+                else if (recursive)
+                {
+                    for (auto & entry : recursive_directory_iterator(path, option))
                         if (job.expired()) [[unlikely]]
                             break;
-                        else if (output(entry.path()))
+                        else if (action.collect(entry.path()))
                             job.add(1);
-            };
-        }
-        else
-        {
-            fun = [&, job, output = std::move(output)]
-            {
-                for (auto item : input)
-                    if (job.expired()) [[unlikely]]
-                        break;
-                    else if (output(std::move(item)))
-                        job.add(1);
-            };
-        }
+                }
+                else if (action.collect(path))
+                {
+                    job.add(1);
+                }
+            }
+        };
 
         executor(std::move(fun));
         return job;
@@ -211,8 +213,8 @@ namespace far { namespace task { namespace rename
         { callback(code) } -> std::same_as<void>;
     };
 
-    template<executor E, input I, error E>
-    auto rename(E & executor, I const & input, E callback) -> stat::control
+    template<executor E, input I, error C>
+    auto rename(E & executor, I const & input, C callback) -> stat::control
     {
         auto job = stat::sensor();
 

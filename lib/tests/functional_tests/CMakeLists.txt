@@ -6,7 +6,8 @@ string(TOLOWER ${name} name)
 # source lists
 set(sources
     scan_test.cpp
-    task_differ_test.cpp)
+    task_differ_test.cpp
+    task_import_test.cpp)
 
 # executable
 add_executable       (${name} ${sources})

@@ -11,18 +11,28 @@
 
 auto main() -> int
 {
-    auto p = std::filesystem::path();
-
-    auto exec = far::executor();
-
-    auto i = std::vector<const char *>{R"(C:\Users\)" };
-    auto o = []<typename T>(T && x)
+    auto exe = far::executor();
+    auto vec = std::vector<std::string>{ R"(C:\Users\)" };
+    auto src = vec | std::views::transform([](auto & item) -> decltype(auto)
     {
-        std::cout << x << std::endl;
-        return true;
-    };
+        return std::make_pair<std::string &, std::filesystem::path>(item, item);
+    });
 
-    auto f = far::import(exec, i, o, true);
+    struct out
+    {
+        auto error(std::string & item) const -> void
+        {
+            std::cout << std::format("failed to read {}\n", item);
+        }
+        auto collect(std::filesystem::path const & path) const -> bool
+        {
+            std::cout << path << "\n";
+            return true;
+        }
+    };
+    auto dst = out();
+
+    auto f = far::import(exe, src, dst, true);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
     f.stop();
