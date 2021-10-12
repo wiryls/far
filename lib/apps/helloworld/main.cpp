@@ -24,7 +24,7 @@ auto main() -> int
         {
             std::cout << std::format("failed to read {}\n", item);
         }
-        auto collect(std::filesystem::path const & path) const -> bool
+        auto output(std::filesystem::path const & path) const -> bool
         {
             std::cout << path << "\n";
             return true;

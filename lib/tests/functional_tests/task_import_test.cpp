@@ -26,7 +26,7 @@ TEST_CASE("examples for task import", "[import]")
             {
                 // do nothing.
             }
-            auto collect(std::filesystem::path const & path [[maybe_unused]]) const -> bool
+            auto output(std::filesystem::path const & path [[maybe_unused]]) const -> bool
             {
                 // do nothing.
                 return true;

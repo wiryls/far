@@ -63,20 +63,20 @@ namespace far { namespace task { namespace import
         { std::get<1>(item) } -> std::convertible_to<std::filesystem::path const &>;
     };
 
-    template<typename O, typename I>
-    concept callback = input<I> && requires(O o, element<I> item)
+    template<typename C, typename I>
+    concept callback = input<I> && requires(C on, element<I> item)
     {
         // report failure
-        { o.error  (std::get<0>(item)) };
+        { on.error (std::get<0>(item)) };
         // output a valid path and increase counter if return true
-        { o.collect(std::get<1>(item)) } -> std::same_as<bool>;
+        { on.output(std::get<1>(item)) } -> std::same_as<bool>;
     };
 
     template<executor E, input I, callback<I> C>
     auto import(E & executor, I && input, C callback, bool recursive) -> status
     {
         auto job = stat::sensor();
-        auto fun = [&, job, input = std::forward<I>(input), action = std::move(callback)]
+        auto fun = [&, job, input = std::forward<I>(input), on = std::move(callback)]
         {
             using std::filesystem::recursive_directory_iterator;
             using std::filesystem::directory_options;
@@ -90,17 +90,17 @@ namespace far { namespace task { namespace import
                 }
                 else if (!std::filesystem::exists(path)) [[unlikely]]
                 {
-                    action.error(item);
+                    on.error(item);
                 }
                 else if (recursive)
                 {
                     for (auto & entry : recursive_directory_iterator(path, option))
                         if (job.expired()) [[unlikely]]
                             break;
-                        else if (action.collect(entry.path()))
+                        else if (on.output(entry.path()))
                             job.add(1);
                 }
-                else if (action.collect(path))
+                else if (on.output(path))
                 {
                     job.add(1);
                 }
@@ -120,51 +120,45 @@ namespace far { namespace task { namespace differ
        && scan::bidirectional_sequence<element<R>, C>
         ;
 
-    template<typename F>
-    concept buffer = std::invocable<F>;
+    template<typename R, typename C>
+    using change = scan::change<C, std::ranges::iterator_t<element<R>>>;
 
-    template<typename F /* func */, typename I /* input */, typename B /* buffer */>
-    concept output = requires
-        ( F output
-        , element<I> & item
-        , std::add_lvalue_reference_t<std::invoke_result_t<B>> buffer)
-    {
-        typename std::invoke_result_t<B>;
-        { output(item, buffer) } -> std::same_as<void>;
-    };
+    template<typename C>
+    using buffer = std::remove_cvref_t<decltype(std::declval<C>().buffer())>;
 
-    template<typename F, typename B, typename C, typename I>
-    concept collect = requires
-        ( F collect
-        , std::add_lvalue_reference_t<std::invoke_result_t<B>> buffer
-        , scan::change<C, std::ranges::iterator_t<element<I>>> const & item )
+    template<typename B, typename R, typename C>
+    concept callback = input<R, C> && requires
+        ( B on
+        , buffer<B> buffer
+        , element<R> item
+        , change<R, C> const & patch )
     {
-        typename std::invoke_result_t<B>;
-        { collect(buffer, item) } -> std::same_as<void>;
+        // build a new buffer
+        { on.buffer() };
+        // append changes to buffer
+        { on.append(buffer, patch) } -> std::same_as<void>;
+        // output buffer
+        { on.output(item, buffer) } -> std::same_as<bool>;
     };
 
     template
         < executor E
         , scan::mode M
-        , scan::unit C
-        , buffer     B
-        , input  <C> I
-        , collect<B, C, I> F
-        , output <I, B> O >
+        , scan::unit U
+        , input  <U> I
+        , callback<I, U> C >
     auto differ
         ( E & executor
         , I & input
-        , O output  /* write result with buffer */
-        , B buffer  /* buffer builder */
-        , F collect /* merge changes into buffer */
-        , scanner<M, C> const & rule
-        ) -> stat::control
+        , C callback
+        , scanner<M, U> const & rule
+        ) -> status
     {
         auto job = stat::sensor(input.size());
 
         // recursive lambda, see:
         // https://stackoverflow.com/a/40873505
-        auto fun = [&executor, &rule, buffer, collect, output]<std::forward_iterator I>
+        auto fun = [&executor, &rule, on = std::move(callback)]<std::forward_iterator I>
             // use std::views::drop will cause infinite recursion during type deduction,
             // so i use a pair of iterators as a fallback.
             (I head, I tail, stat::sensor const & job, auto & fun) -> void
@@ -181,10 +175,10 @@ namespace far { namespace task { namespace differ
 
             for (auto & item : std::ranges::subrange(head, next))
             {
-                auto buff = buffer();
+                auto buff = on.buffer();
                 for (auto & change : rule.iterate(item))
-                    collect(buff, change);
-                output(item, buff);
+                    on.append(buff, change);
+                on.output(item, buff);
                 job.add(1);
             }
         };
