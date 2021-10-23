@@ -13,11 +13,11 @@ set(sources
     src/stat.cpp)
 
 # build as a library
-add_library(${name} ${sources} ${headers})
+add_library(${name} STATIC ${sources} ${headers})
 
 # target options
-source_group              (TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Header Files" FILES ${headers})
 source_group              (TREE "${CMAKE_CURRENT_SOURCE_DIR}/src"     PREFIX "Source Files" FILES ${sources})
+source_group              (TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Header Files" FILES ${headers})
 set_target_properties     (${name} PROPERTIES FOLDER "${PROJECT_NAME}/modules")
 set_target_properties     (${name} PROPERTIES CXX_STANDARD 23)
 target_include_directories(${name} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
