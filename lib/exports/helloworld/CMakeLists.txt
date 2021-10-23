@@ -8,7 +8,7 @@ set(source main.cpp)
 
 # config executable
 add_executable       (${name} ${source})
-source_group         (TREE "${PROJECT_SOURCE_DIR}" FILES ${sources})
-set_target_properties(${name} PROPERTIES FOLDER "${PROJECT_NAME}/apps")
+source_group         (TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${sources})
+set_target_properties(${name} PROPERTIES FOLDER "${PROJECT_NAME}/exports")
 set_target_properties(${name} PROPERTIES CXX_STANDARD 23)
-target_link_libraries(${name} PRIVATE far)
+target_link_libraries(${name} PRIVATE gear scan)

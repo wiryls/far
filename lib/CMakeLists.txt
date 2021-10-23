@@ -15,13 +15,13 @@ option(FAR_BUILD_EXAMPLES "build all sample programs" ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "")
 
-# add their and our libraries
+# add dependencies and our libraries
 add_subdirectory(third_party)
-add_subdirectory(src)
+add_subdirectory(modules)
 
-# add executable
+# add executable or dynamic libraries
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND FAR_BUILD_EXAMPLES)
-    add_subdirectory(apps)
+    add_subdirectory(exports)
 endif()
 
 # add tests
