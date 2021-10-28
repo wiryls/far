@@ -6,6 +6,9 @@
         xmlns:local="clr-namespace:WPF"
         mc:Ignorable="d"
         Title="{x:Static local:Strings.MainTitle}" Height="450" Width="800">
+    <Window.DataContext>
+        <local:MainViewModel/>
+    </Window.DataContext>
     <Grid Margin="2">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -25,15 +28,15 @@
             <!-- pattern -->
             <Grid Grid.Column="0" Grid.Row="0" Margin="2">
                 <!-- hint or watermark: https://stackoverflow.com/a/41589780 -->
-                <Label IsHitTestVisible="False" Foreground="Gray" Content="{x:Static local:Strings.MainInputPattern}">
+                <Label VerticalAlignment="Center" Foreground="Gray" IsHitTestVisible="False" Content="{x:Static local:Strings.MainInputPattern}">
                     <Label.Style>
                         <Style TargetType="{x:Type Label}">
                             <Setter Property="Visibility" Value="Hidden"/>
                             <Style.Triggers>
                                 <MultiDataTrigger>
                                     <MultiDataTrigger.Conditions>
-                                        <Condition Binding ="{Binding ElementName=InputPattern, Path=Text.Length}" Value="0"/>
-                                        <Condition Binding ="{Binding ElementName=InputPattern, Path=IsFocused}" Value="False"/>
+                                        <Condition Binding ="{Binding Text.Length, ElementName=InputPattern}" Value="0"/>
+                                        <Condition Binding ="{Binding IsFocused,   ElementName=InputPattern}" Value="False"/>
                                     </MultiDataTrigger.Conditions>
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </MultiDataTrigger>
@@ -45,15 +48,15 @@
             </Grid>
             <!-- template -->
             <Grid Grid.Column="0" Grid.Row="1" Margin="2">
-                <Label IsHitTestVisible="False" Foreground="Gray" Content="{x:Static local:Strings.MainInputTemplate}">
+                <Label VerticalAlignment="Center" Foreground="Gray" IsHitTestVisible="False" Content="{x:Static local:Strings.MainInputTemplate}">
                     <Label.Style>
                         <Style TargetType="{x:Type Label}">
                             <Setter Property="Visibility" Value="Hidden"/>
                             <Style.Triggers>
                                 <MultiDataTrigger>
                                     <MultiDataTrigger.Conditions>
-                                        <Condition Binding ="{Binding ElementName=InputTemplate, Path=Text.Length}" Value="0"/>
-                                        <Condition Binding ="{Binding ElementName=InputTemplate, Path=IsFocused}" Value="False"/>
+                                        <Condition Binding ="{Binding Text.Length, ElementName=InputTemplate}" Value="0"/>
+                                        <Condition Binding ="{Binding IsFocused,   ElementName=InputTemplate}" Value="False"/>
                                     </MultiDataTrigger.Conditions>
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </MultiDataTrigger>
@@ -65,26 +68,26 @@
             </Grid>
             <!-- options -->
             <StackPanel Grid.Column="1" Grid.Row="0" Margin="2" Orientation="Horizontal">
-                <!-- constraint as square: https://stackoverflow.com/a/2982355 -->
+                <!-- square constraint: https://stackoverflow.com/a/2982355 -->
                 <StackPanel.Resources>
                     <Style TargetType="ToggleButton">
-                        <Setter Property="Width" Value="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"/>
+                        <Setter Property="MinWidth" Value="{Binding ActualHeight, RelativeSource={RelativeSource Self}}"/>
                         <Setter Property="Padding" Value="4"/>
                         <Setter Property="Background" Value="Transparent"/>
                         <Setter Property="BorderThickness" Value="0"/>
                     </Style>
                 </StackPanel.Resources>
                 <ToggleButton Margin="0,0,2,0">
-                    <Image Source="{StaticResource CaseSensitiveDrawingImage}" Stretch="UniformToFill" />
+                    <Image Source="{StaticResource CaseSensitiveDrawingImage}" />
                 </ToggleButton>
                 <ToggleButton Margin="2,0,0,0">
-                    <Image Source="{StaticResource EnableRegexDrawingImage}" Stretch="UniformToFill"/>
+                    <Image Source="{StaticResource EnableRegexDrawingImage}" />
                 </ToggleButton>
             </StackPanel>
             <!-- button -->
             <Button Grid.Column="1" Grid.Row="1" Margin="2" Padding="2" Content="{x:Static local:Strings.MainButtonRename}"/>
         </Grid>
-        <DataGrid  Grid.Row="1" Margin="2">
+        <DataGrid  Grid.Row="1" Margin="2" IsReadOnly="True" CanUserAddRows="False" >
             
         </DataGrid>
     </Grid>
