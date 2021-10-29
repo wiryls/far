@@ -11,8 +11,8 @@ TEST_CASE("helpers", "[scan]")
 {
     SECTION("change::type operator&")
     {
-        REQUIRE(&operation::none == 0);
-        auto i = operation::none;
+        REQUIRE(&operation::retain == 0);
+        auto i = operation::retain;
         REQUIRE(&i != 0);
     }
 }
@@ -27,17 +27,15 @@ TEST_CASE("constructor, trait, deduction guide", "[scan]")
         auto f = make_scanner<scan_mode::regex>("", "");
         REQUIRE(f == true);
         auto g = f.generate("");
-        for (;;)
+        for (auto o = g(); o.has_value(); o = g())
         {
-            auto s = g();
-            if /**/ (std::get_if<&operation::insert>(&s))
+            auto v = &o.value();
+            if /**/ (std::get_if<&operation::insert>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::retain>(&s))
+            else if (std::get_if<&operation::retain>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::remove>(&s))
+            else if (std::get_if<&operation::remove>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::none>(&s))
-                break;
         }
     }
     SECTION("std::wstring")
@@ -47,17 +45,15 @@ TEST_CASE("constructor, trait, deduction guide", "[scan]")
         auto f = make_scanner<scan_mode::regex>(w, w);
         REQUIRE(f == true);
         auto g = f.generate(w);
-        for (;;)
+        for (auto o = g(); o.has_value(); o = g())
         {
-            auto s = g();
-            if /**/ (std::get_if<&operation::insert>(&s))
+            auto v = &o.value();
+            if /**/ (std::get_if<&operation::insert>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::retain>(&s))
+            else if (std::get_if<&operation::retain>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::remove>(&s))
+            else if (std::get_if<&operation::remove>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::none>(&s))
-                break;
         }
     }
     SECTION("std::list<wchar_t>")
@@ -66,17 +62,15 @@ TEST_CASE("constructor, trait, deduction guide", "[scan]")
         auto f = make_scanner<scan_mode::regex>(l, l);
         REQUIRE(f == true);
         auto g = f.generate(l);
-        for (;;)
+        for (auto o = g(); o.has_value(); o = g())
         {
-            auto s = g();
-            if /**/ (std::get_if<&operation::insert>(&s))
+            auto v = &o.value();
+            if /**/ (std::get_if<&operation::insert>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::retain>(&s))
+            else if (std::get_if<&operation::retain>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::remove>(&s))
+            else if (std::get_if<&operation::remove>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::none>(&s))
-                break;
         }
     }
     SECTION("std::wstring const")
@@ -86,17 +80,15 @@ TEST_CASE("constructor, trait, deduction guide", "[scan]")
         auto f = make_scanner<scan_mode::regex>(w, w);
         REQUIRE(f == true);
         auto g = f.generate(w);
-        for (;;)
+        for (auto o = g(); o.has_value(); o = g())
         {
-            auto s = g();
-            if /**/ (std::get_if<&operation::insert>(&s))
+            auto v = &o.value();
+            if /**/ (std::get_if<&operation::insert>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::retain>(&s))
+            else if (std::get_if<&operation::retain>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::remove>(&s))
+            else if (std::get_if<&operation::remove>(v))
                 FAIL("should never reach here");
-            else if (std::get_if<&operation::none>(&s))
-                break;
         }
     }
 }
@@ -127,50 +119,61 @@ TEST_CASE("a sample lazy loop", "[scan]")
             auto g = f.generate(example);
             {
                 auto v = g();
-                auto u = std::get_if<&operation::remove>(&v);
+                REQUIRE(v.has_value());
+
+                auto u = std::get_if<&operation::remove>(&v.value());
                 auto x = "log"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&operation::insert>(&v);
+                REQUIRE(v.has_value());
+
+                auto u = std::get_if<&operation::insert>(&v.value());
                 auto x = "ln"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&operation::retain>(&v);
+                REQUIRE(v.has_value());
+
+                auto u = std::get_if<&operation::retain>(&v.value());
                 auto x = "(😅) = 💧 "s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&operation::remove>(&v);
+                REQUIRE(v.has_value());
+
+                auto u = std::get_if<&operation::remove>(&v.value());
                 auto x = "log"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&operation::insert>(&v);
+                REQUIRE(v.has_value());
+
+                auto u = std::get_if<&operation::insert>(&v.value());
                 auto x = "ln"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&operation::retain>(&v);
+                REQUIRE(v.has_value());
+
+                auto u = std::get_if<&operation::retain>(&v.value());
                 auto x = "(😄)"s;
                 REQUIRE(u != nullptr);
                 REQUIRE(std::equal(x.begin(), x.end(), u->begin(), u->end()));
             }
             {
                 auto v = g();
-                auto u = std::get_if<&operation::none>(&v);
-                REQUIRE(u != nullptr);
+                REQUIRE(!v.has_value());
             }
         };
 
@@ -190,23 +193,19 @@ TEST_CASE("iterator", "[scan]")
             <::far::scan::bidirectional_iterative<C> I>
             (::far::scan::change<C, I> const & var) mutable
         {
-            using defer = std::shared_ptr<void>;
-
-            if (head == tail && var.index() != &operation::none)
+            if (head == tail)
                 return false;
 
+            using defer = std::shared_ptr<void>;
             defer _(nullptr, [&](...){ ++head; });
+
             if (static_cast<std::size_t>(head->first) != var.index())
                 return false;
 
-            auto & lhs = head->second;
-            return std::visit([&](auto && rhs)
+            return std::visit([&lhs = head->second](auto && rhs)
             {
                 using that = std::remove_cvref_t<decltype(rhs)>;
-                if constexpr (std::is_same_v<that, std::monostate>)
-                    return false;
-                else
-                    return std::equal
+                return std::equal
                     ( std::ranges::begin(lhs), std::ranges::end(lhs)
                     , std::ranges::begin(rhs), std::ranges::end(rhs) );
             }, var);

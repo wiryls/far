@@ -1,9 +1,10 @@
 #pragma once
 
-/// Most code in this file is useless but still is reserved. I leave it
-/// here in order to remind me not to over-design.
-
 /// Note:
+/// Some code in this file is useless but still reserved. I leave it here in
+/// order to remind me not to over-design.
+///
+/// Also:
 /// this file is base on a RUST version:
 /// https://github.com/wiryls/far/blob/deprecated/gtk4-rs/src/far/diff.rs and
 /// https://github.com/wiryls/far/blob/deprecated/gtk4-rs/src/far/faregex.rs
@@ -191,22 +192,34 @@ namespace far { namespace scan
         }
     };
 
-    template<std::input_or_output_iterator I>
-    struct iterator_pair : std::pair<I, I>
+    template<typename T>
+    struct operator_string_view : T
     {
-        using value_type = std::iter_value_t<I>;
-        using std::pair<I, I>::pair;
+        using T::T;
+        explicit constexpr operator auto() const noexcept
+        {
+            auto & self = *static_cast<T const *>(this);
+            return std::basic_string_view(self.first, self.second);
+        }
+    };
+
+    template<typename I>
+    using maybe_string_viewable = std::conditional_t
+        < std::contiguous_iterator<I> && unit<std::iter_value_t<I>>
+        , operator_string_view<std::pair<I, I>>
+        , std::pair<I, I>
+        >;
+
+    template<std::input_or_output_iterator I>
+    struct iterator_pair : maybe_string_viewable<I>
+    {
+        using base = maybe_string_viewable<I>;
+        using base::base;
 
         decltype(auto) constexpr begin()       noexcept { return this-> first; }
         decltype(auto) constexpr begin() const noexcept { return this-> first; }
         decltype(auto) constexpr   end()       noexcept { return this->second; }
         decltype(auto) constexpr   end() const noexcept { return this->second; }
-
-        explicit constexpr operator auto() const
-        requires std::contiguous_iterator<I> && ::far::scan::unit<value_type>
-        {
-            return std::basic_string_view<value_type>(this->first, this->second);
-        }
     };
 }}
 
@@ -276,10 +289,9 @@ namespace far { namespace scan
 
     enum struct operation : int
     {
-        none   = 0,
-        retain = 1,
-        remove = 2,
-        insert = 3,
+        retain = 0,
+        remove = 1,
+        insert = 2,
     };
 
     template<typename T>
@@ -313,8 +325,7 @@ namespace far { namespace scan
 
     template<::far::scan::unit C, std::bidirectional_iterator I>
     using change = std::variant
-        < std::monostate
-        , retain<C, I>
+        < retain<C, I>
         , remove<C, I>
         , insert<C> >;
 }}
@@ -346,7 +357,7 @@ namespace far { namespace scan
     class generator<M, C, I>
     {
     public:
-        auto operator()() -> change<C, I>
+        auto operator()() -> std::optional<change<C, I>>
         {
             // note: because coroutines from C++20 are hard to use and have
             // poor performance (in contrast to for-loop), I choose duff's
@@ -411,7 +422,7 @@ namespace far { namespace scan
             case generator_status::stopped:
             default:
 
-                return std::monostate{};
+                return std::nullopt;
             }
         }
 
@@ -448,7 +459,7 @@ namespace far { namespace scan
     class generator<mode::regex, C, I>
     {
     public:
-        auto operator()() -> change<C, I>
+        auto operator()() -> std::optional<change<C, I>>
         {
             switch (stat)
             {
@@ -511,12 +522,12 @@ namespace far { namespace scan
             case generator_status::stopped:
             default:
 
-                return std::monostate{};
+                return std::nullopt;
             }
         }
 
     public:
-        generator(rule<mode::regex, C> const & rule, I first, I last) noexcept
+        generator(rule<mode::regex, C> const & rule, I first, I last)
             : rule(rule)
             , curr(first)
             , last(last)
@@ -559,14 +570,14 @@ namespace far { namespace scan
         using reference         = change<C, I> const &;
 
     public:
-        auto operator*() const noexcept -> reference
+        auto operator*() const -> reference
         {
-            return last;
+            return last.value();
         }
 
         auto operator->() const noexcept -> pointer
         {
-            return &last;
+            return last.has_value() ? &last.value() : nullptr;
         }
 
         auto operator++() noexcept -> iterator &
@@ -581,9 +592,9 @@ namespace far { namespace scan
             //    generate next
             //    retry #3
 
-            using op = operation;
             auto & generate = *func.get();
-            if (last.index() == &op::none) [[unlikely]]
+
+            if (!last.has_value()) [[unlikely]]
             {
                 last = generate();
             }
@@ -592,29 +603,30 @@ namespace far { namespace scan
                 last = std::move(next);
             }
 
-            if (last.index() == &op::none)
+            if (!last.has_value()) [[unlikely]]
             {
                 func = nullptr;
                 return *this;
             }
 
-            for (next = generate(); last.index() == next.index(); next = generate())
+            auto & lhs = last.value();
+            auto index = lhs.index();
+            for (;;)
             {
-                switch (last.index())
+                if (next = generate(); !next.has_value())
+                    break;
+
+                auto & rhs = next.value();
+                if (index != rhs.index())
+                    break;
+
+                using op = operation;
+                switch (index)
                 {
-                default:
-                case &op::none: [[unlikely]]
-                {
-                    // should never arrive here, or maybe throw ?
-                    last = std::monostate{};
-                    next = std::monostate{};
-                    func = nullptr;
-                    return *this;
-                }
                 case &op::retain:
                 {
-                    auto l = std::get_if<&op::retain>(&last);
-                    auto r = std::get_if<&op::retain>(&next);
+                    auto l = std::get_if<&op::retain>(&lhs);
+                    auto r = std::get_if<&op::retain>(&rhs);
                     if (l->second != r->first)
                         return *this;
 
@@ -623,8 +635,8 @@ namespace far { namespace scan
                 }
                 case &op::remove:
                 {
-                    auto l = std::get_if<&op::remove>(&last);
-                    auto r = std::get_if<&op::remove>(&next);
+                    auto l = std::get_if<&op::remove>(&lhs);
+                    auto r = std::get_if<&op::remove>(&rhs);
                     if (l->second != r->first)
                         return *this;
 
@@ -634,6 +646,14 @@ namespace far { namespace scan
                 case &op::insert:
                 {
                     // not a good idea to expand std::basic_string_view
+                    return *this;
+                }
+                default: [[unlikely]]
+                {
+                    // should never arrive here, or maybe throw ?
+                    last = std::nullopt;
+                    next = std::nullopt;
+                    func = nullptr;
                     return *this;
                 }
                 }
@@ -678,11 +698,11 @@ namespace far { namespace scan
     private:
         // as iterator is suggested to be copyable, we use std::shared_ptr
         // to make a generator be owned by its iterators.
-        using container = std::shared_ptr<generator<M, C, I>>;
+        using shared_generator = std::shared_ptr<generator<M, C, I>>;
 
-        container  func;
-        value_type next{ std::monostate{} };
-        value_type last{ std::monostate{} };
+        shared_generator          func;
+        std::optional<value_type> next{ std::nullopt };
+        std::optional<value_type> last{ std::nullopt };
     };
 }}
 
