@@ -26,20 +26,21 @@ namespace far { namespace scan
 {
     // char types that scanner supports.
     template<typename C>
-    concept unit
-        = std::same_as<typename std::regex_traits<C>::char_type, C>
-       && std::same_as<typename std:: char_traits<C>::char_type, C>
-        ;
+    concept char_type = requires
+    {
+        typename std::regex_traits<C>::char_type;
+        typename std:: char_traits<C>::char_type;
+    };
 
-    // iterators of unit.
+    // iterators of char_type.
     template<typename I, typename C>
     concept iterative
-        = unit<C>
+        = char_type<C>
        && std::input_or_output_iterator<I>
        && std::same_as<std::iter_value_t<I>, C>
         ;
 
-    // forward iterators of unit.
+    // forward iterators of char_type.
     // - required by std::regex constructor.
     template<typename I, typename C>
     concept forward_iterative
@@ -47,7 +48,7 @@ namespace far { namespace scan
        && std::forward_iterator<I>
         ;
 
-    // bidirectional iterators of unit.
+    // bidirectional iterators of char_type.
     // - required by std::default_searcher.
     template<typename I, typename C>
     concept bidirectional_iterative
@@ -55,14 +56,14 @@ namespace far { namespace scan
        && std::bidirectional_iterator<I>
         ;
 
-    // ranges of unit.
+    // ranges of char_type.
     template<typename S, typename C>
     concept sequence
         = std::ranges::range<S>
        && iterative<std::ranges::iterator_t<S>, C>
         ;
 
-    // forward ranges of unit.
+    // forward ranges of char_type.
     // - used when constructing scanner.
     template<typename S, typename C>
     concept forward_sequence
@@ -70,7 +71,7 @@ namespace far { namespace scan
        && forward_iterative<std::ranges::iterator_t<S>, C>
         ;
 
-    // bidirectional ranges of unit.
+    // bidirectional ranges of char_type.
     // - used when constructing scanner.
     template<typename S, typename C>
     concept bidirectional_sequence
@@ -124,7 +125,7 @@ namespace far { namespace scan
 {
     //// helpers
 
-    template<::far::scan::unit C>
+    template<char_type C>
     struct icase_comparator
     {
         std::locale locale;
@@ -134,7 +135,7 @@ namespace far { namespace scan
         }
     };
 
-    template<::far::scan::unit C, std::invocable<C, C> F = std::equal_to<>>
+    template<char_type C, std::invocable<C, C> F = std::equal_to<>>
     struct basic_or_icase_rule
     {
     public: // types
@@ -185,17 +186,20 @@ namespace far { namespace scan
         {
             // note: searcher may have a reference to pattern, so I store pattern
             // as a member. Be careful that do not change pattern. Any reallocation
-            // may break our searcher, as well as move a (SSOed) small string.
+            // may break our searcher, as well as move a small string.
             return std::make_pair
                 ( prefered(that.begin(), that.end(), std::hash<C>{}, F{})
                 , fallback(that.begin(), that.end(), F{}) );
         }
     };
 
-    template<typename T>
-    struct operator_string_view : T
+    template<typename T, typename I>
+    struct operator_string_view {};
+
+    template<typename T, std::contiguous_iterator I>
+    requires char_type<std::iter_value_t<I>>
+    struct operator_string_view<T, I>
     {
-        using T::T;
         explicit constexpr operator auto() const noexcept
         {
             auto & self = *static_cast<T const *>(this);
@@ -203,23 +207,21 @@ namespace far { namespace scan
         }
     };
 
-    template<typename I>
-    using maybe_string_viewable = std::conditional_t
-        < std::contiguous_iterator<I> && unit<std::iter_value_t<I>>
-        , operator_string_view<std::pair<I, I>>
-        , std::pair<I, I>
-        >;
-
     template<std::input_or_output_iterator I>
-    struct iterator_pair : maybe_string_viewable<I>
+    struct iterator_pair
+        : std::pair<I, I>
+        , operator_string_view<iterator_pair<I>, I>
     {
-        using base = maybe_string_viewable<I>;
-        using base::base;
+        using std::pair<I, I>::pair;
 
         decltype(auto) constexpr begin()       noexcept { return this-> first; }
         decltype(auto) constexpr begin() const noexcept { return this-> first; }
         decltype(auto) constexpr   end()       noexcept { return this->second; }
         decltype(auto) constexpr   end() const noexcept { return this->second; }
+
+        // Not sure why msvc forbids me using "requires" at the the end of
+        // "operator auto()" after an update. It forces me to replace "requires"
+        // with CRTP.
     };
 }}
 
@@ -234,10 +236,10 @@ namespace far { namespace scan
         regex,
     };
 
-    template<mode M, ::far::scan::unit C>
+    template<mode M, char_type C>
     struct rule;
 
-    template<::far::scan::unit C>
+    template<char_type C>
     struct rule<mode::basic, C> : basic_or_icase_rule<C>
     {
         rule(sequence<C> auto const & pattern, sequence<C> auto const & replace)
@@ -245,7 +247,7 @@ namespace far { namespace scan
         {}
     };
 
-    template<::far::scan::unit C>
+    template<char_type C>
     struct rule<mode::icase, C> : basic_or_icase_rule<C, icase_comparator<C>>
     {
         rule(sequence<C> auto const & pattern, sequence<C> auto const & replace)
@@ -253,10 +255,10 @@ namespace far { namespace scan
         {}
     };
 
-    template<::far::scan::unit C>
+    template<char_type C>
     struct rule<mode::regex, C>
     {
-        template<::far::scan::forward_sequence<C> P, ::far::scan::sequence<C> R>
+        template<forward_sequence<C> P, sequence<C> R>
         rule(P const & pattern, R const & replace, bool ignore_case)
             : pattern()
             , replace(aux::begin(replace), aux::end(replace))
@@ -302,28 +304,28 @@ namespace far { namespace scan
         return static_cast<std::underlying_type_t<operation>>(t);
     }
 
-    template<::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
+    template<char_type C, bidirectional_iterative<C> I>
     struct retain : iterator_pair<I>
     {
         using iterator = I;
         using iterator_pair<I>::iterator_pair;
     };
 
-    template<::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
+    template<char_type C, bidirectional_iterative<C> I>
     struct remove : iterator_pair<I>
     {
         using iterator = I;
         using iterator_pair<I>::iterator_pair;
     };
 
-    template<::far::scan::unit C>
+    template<char_type C>
     struct insert : iterator_pair<typename std::basic_string<C>::const_iterator>
     {
         using iterator = typename std::basic_string<C>::const_iterator;
         using iterator_pair<iterator>::iterator_pair;
     };
 
-    template<::far::scan::unit C, std::bidirectional_iterator I>
+    template<char_type C, std::bidirectional_iterator I>
     using change = std::variant
         < retain<C, I>
         , remove<C, I>
@@ -344,15 +346,15 @@ namespace far { namespace scan
         before_stopped,
     };
 
-    template<mode M, ::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
+    template<mode M, char_type C, bidirectional_iterative<C> I>
     class generator;
 
     // attention:
     // lifetime of rule must be longer than this generator.
-    template<mode M, ::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
+    template<mode M, char_type C, bidirectional_iterative<C> I>
     generator(rule<M, C> const &, I, I) -> generator<M, C, I>;
 
-    template<mode M, ::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
+    template<mode M, char_type C, bidirectional_iterative<C> I>
     requires (M == mode::basic || M == mode::icase)
     class generator<M, C, I>
     {
@@ -455,7 +457,7 @@ namespace far { namespace scan
         generator_status              stat;
     };
 
-    template<::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
+    template<char_type C, bidirectional_iterative<C> I>
     class generator<mode::regex, C, I>
     {
     public:
@@ -553,13 +555,13 @@ namespace far { namespace scan
 
     //// iterator
 
-    template<mode M, ::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
+    template<mode M, char_type C, bidirectional_iterative<C> I>
     class iterator;
 
-    template<mode M, ::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
+    template<mode M, char_type C, bidirectional_iterative<C> I>
     iterator(generator<M, C, I> &&) -> iterator<M, C, I>;
 
-    template<mode M, ::far::scan::unit C, ::far::scan::bidirectional_iterative<C> I>
+    template<mode M, char_type C, bidirectional_iterative<C> I>
     class iterator
     {
     public:
@@ -718,11 +720,11 @@ namespace far { namespace scan
 
     template
         < mode M
-        , ::far::scan::unit C
-        , ::far::scan::bidirectional_iterative<C> I
-        , ::far::scan::output<I> R /* retain */
-        , ::far::scan::output<I> O /* remove */
-        , ::far::scan::output<typename std::basic_string<C>::const_iterator> N /* insert */
+        , char_type C
+        , bidirectional_iterative<C> I
+        , output<I> R /* retain */
+        , output<I> O /* remove */
+        , output<typename std::basic_string<C>::const_iterator> N /* insert */
         > requires (M == mode::basic || M == mode::icase)
     auto apply
         ( rule<M, C> const & rule
@@ -763,11 +765,11 @@ namespace far { namespace scan
 
     template
         < mode M
-        , ::far::scan::unit C
-        , ::far::scan::bidirectional_iterative<C> I
-        , ::far::scan::output<I> R /* retain */
-        , ::far::scan::output<I> O /* remove */
-        , ::far::scan::output<typename std::basic_string<C>::const_iterator> N /* insert */
+        , char_type C
+        , bidirectional_iterative<C> I
+        , output<I> R /* retain */
+        , output<I> O /* remove */
+        , output<typename std::basic_string<C>::const_iterator> N /* insert */
         > requires (M == mode::regex)
     auto apply
         ( rule<M, C> const & rule
@@ -818,18 +820,18 @@ namespace far
 
     using scan_mode = scan::mode;
 
-    template<scan::mode M, ::far::scan::unit C>
+    template<scan::mode M, scan::char_type C>
     class scanner
     {
     public:
-        template<::far::scan::bidirectional_sequence<C> R>
+        template<scan::bidirectional_sequence<C> R>
         [[nodiscard]] auto inline generate(R & container) const
         {
             using namespace scan;
             return generate(aux::begin(container), aux::end(container));
         }
 
-        template<::far::scan::bidirectional_iterative<C> I>
+        template<scan::bidirectional_iterative<C> I>
         [[nodiscard]] auto inline generate(I first, I last) const
             -> scan::generator<M, C, I>
         {
@@ -837,14 +839,14 @@ namespace far
         }
 
     public:
-        template<::far::scan::bidirectional_sequence<C> R>
+        template<scan::bidirectional_sequence<C> R>
         [[nodiscard]] auto inline iterate(R & container) const
         {
             using namespace scan;
             return iterate(aux::begin(container), aux::end(container));
         }
 
-        template<::far::scan::bidirectional_iterative<C> I>
+        template<scan::bidirectional_iterative<C> I>
         [[nodiscard]] auto inline iterate(I first, I last) const
         {
             return scan::iterator_pair<scan::iterator<M, C, I>>
@@ -862,13 +864,13 @@ namespace far
         }
 
     public:
-        template<::far::scan::sequence<C> P, ::far::scan::sequence<C> R>
+        template<scan::sequence<C> P, scan::sequence<C> R>
         requires (M == mode::basic || M == mode::icase)
         scanner(P const & pattern, R const & replace)
             : rule(pattern, replace)
         {}
 
-        template<::far::scan::sequence<C> P, ::far::scan::sequence<C> R>
+        template<scan::sequence<C> P, scan::sequence<C> R>
         requires (M == mode::regex)
         scanner(P const & pattern, R const & replace, bool ignore_case = false)
             : rule(pattern, replace, ignore_case)
@@ -882,7 +884,7 @@ namespace far
         < scan::mode M
         , std::ranges::forward_range P
         , std::ranges::forward_range R
-        , ::far::scan::unit C = std::ranges::range_value_t<P>
+        , scan::char_type C = std::ranges::range_value_t<P>
         > requires (M == scan::mode::basic || M == scan::mode::icase)
     [[nodiscard]] auto inline make_scanner
         ( P const & pattern
@@ -895,7 +897,7 @@ namespace far
         < scan::mode M
         , std::ranges::forward_range P
         , std::ranges::forward_range R
-        , ::far::scan::unit C = std::ranges::range_value_t<P>
+        , scan::char_type C = std::ranges::range_value_t<P>
         > requires (M == scan::mode::regex)
     [[nodiscard]] auto inline make_scanner
         ( P const & pattern

@@ -23,7 +23,7 @@ TEST_CASE("constructor, trait, deduction guide", "[scan]")
     // https://en.cppreference.com/w/cpp/regex/regex_traits
     SECTION("char const & [N]")
     {
-        static_assert(::far::scan::unit<char>);
+        static_assert(::far::scan::char_type<char>);
         auto f = make_scanner<scan_mode::regex>("", "");
         REQUIRE(f == true);
         auto g = f.generate("");
@@ -184,7 +184,7 @@ TEST_CASE("a sample lazy loop", "[scan]")
 TEST_CASE("iterator", "[scan]")
 {
     auto constexpr make_matcher = []
-        <::far::scan::unit C>
+        <::far::scan::char_type C>
         (std::vector<std::pair<operation, std::basic_string<C>>> && vec)
     {
         auto head = vec.begin();

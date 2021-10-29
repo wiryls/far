@@ -144,8 +144,8 @@ namespace far { namespace task { namespace differ
     template
         < executor E
         , scan::mode M
-        , scan::unit U
-        , input  <U> I
+        , scan::char_type U
+        , input<U> I
         , callback<I, U> C >
     auto differ
         ( E & executor
