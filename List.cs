@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 
-namespace WPF
+namespace FAR
 {
     using Event  = NotifyCollectionChangedEventArgs;
     using Action = NotifyCollectionChangedAction;

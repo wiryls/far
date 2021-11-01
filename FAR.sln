@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31729.503
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WPF", "WPF.csproj", "{84C78C43-D870-4EED-93B0-7F558FD9716C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FAR", "FAR.csproj", "{84C78C43-D870-4EED-93B0-7F558FD9716C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,4 +1,4 @@
-﻿namespace WPF
+﻿namespace FAR
 {
     public class MainViewModel
     {

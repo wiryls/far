@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace WPF
+namespace FAR
 {
     internal class MainModel
     {
