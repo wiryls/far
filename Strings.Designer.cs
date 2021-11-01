@@ -70,6 +70,33 @@ namespace FAR {
         }
         
         /// <summary>
+        ///   查找类似 Path 的本地化字符串。
+        /// </summary>
+        public static string MainColumnPath {
+            get {
+                return ResourceManager.GetString("MainColumnPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Stat 的本地化字符串。
+        /// </summary>
+        public static string MainColumnStat {
+            get {
+                return ResourceManager.GetString("MainColumnStat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 View 的本地化字符串。
+        /// </summary>
+        public static string MainColumnView {
+            get {
+                return ResourceManager.GetString("MainColumnView", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Search 的本地化字符串。
         /// </summary>
         public static string MainInputPattern {

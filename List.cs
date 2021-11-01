@@ -1,90 +1,33 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 
 namespace FAR
 {
-    using Event  = NotifyCollectionChangedEventArgs;
-    using Action = NotifyCollectionChangedAction;
-
     public class Item
     {
-        public string Stat; // or enum
-        public string Path; // rich text
-        public string View; // rich text
+        public string Stat { get; set; } // or enum
+        public string View { get; set; } // rich text
+        public string Path { get; set; } // rich text
     }
 
-    /// <summary>
-    /// List is a proxy for our real item list.
-    /// </summary>
-    public class List : INotifyCollectionChanged, IList<Item>
+    public class List : ObservableCollection<Item>
     {
-        // references:
-        // - https://docs.microsoft.com/en-us/dotnet/api/system.collections.specialized.inotifycollectionchanged
-        // - https://docs.microsoft.com/en-us/dotnet/api/system.collections.ilist
-
-        public Item this[int index]
+        public List() : base()
         {
-            get => throw new System.NotImplementedException();
-            set => throw new System.NotImplementedException();
-        }
-
-        public int Count => throw new System.NotImplementedException();
-
-        public bool IsReadOnly => throw new System.NotImplementedException();
-
-        public event NotifyCollectionChangedEventHandler CollectionChanged;
-
-        public void Add(Item item)
-        {
-            CollectionChanged?.Invoke(this, new Event(Action.Add));
-
-            throw new System.NotImplementedException();
-        }
-
-        public void Clear()
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public bool Contains(Item item)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public void CopyTo(Item[] array, int arrayIndex)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public IEnumerator<Item> GetEnumerator()
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public int IndexOf(Item item)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public void Insert(int index, Item item)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public bool Remove(Item item)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public void RemoveAt(int index)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            throw new System.NotImplementedException();
+            Add(new Item { Stat = "?", Path = "/user/bin", View = "bin" });
+            Add(new Item { Stat = "x", Path = "/user/local", View = "local" });
+            Add(new Item { Stat = "o", Path = "/", View = "" });
+            Add(new Item { Stat = "!", Path = "/etc/apt", View = "apt" });
+            Add(new Item { Stat = "f", Path = "/etc", View = "etc" });
+            Add(new Item { Stat = "a", Path = "/user/local/bin", View = "bin" });
         }
     }
+
+    // references:
+    //
+    // - https://docs.microsoft.com/en-us/dotnet/desktop/wpf/data/how-to-create-and-bind-to-an-observablecollection
+    // - https://docs.microsoft.com/en-us/dotnet/api/system.collections.specialized.inotifycollectionchanged
+    // - https://docs.microsoft.com/en-us/dotnet/api/system.collections.ilist
 }

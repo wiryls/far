@@ -120,6 +120,15 @@
   <data name="MainButtonRename" xml:space="preserve">
     <value>Rename</value>
   </data>
+  <data name="MainColumnPath" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="MainColumnStat" xml:space="preserve">
+    <value>Stat</value>
+  </data>
+  <data name="MainColumnView" xml:space="preserve">
+    <value>View</value>
+  </data>
   <data name="MainInputPattern" xml:space="preserve">
     <value>Search</value>
   </data>

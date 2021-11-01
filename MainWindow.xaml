@@ -5,66 +5,58 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FAR"
         mc:Ignorable="d"
-        Title="{x:Static local:Strings.MainTitle}" Height="450" Width="800">
+        Title="{x:Static local:Strings.MainTitle}"
+        Height="450"
+        Width="800"
+        MinWidth="360"
+        MinHeight="240">
     <Window.DataContext>
         <local:MainViewModel/>
     </Window.DataContext>
     <Grid Margin="2">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
             <!-- auto fill: https://stackoverflow.com/a/12432346 -->
         </Grid.RowDefinitions>
         <Grid  Grid.Row="0" IsSharedSizeScope="True">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" SharedSizeGroup="baseline" />
-                <RowDefinition Height="Auto" SharedSizeGroup="baseline" />
+                <RowDefinition Height="Auto" SharedSizeGroup="baseline"/>
+                <RowDefinition Height="Auto" SharedSizeGroup="baseline"/>
                 <!-- share height: https://stackoverflow.com/a/7017941 -->
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
+            <Grid.Resources>
+                <!-- styles for pattern and template -->
+                <Style x:Key="WatermarkLabel" TargetType="Label" BasedOn="{StaticResource {x:Type Label}}">
+                    <Setter Property="Visibility" Value="Hidden"/>
+                    <Setter Property="IsHitTestVisible" Value="False"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding Children[1].Text.Length, RelativeSource={RelativeSource AncestorType=Grid}}" Value="0"/>
+                                <Condition Binding="{Binding Children[1].IsFocused,   RelativeSource={RelativeSource AncestorType=Grid}}" Value="False"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+                <!-- hint or watermark: https://stackoverflow.com/a/41589780 -->
+                <!-- bind to a sibling: https://stackoverflow.com/a/16741102 -->
+            </Grid.Resources>
             <!-- pattern -->
             <Grid Grid.Column="0" Grid.Row="0" Margin="2">
-                <!-- hint or watermark: https://stackoverflow.com/a/41589780 -->
-                <Label VerticalAlignment="Center" Foreground="Gray" IsHitTestVisible="False" Content="{x:Static local:Strings.MainInputPattern}">
-                    <Label.Style>
-                        <Style TargetType="{x:Type Label}">
-                            <Setter Property="Visibility" Value="Hidden"/>
-                            <Style.Triggers>
-                                <MultiDataTrigger>
-                                    <MultiDataTrigger.Conditions>
-                                        <Condition Binding ="{Binding Text.Length, ElementName=InputPattern}" Value="0"/>
-                                        <Condition Binding ="{Binding IsFocused,   ElementName=InputPattern}" Value="False"/>
-                                    </MultiDataTrigger.Conditions>
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </MultiDataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Label.Style>
-                </Label>
-                <TextBox Name="InputPattern" Padding="2" VerticalContentAlignment="Center" Background="Transparent" />
+                <Label Foreground="Gray" Content="{x:Static local:Strings.MainInputPattern}" Style="{StaticResource WatermarkLabel}"/>
+                <TextBox Padding="2" VerticalContentAlignment="Center" Background="Transparent"/>
             </Grid>
             <!-- template -->
             <Grid Grid.Column="0" Grid.Row="1" Margin="2">
-                <Label VerticalAlignment="Center" Foreground="Gray" IsHitTestVisible="False" Content="{x:Static local:Strings.MainInputTemplate}">
-                    <Label.Style>
-                        <Style TargetType="{x:Type Label}">
-                            <Setter Property="Visibility" Value="Hidden"/>
-                            <Style.Triggers>
-                                <MultiDataTrigger>
-                                    <MultiDataTrigger.Conditions>
-                                        <Condition Binding ="{Binding Text.Length, ElementName=InputTemplate}" Value="0"/>
-                                        <Condition Binding ="{Binding IsFocused,   ElementName=InputTemplate}" Value="False"/>
-                                    </MultiDataTrigger.Conditions>
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </MultiDataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Label.Style>
-                </Label>
-                <TextBox Name="InputTemplate" Padding="2" VerticalContentAlignment="Center" Background="Transparent" />
+                <Label Foreground="Gray" Content="{x:Static local:Strings.MainInputTemplate}" Style="{StaticResource WatermarkLabel}"/>
+                <TextBox Padding="2" VerticalContentAlignment="Center" Background="Transparent"/>
             </Grid>
             <!-- options -->
             <StackPanel Grid.Column="1" Grid.Row="0" Margin="2" Orientation="Horizontal">
@@ -78,17 +70,60 @@
                     </Style>
                 </StackPanel.Resources>
                 <ToggleButton Margin="0,0,2,0">
-                    <Image Source="{StaticResource CaseSensitiveDrawingImage}" />
+                    <Image Source="{StaticResource CaseSensitiveDrawingImage}"/>
                 </ToggleButton>
                 <ToggleButton Margin="2,0,0,0">
-                    <Image Source="{StaticResource EnableRegexDrawingImage}" />
+                    <Image Source="{StaticResource EnableRegexDrawingImage}"/>
                 </ToggleButton>
             </StackPanel>
             <!-- button -->
             <Button Grid.Column="1" Grid.Row="1" Margin="2" Padding="2" Content="{x:Static local:Strings.MainButtonRename}"/>
         </Grid>
-        <DataGrid  Grid.Row="1" Margin="2" IsReadOnly="True" CanUserAddRows="False" >
-            
+        <DataGrid Grid.Row="1"
+                  Margin="2"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  CanUserResizeRows="False"
+                  CanUserReorderColumns="False"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  HorizontalGridLinesBrush="LightGray"
+                  HorizontalScrollBarVisibility="Disabled"
+                  ItemsSource="{Binding List}">
+            <DataGrid.Resources>
+                <Style TargetType="TextBlock" x:Key="TextCell" BasedOn="{StaticResource {x:Type TextBlock}}">
+                    <Setter Property="Padding" Value="4" />
+                </Style>
+                <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="LightGray" Opacity="0.16"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="Black"/>
+            </DataGrid.Resources>
+            <DataGrid.CellStyle>
+                <Style TargetType="DataGridCell">
+                    <Setter Property="BorderBrush" Value="LightGray"/>
+                    <Setter Property="BorderThickness" Value="1,0,0,0"/>
+                    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                </Style>
+            </DataGrid.CellStyle>
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Style.Resources>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="AliceBlue"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="AliceBlue" Opacity="0.7"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="AliceBlue"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="Black"/>
+                        <!-- set highlight color: https://stackoverflow.com/a/9633703 -->
+                    </Style.Resources>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="{x:Static local:Strings.MainColumnStat}" Binding="{Binding Stat}" ElementStyle="{StaticResource TextCell}" MinWidth="32" CanUserResize="False"/>
+                <DataGridTextColumn Header="{x:Static local:Strings.MainColumnView}" Binding="{Binding View}" ElementStyle="{StaticResource TextCell}" MinWidth="128"/>
+                <DataGridTextColumn Header="{x:Static local:Strings.MainColumnPath}" Binding="{Binding Path}" ElementStyle="{StaticResource TextCell}" MinWidth="128" Width="*"/>
+            </DataGrid.Columns>
         </DataGrid>
     </Grid>
 </Window>
