@@ -98,6 +98,7 @@
                 </Style>
                 <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="LightGray" Opacity="0.16"/>
                 <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="Black"/>
+                <local:StatusConverter x:Key="StatusConverter"/>
             </DataGrid.Resources>
             <DataGrid.CellStyle>
                 <Style TargetType="DataGridCell">
@@ -120,9 +121,23 @@
                 </Style>
             </DataGrid.RowStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="{x:Static local:Strings.MainColumnStat}" Binding="{Binding Stat}" ElementStyle="{StaticResource TextCell}" MinWidth="32" CanUserResize="False"/>
-                <DataGridTextColumn Header="{x:Static local:Strings.MainColumnView}" Binding="{Binding View}" ElementStyle="{StaticResource TextCell}" MinWidth="128"/>
-                <DataGridTextColumn Header="{x:Static local:Strings.MainColumnPath}" Binding="{Binding Path}" ElementStyle="{StaticResource TextCell}" MinWidth="128" Width="*"/>
+                <DataGridTextColumn
+                    Header="{x:Static local:Strings.MainColumnStat}"
+                    Binding="{Binding Stat, Converter={StaticResource StatusConverter}}"
+                    ElementStyle="{StaticResource TextCell}"
+                    MinWidth="32"
+                    CanUserResize="False"/>
+                <DataGridTextColumn
+                    Header="{x:Static local:Strings.MainColumnView}"
+                    Binding="{Binding View}"
+                    ElementStyle="{StaticResource TextCell}"
+                    MinWidth="128"/>
+                <DataGridTextColumn
+                    Header="{x:Static local:Strings.MainColumnPath}"
+                    Binding="{Binding Path}"
+                    ElementStyle="{StaticResource TextCell}"
+                    MinWidth="128"
+                    Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>
