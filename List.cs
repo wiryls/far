@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.Globalization;
-using System.Windows.Data;
 
 namespace FAR
 {
@@ -12,19 +8,19 @@ namespace FAR
     {
         public List() : base()
         {
-            Add(new Item { Stat = Status.Todo, Path = "/user/bin", View = "bin" });
-            Add(new Item { Stat = Status.Fail, Path = "/user/local", View = "local" });
-            Add(new Item { Stat = Status.Fail, Path = "/", View = "" });
-            Add(new Item { Stat = Status.Done, Path = "/etc/apt", View = "apt" });
-            Add(new Item { Stat = Status.Fail, Path = "/etc", View = "etc" });
-            Add(new Item { Stat = Status.Done, Path = "/user/local/bin", View = "bin" });
+            Add(new Item { Stat = Status.Todo, Path = "/user/bin", View = new Change { new Operation { Type = Operation.Action.Insert, Text = "nooo" } } });
+            Add(new Item { Stat = Status.Fail, Path = "/user/local", View = new Change { new Operation { Type = Operation.Action.Insert, Text = "nooo" } } });
+            Add(new Item { Stat = Status.Fail, Path = "/", View = new Change { new Operation { Type = Operation.Action.Retain, Text = "nooo" } } });
+            Add(new Item { Stat = Status.Done, Path = "/etc/apt", View = new Change { new Operation { Type = Operation.Action.Retain, Text = "nooo" } } });
+            Add(new Item { Stat = Status.Fail, Path = "/etc", View = new Change { new Operation { Type = Operation.Action.Delete, Text = "nooo" } } });
+            Add(new Item { Stat = Status.Done, Path = "/user/local/bin", View = new Change { new Operation { Type = Operation.Action.Insert, Text = "nooo" } } });
         }
     }
 
     public class Item
     {
         public Status Stat { get; set; }
-        public string View { get; set; }
+        public Change View { get; set; }
         public string Path { get; set; }
     }
 
@@ -36,40 +32,7 @@ namespace FAR
         Lost,
     }
 
-    [ValueConversion(typeof(Status), typeof(string))]
-    public class StatusConverter : IValueConverter
-    {
-        private const string todo = "TODO";
-        private const string done = "DONE";
-        private const string fail = "FAIL";
-        private const string lost = "LOST";
-
-        public object Convert(object value, Type target, object parameter, CultureInfo culture)
-        {
-            return (Status)value switch
-            {
-                Status.Todo => todo,
-                Status.Done => done,
-                Status.Fail => fail,
-                Status.Lost => lost,
-                _ => todo,
-            };
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            return value as string switch
-            {
-                todo => Status.Todo,
-                done => Status.Done,
-                fail => Status.Fail,
-                lost => Status.Lost,
-                _ => Status.Todo,
-            };
-        }
-    }
-
-    public class Cahnge : List<Operation> { }
+    public class Change : List<Operation> { }
 
     public class Operation
     {

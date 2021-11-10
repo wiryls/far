@@ -93,15 +93,20 @@
                   HorizontalScrollBarVisibility="Disabled"
                   ItemsSource="{Binding List}">
             <DataGrid.Resources>
+                <local:StatusConverter x:Key="StatusConverter"/>
+                <local:ChangeConverter x:Key="ChangeConverter"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="LightGray" Opacity="0.16"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="Black"/>
                 <Style TargetType="TextBlock" x:Key="TextCell" BasedOn="{StaticResource {x:Type TextBlock}}">
                     <Setter Property="Padding" Value="4" />
                 </Style>
-                <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="LightGray" Opacity="0.16"/>
-                <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="Black"/>
-                <local:StatusConverter x:Key="StatusConverter"/>
+                <Style TargetType="TextBlock" x:Key="ViewCell" BasedOn="{StaticResource TextCell}">
+                    <Setter Property="local:TextBlockExtensions.BindableInlines" Value="{Binding View, Converter={StaticResource ChangeConverter}}" />
+                </Style>
             </DataGrid.Resources>
             <DataGrid.CellStyle>
                 <Style TargetType="DataGridCell">
+                    <Setter Property="Margin" Value="-1,0,0,0"/>
                     <Setter Property="BorderBrush" Value="LightGray"/>
                     <Setter Property="BorderThickness" Value="1,0,0,0"/>
                     <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -129,8 +134,7 @@
                     CanUserResize="False"/>
                 <DataGridTextColumn
                     Header="{x:Static local:Strings.MainColumnView}"
-                    Binding="{Binding View}"
-                    ElementStyle="{StaticResource TextCell}"
+                    ElementStyle="{StaticResource ViewCell}"
                     MinWidth="128"/>
                 <DataGridTextColumn
                     Header="{x:Static local:Strings.MainColumnPath}"
