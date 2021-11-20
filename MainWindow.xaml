@@ -135,7 +135,9 @@
                 <DataGridTextColumn
                     Header="{x:Static local:Strings.MainColumnView}"
                     ElementStyle="{StaticResource ViewCell}"
+                    SortMemberPath="Target"
                     MinWidth="128"/>
+                <!-- sort by a hidden field: https://stackoverflow.com/a/17225349 -->
                 <DataGridTextColumn
                     Header="{x:Static local:Strings.MainColumnPath}"
                     Binding="{Binding Path}"
