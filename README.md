@@ -48,3 +48,4 @@ The following icons are from [codicons](https://github.com/microsoft/vscode-codi
 
 - `case-sensitive.svg`
 - `regex.svg`
+- `new-folder.svg`

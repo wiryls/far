@@ -19,13 +19,14 @@
             <RowDefinition Height="*"/>
             <!-- auto fill: https://stackoverflow.com/a/12432346 -->
         </Grid.RowDefinitions>
-        <Grid  Grid.Row="0" IsSharedSizeScope="True">
+        <Grid Grid.Row="0" IsSharedSizeScope="True">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" SharedSizeGroup="baseline"/>
                 <RowDefinition Height="Auto" SharedSizeGroup="baseline"/>
                 <!-- share height: https://stackoverflow.com/a/7017941 -->
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
@@ -48,18 +49,39 @@
                 <!-- hint or watermark: https://stackoverflow.com/a/41589780 -->
                 <!-- bind to a sibling: https://stackoverflow.com/a/16741102 -->
             </Grid.Resources>
+            <!-- import -->
+            <Grid Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" Name="Indent" Margin="2" MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Padding="2" Background="Transparent" BorderBrush="#FFABADB3" AllowDrop="True">
+                    <Image Source="{StaticResource NewFolderDrawingImage}"/>
+                </Button>
+                <ToggleButton Name="ImportOptionButton" Grid.Column="1" Background="Transparent" BorderBrush="#FFABADB3" BorderThickness="0,1,1,1">
+                    <Path Margin="1" VerticalAlignment="Center" Width="6" Fill="#FF527DB5" Stretch="Uniform" HorizontalAlignment="Right" Data="F1 M 301.14,-189.041L 311.57,-189.041L 306.355,-182.942L 301.14,-189.041 Z "/>
+                </ToggleButton>
+                <Popup PopupAnimation="Fade" AllowsTransparency="True" StaysOpen="False" IsOpen="{Binding Children[1].IsChecked, RelativeSource={RelativeSource AncestorType=Grid}}">
+                    <Border Padding="8" BorderThickness="1" BorderBrush="#FFABADB3" Background="White">
+                        <CheckBox Content="{x:Static local:Strings.MainImportRecursively}"/>
+                    </Border>
+                </Popup>
+                <!-- toggle button with popup: https://stackoverflow.com/a/399824 -->
+            </Grid>
             <!-- pattern -->
-            <Grid Grid.Column="0" Grid.Row="0" Margin="2">
+            <Grid Grid.Column="1" Grid.Row="0" Margin="2">
                 <Label Foreground="Gray" Content="{x:Static local:Strings.MainInputPattern}" Style="{StaticResource WatermarkLabel}"/>
                 <TextBox Padding="2" VerticalContentAlignment="Center" Background="Transparent"/>
             </Grid>
             <!-- template -->
-            <Grid Grid.Column="0" Grid.Row="1" Margin="2">
+            <Grid Grid.Column="1" Grid.Row="1" Margin="2">
                 <Label Foreground="Gray" Content="{x:Static local:Strings.MainInputTemplate}" Style="{StaticResource WatermarkLabel}"/>
                 <TextBox Padding="2" VerticalContentAlignment="Center" Background="Transparent"/>
             </Grid>
+            <!-- button -->
+            <Button Grid.Column="2" Grid.Row="1" Margin="2" Padding="2" Content="{x:Static local:Strings.MainButtonRename}"/>
             <!-- options -->
-            <StackPanel Grid.Column="1" Grid.Row="0" Margin="2" Orientation="Horizontal">
+            <StackPanel Grid.Column="2" Grid.Row="0" Margin="2" Orientation="Horizontal">
                 <!-- square constraint: https://stackoverflow.com/a/2982355 -->
                 <StackPanel.Resources>
                     <Style TargetType="ToggleButton">
@@ -76,8 +98,6 @@
                     <Image Source="{StaticResource EnableRegexDrawingImage}"/>
                 </ToggleButton>
             </StackPanel>
-            <!-- button -->
-            <Button Grid.Column="1" Grid.Row="1" Margin="2" Padding="2" Content="{x:Static local:Strings.MainButtonRename}"/>
         </Grid>
         <DataGrid Grid.Row="1"
                   Margin="2"
@@ -130,8 +150,9 @@
                     Header="{x:Static local:Strings.MainColumnStat}"
                     Binding="{Binding Stat, Converter={StaticResource StatusConverter}}"
                     ElementStyle="{StaticResource TextCell}"
-                    MinWidth="32"
+                    MinWidth="{Binding MinWidth, Source={x:Reference Indent}}"
                     CanUserResize="False"/>
+                <!-- bind DataGridTextColumn: https://stackoverflow.com/a/61137678 -->
                 <DataGridTextColumn
                     Header="{x:Static local:Strings.MainColumnView}"
                     ElementStyle="{StaticResource ViewCell}"
@@ -145,6 +166,13 @@
                     MinWidth="128"
                     Width="*"/>
             </DataGrid.Columns>
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="{x:Static local:Strings.MainGridMenuDelete}"/>
+                    <Separator/>
+                    <MenuItem Header="{x:Static local:Strings.MainGridMenuClear}"/>
+                </ContextMenu>
+            </DataGrid.ContextMenu>
         </DataGrid>
     </Grid>
 </Window>
