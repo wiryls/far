@@ -6,7 +6,7 @@ using System.Windows.Documents;
 
 namespace FAR
 {
-    public static class TextBlockExtensions
+    internal static class TextBlockExtensions
     {
         public static IEnumerable<Inline> GetBindableInlines(DependencyObject obj)
         {

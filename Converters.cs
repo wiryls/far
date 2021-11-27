@@ -10,7 +10,7 @@ using System.Windows.Media;
 namespace FAR
 {
     [ValueConversion(typeof(Status), typeof(string))]
-    public class StatusConverter : IValueConverter
+    internal class StatusConverter : IValueConverter
     {
         private const string ToDo = "TODO";
         private const string Done = "DONE";
@@ -43,7 +43,7 @@ namespace FAR
     }
 
     [ValueConversion(typeof(Change), typeof(IEnumerable<Inline>))]
-    public class ChangeConverter : IValueConverter
+    internal class ChangeConverter : IValueConverter
     {
         private static readonly Brush Insert = new BrushConverter().ConvertFrom("#007947") as SolidColorBrush;
         private static readonly Brush Delete = new BrushConverter().ConvertFrom("#DC143C") as SolidColorBrush;

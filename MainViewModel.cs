@@ -1,44 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Windows.Input;
 
 namespace FAR
 {
-    public class MainViewModel : ViewModelBase
+    internal class MainViewModel : ViewModelBase
     {
         public MainViewModel()
         {
             List = new List();
+            RenameCommand = new DelegateCommand(Rename);
+            ImportCommand = new DelegateCommand(ImportFiles);
+            DeleteCommand = new DelegateCommand(Dummy);
+            ClearCommand  = new DelegateCommand(Dummy);
+        }
+
+        private void Rename(object parameter)
+        {
+
+        }
+
+        private void ImportFiles(object parameter)
+        {
+            //if (dialog.ShowDialog() == true)
+            //{
+            //    //foreach (var file in dialog.FileNames)
+            //    //    lbFiles.Items.Add(Path.GetFileName(filename));
+            //}
+        }
+
+        private void Dummy(object parameter)
+        {
+
         }
 
         public List List { get; private set; }
-    }
 
-    public abstract class ViewModelBase : INotifyPropertyChanged
-    {
-        public event PropertyChangedEventHandler PropertyChanged;
+        public ICommand RenameCommand { get; private set; }
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string name = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
+        public ICommand ImportCommand { get; private set; }
 
-        protected virtual bool SetProperty<T>(ref T property, T value, [CallerMemberName] string name = "")
-        {
-            var update = EqualityComparer<T>.Default.Equals(property, value);
-            if (update)
-            {
-                property = value;
-                OnPropertyChanged(name);
-            }
-            return update;
-        }
+        public ICommand DeleteCommand { get; private set; }
 
-        // references:
-        //
-        // [How to write a ViewModelBase in MVVM]
-        // (https://stackoverflow.com/a/36151255)
+        public ICommand ClearCommand { get; private set; }
     }
 }

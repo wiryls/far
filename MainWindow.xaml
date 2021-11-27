@@ -52,16 +52,19 @@
             <!-- import -->
             <Grid Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" Name="Indent" Margin="2" MinWidth="{Binding ActualHeight, RelativeSource={RelativeSource Self}}">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="0" Padding="2" Background="Transparent" BorderBrush="#FFABADB3" AllowDrop="True">
+                <Button Grid.Column="0" Padding="2" Background="Transparent" BorderBrush="#FFABADB3" AllowDrop="True" Command="{Binding ImportCommand}">
                     <Image Source="{StaticResource NewFolderDrawingImage}"/>
                 </Button>
                 <ToggleButton Name="ImportOptionButton" Grid.Column="1" Background="Transparent" BorderBrush="#FFABADB3" BorderThickness="0,1,1,1">
                     <Path Margin="1" VerticalAlignment="Center" Width="6" Fill="#FF527DB5" Stretch="Uniform" HorizontalAlignment="Right" Data="F1 M 301.14,-189.041L 311.57,-189.041L 306.355,-182.942L 301.14,-189.041 Z "/>
                 </ToggleButton>
-                <Popup PopupAnimation="Fade" AllowsTransparency="True" StaysOpen="False" IsOpen="{Binding Children[1].IsChecked, RelativeSource={RelativeSource AncestorType=Grid}}">
+                <Popup StaysOpen="False"
+                       PopupAnimation="Fade"
+                       AllowsTransparency="True"
+                       IsOpen="{Binding Children[1].IsChecked, RelativeSource={RelativeSource AncestorType=Grid}}">
                     <Border Padding="8" BorderThickness="1" BorderBrush="#FFABADB3" Background="White">
                         <CheckBox Content="{x:Static local:Strings.MainImportRecursively}"/>
                     </Border>
@@ -79,7 +82,12 @@
                 <TextBox Padding="2" VerticalContentAlignment="Center" Background="Transparent"/>
             </Grid>
             <!-- button -->
-            <Button Grid.Column="2" Grid.Row="1" Margin="2" Padding="2" Content="{x:Static local:Strings.MainButtonRename}"/>
+            <Button Grid.Column="2"
+                    Grid.Row="1"
+                    Margin="2"
+                    Padding="2"
+                    Content="{x:Static local:Strings.MainButtonRename}"
+                    Command="{Binding RenameCommand}" />
             <!-- options -->
             <StackPanel Grid.Column="2" Grid.Row="0" Margin="2" Orientation="Horizontal">
                 <!-- square constraint: https://stackoverflow.com/a/2982355 -->
@@ -168,9 +176,9 @@
             </DataGrid.Columns>
             <DataGrid.ContextMenu>
                 <ContextMenu>
-                    <MenuItem Header="{x:Static local:Strings.MainGridMenuDelete}"/>
+                    <MenuItem Header="{x:Static local:Strings.MainGridMenuDelete}" Command="{Binding DeleteCommand}"/>
                     <Separator/>
-                    <MenuItem Header="{x:Static local:Strings.MainGridMenuClear}"/>
+                    <MenuItem Header="{x:Static local:Strings.MainGridMenuClear}" Command="{Binding ClearCommand}"/>
                 </ContextMenu>
             </DataGrid.ContextMenu>
         </DataGrid>
