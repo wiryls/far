@@ -117,34 +117,13 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="MainButtonRename" xml:space="preserve">
-    <value>_Rename</value>
+  <data name="Pattern.PlaceholderText" xml:space="preserve">
+    <value>匹配</value>
   </data>
-  <data name="MainColumnPath" xml:space="preserve">
-    <value>Path</value>
+  <data name="Rename.Content" xml:space="preserve">
+    <value>重命名</value>
   </data>
-  <data name="MainColumnStat" xml:space="preserve">
-    <value>Stat</value>
-  </data>
-  <data name="MainColumnView" xml:space="preserve">
-    <value>View</value>
-  </data>
-  <data name="MainGridMenuClear" xml:space="preserve">
-    <value>_Clear</value>
-  </data>
-  <data name="MainGridMenuDelete" xml:space="preserve">
-    <value>_Delete</value>
-  </data>
-  <data name="MainImportRecursively" xml:space="preserve">
-    <value>Import files _recursively</value>
-  </data>
-  <data name="MainInputPattern" xml:space="preserve">
-    <value>Search</value>
-  </data>
-  <data name="MainInputTemplate" xml:space="preserve">
-    <value>Replace</value>
-  </data>
-  <data name="MainTitle" xml:space="preserve">
-    <value>FAR</value>
+  <data name="Template.PlaceholderText" xml:space="preserve">
+    <value>替换</value>
   </data>
 </root>
