@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="CaseSensitive.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>区分大小写</value>
+  </data>
   <data name="Pattern.PlaceholderText" xml:space="preserve">
     <value>匹配</value>
   </data>
@@ -125,5 +128,8 @@
   </data>
   <data name="Template.PlaceholderText" xml:space="preserve">
     <value>替换</value>
+  </data>
+  <data name="UseRegex.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>使用正则表达式</value>
   </data>
 </root>
