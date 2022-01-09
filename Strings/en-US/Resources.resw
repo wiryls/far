@@ -123,6 +123,9 @@
   <data name="CaseSensitive.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Case sensitive</value>
   </data>
+  <data name="Path.Header" xml:space="preserve">
+    <value>Path</value>
+  </data>
   <data name="Pattern.AccessKey" xml:space="preserve">
     <value>P</value>
   </data>
@@ -135,6 +138,9 @@
   <data name="Rename.Content" xml:space="preserve">
     <value>Rename</value>
   </data>
+  <data name="Stat.Header" xml:space="preserve">
+    <value>Status</value>
+  </data>
   <data name="Template.AccessKey" xml:space="preserve">
     <value>T</value>
   </data>
@@ -146,5 +152,8 @@
   </data>
   <data name="UseRegex.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Enable regular expressions</value>
+  </data>
+  <data name="View.Header" xml:space="preserve">
+    <value>View</value>
   </data>
 </root>

@@ -120,16 +120,25 @@
   <data name="CaseSensitive.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>区分大小写</value>
   </data>
+  <data name="Path.Header" xml:space="preserve">
+    <value>路径</value>
+  </data>
   <data name="Pattern.PlaceholderText" xml:space="preserve">
     <value>匹配</value>
   </data>
   <data name="Rename.Content" xml:space="preserve">
     <value>重命名</value>
   </data>
+  <data name="Stat.Header" xml:space="preserve">
+    <value>状态</value>
+  </data>
   <data name="Template.PlaceholderText" xml:space="preserve">
     <value>替换</value>
   </data>
   <data name="UseRegex.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>使用正则表达式</value>
+  </data>
+  <data name="View.Header" xml:space="preserve">
+    <value>预览</value>
   </data>
 </root>

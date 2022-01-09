@@ -9,6 +9,11 @@
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     mc:Ignorable="d">
     <Grid Grid.RowDefinitions="Auto,Auto,*">
+        <StackPanel x:Name="AppTitleBar" Grid.Row="0" Margin="4" Orientation="Horizontal">
+            <Button Margin="4,0,0,0">
+                <PathIcon Data="M14 7v1H8v6H7V8H1V7h6V1h1v6h6z"/>
+            </Button>
+        </StackPanel>
         <Grid Grid.Row="1" Margin="4" Grid.RowDefinitions="Auto,Auto" Grid.ColumnDefinitions="*,Auto">
             <TextBox x:Uid="Pattern" Grid.Row="0" Grid.Column="0" Margin="4"/>
             <TextBox x:Uid="Template" Grid.Row="1" Grid.Column="0" Margin="4"/>
@@ -22,8 +27,20 @@
                 </ToggleButton>
             </StackPanel>
         </Grid>
-        <controls:DataGrid Grid.Row="2" Margin="4">
+        <controls:DataGrid
+            Grid.Row="2"
+            Margin="8,4"
+            VerticalAlignment="Stretch"
+            HorizontalAlignment="Stretch"
+            HorizontalScrollBarVisibility="Visible"
+            VerticalScrollBarVisibility="Visible"
+            CanUserReorderColumns="False">
             <!-- datagrid: https://docs.microsoft.com/zh-cn/windows/communitytoolkit/getting-started -->
+            <controls:DataGrid.Columns>
+                <controls:DataGridTextColumn x:Uid="Stat" Tag="Stat" CanUserResize="False"/>
+                <controls:DataGridTextColumn x:Uid="View" Tag="View" MinWidth="256"/>
+                <controls:DataGridTextColumn x:Uid="Path" Tag="Path" MinWidth="256" Width="*"/>
+            </controls:DataGrid.Columns>
         </controls:DataGrid>
     </Grid>
 </Window>

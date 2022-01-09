@@ -1,6 +1,7 @@
 ﻿using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Windows.UI.ViewManagement;
 using WinRT.Interop;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -16,6 +17,10 @@ namespace FAR
         public MainWindow()
         {
             InitializeComponent();
+
+            // TODO: custom TitleBar after fixed.
+            // ExtendsContentIntoTitleBar = true;
+            // SetTitleBar(AppTitleBar);
         }
     }
 }
