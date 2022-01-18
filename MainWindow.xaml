@@ -36,6 +36,10 @@
             VerticalScrollBarVisibility="Visible"
             CanUserReorderColumns="False">
             <!-- datagrid: https://docs.microsoft.com/zh-cn/windows/communitytoolkit/getting-started -->
+            <controls:DataGrid.Resources>
+                <local:StatusConverter x:Key="StatusConverter"/>
+                <local:ChangeConverter x:Key="ChangeConverter"/>
+            </controls:DataGrid.Resources>
             <controls:DataGrid.Columns>
                 <controls:DataGridTextColumn x:Uid="Stat" Tag="Stat" CanUserResize="False"/>
                 <controls:DataGridTextColumn x:Uid="View" Tag="View" MinWidth="256"/>
