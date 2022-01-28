@@ -10,7 +10,7 @@ namespace FAR
         {
             Add(new Item { Stat = Status.Todo, Path = "/user/bin", View = new Change { new Operation { Type = Operation.Action.Insert, Text = "nooo" } } });
             Add(new Item { Stat = Status.Fail, Path = "/user/local", View = new Change { new Operation { Type = Operation.Action.Insert, Text = "nooo" } } });
-            Add(new Item { Stat = Status.Fail, Path = "/", View = new Change { new Operation { Type = Operation.Action.Retain, Text = "nooo" } } });
+            Add(new Item { Stat = Status.Fail, Path = "/", View = new Change { new Operation { Type = Operation.Action.Retain, Text = "/nooo" } } });
             Add(new Item { Stat = Status.Done, Path = "/etc/apt", View = new Change { new Operation { Type = Operation.Action.Retain, Text = "nooo" } } });
             Add(new Item { Stat = Status.Fail, Path = "/etc", View = new Change { new Operation { Type = Operation.Action.Delete, Text = "nooo" } } });
             Add(new Item { Stat = Status.Done, Path = "/user/local/bin", View = new Change { new Operation { Type = Operation.Action.Insert, Text = "nooo" }, new Operation { Type = Operation.Action.Delete, Text = "what" } } });

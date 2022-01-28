@@ -18,7 +18,7 @@ namespace FAR
         {
             InitializeComponent();
 
-            // TODO: custom TitleBar after fixed.
+            // TODO: use custom TitleBar after it fixed.
             // ExtendsContentIntoTitleBar = true;
             // SetTitleBar(AppTitleBar);
         }

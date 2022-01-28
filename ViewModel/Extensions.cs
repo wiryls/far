@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Documents;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace FAR
+namespace FAR.ViewModel
 {
     internal static class TextBlockExtensions
     {

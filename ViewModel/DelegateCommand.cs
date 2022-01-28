@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Input;
 
-namespace FAR
+namespace FAR.ViewModel
 {
     internal class DelegateCommand : ICommand
     {

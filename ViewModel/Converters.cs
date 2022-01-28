@@ -7,7 +7,7 @@ using System.Linq;
 using Windows.UI;
 using Windows.UI.Text;
 
-namespace FAR
+namespace FAR.ViewModel
 {
     internal class StatusConverter : IValueConverter
     {
