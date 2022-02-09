@@ -48,12 +48,18 @@
                 <vm:ChangeConverter x:Key="ChangeConverter"/>
             </controls:DataGrid.Resources>
             <controls:DataGrid.Columns>
-                <controls:DataGridTextColumn x:Uid="Stat" Tag="Stat" CanUserResize="False" Binding="{Binding Stat, Converter={StaticResource StatusConverter}}"/>
+                <controls:DataGridTemplateColumn x:Uid="Stat" Tag="Stat" CanUserResize="False">
+                    <controls:DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <PathIcon Margin="12,0" VerticalAlignment="Center" Data="{Binding Stat, Converter={StaticResource StatusConverter}}"/>
+                            <!-- style: https://github.com/CommunityToolkit/WindowsCommunityToolkit/blob/6d300f0fc24682d2d414b3bdff1e2bc9245a7574/Microsoft.Toolkit.Uwp.UI.Controls.DataGrid/DataGrid/DataGridTextColumn.cs#L218-L219 -->
+                        </DataTemplate>
+                    </controls:DataGridTemplateColumn.CellTemplate>
+                </controls:DataGridTemplateColumn>
                 <controls:DataGridTemplateColumn x:Uid="View" Tag="View" MinWidth="256">
                     <controls:DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Margin="12,0" VerticalAlignment="Center" vm:TextBlockExtensions.BindableInlines="{Binding View, Converter={StaticResource ChangeConverter}}"/>
-                            <!-- style: https://github.com/CommunityToolkit/WindowsCommunityToolkit/blob/6d300f0fc24682d2d414b3bdff1e2bc9245a7574/Microsoft.Toolkit.Uwp.UI.Controls.DataGrid/DataGrid/DataGridTextColumn.cs#L218-L219 -->
                             <!-- inlines: https://github.com/wiryls/far/blob/deprecated/wpf/MainWindow.xaml#L132 -->
                         </DataTemplate>
                     </controls:DataGridTemplateColumn.CellTemplate>
