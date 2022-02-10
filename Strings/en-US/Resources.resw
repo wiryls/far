@@ -132,6 +132,12 @@
   <data name="Pattern.PlaceholderText" xml:space="preserve">
     <value>Pattern</value>
   </data>
+  <data name="Recursion.OffContent" xml:space="preserve">
+    <value>No Recursion</value>
+  </data>
+  <data name="Recursion.OnContent" xml:space="preserve">
+    <value>Recursive Search</value>
+  </data>
   <data name="Rename.AccessKey" xml:space="preserve">
     <value>R</value>
   </data>
