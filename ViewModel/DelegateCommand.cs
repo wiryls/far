@@ -39,5 +39,7 @@ namespace FAR.ViewModel
         //
         // [How to implement a reusable ICommand]
         // (http://wpftutorial.net/DelegateCommand.html)
+        // [Command experiences using the ICommand interface]
+        // https://docs.microsoft.com/en-us/windows/apps/design/controls/commanding
     }
 }

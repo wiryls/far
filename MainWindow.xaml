@@ -5,15 +5,15 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:FAR.ViewModel"
-    xmlns:muxc="using:ABI.Microsoft.UI.Xaml.Controls"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     mc:Ignorable="d">
     <Grid Grid.RowDefinitions="Auto,Auto,*">
         <Grid.DataContext>
-            <vm:MainViewModel/>
+            <vm:MainViewModel x:Name="ViewModel"/>
         </Grid.DataContext>
         <StackPanel x:Name="AppTitleBar" Grid.Row="0" Margin="4" Orientation="Horizontal">
-            <SplitButton Margin="4,0,0,0">
+            <SplitButton Margin="4,0,0,0" AllowDrop="True" DragEnter="OnTestDropFile" Drop="OnDropFile">
+                <!-- TODO: write a FileOrFolderPicker -->
                 <SplitButton.Flyout>
                     <Flyout>
                         <StackPanel>
@@ -40,6 +40,7 @@
         <controls:DataGrid
             Grid.Row="2"
             Margin="8,4"
+            ItemsSource="{Binding List}"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch"
             HorizontalScrollBarVisibility="Visible"
@@ -47,7 +48,11 @@
             AutoGenerateColumns="False"
             IsReadOnly="True"
             CanUserReorderColumns="False"
-            ItemsSource="{Binding List}">
+            AllowDrop="True"
+            Background="Transparent"
+            DragEnter="OnTestDropFile"
+            Drop="OnDropFile">
+            <!-- Background="Transparent" is necessary to make drag-and-drop works in empty area. -->
             <!-- datagrid: https://docs.microsoft.com/zh-cn/windows/communitytoolkit/getting-started -->
             <controls:DataGrid.Resources>
                 <vm:StatusConverter x:Key="StatusConverter"/>

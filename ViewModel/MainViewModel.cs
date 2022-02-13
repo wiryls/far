@@ -1,4 +1,6 @@
-﻿using System.Windows.Input;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Windows.Input;
 
 namespace FAR.ViewModel
 {
@@ -20,11 +22,15 @@ namespace FAR.ViewModel
 
         private void ImportFiles(object parameter)
         {
-            //if (dialog.ShowDialog() == true)
-            //{
-            //    //foreach (var file in dialog.FileNames)
-            //    //    lbFiles.Items.Add(Path.GetFileName(filename));
-            //}
+            if (parameter is List<string> list)
+            {
+                foreach (var file in list)
+                    Debug.WriteLine(file);
+            }
+            else
+            {
+                Debug.WriteLine($"Command ImportFiles: unsupported parameter {parameter}");
+            }
         }
 
         private void Todo(object parameter)
