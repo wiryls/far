@@ -53,31 +53,8 @@ namespace FAR
             // Note for resize:
             // https://github.com/microsoft/microsoft-ui-xaml/issues/6353#issuecomment-974619032
             // https://github.com/microsoft/microsoft-ui-xaml/issues/6353#issuecomment-991837288
-        }
-
-        private void OnTestDropFile(object sender, DragEventArgs e)
-        {
-            if (ViewModel.ImportCommand.CanExecute(null) &&
-                e.DataView.Contains(StandardDataFormats.StorageItems))
-            {
-                e.AcceptedOperation = DataPackageOperation.Link;
-                e.DragUIOverride.IsCaptionVisible = false;
-            }
-
-            // References:
-            // https://github.com/eleanorleffler/WinUI3_Problems_DragDropFile/blob/a6cbb1c74fdbd219d4f9d1fbed38623bb6ebcb78/DragDropFileWinUI/DragDropFileWinUI/MainPage.xaml.cs
-            // https://stackoverflow.com/a/1863819
-        }
-
-        private async void OnDropFile(object sender, DragEventArgs e)
-        {
-            if (e.DataView.Contains(StandardDataFormats.StorageItems))
-            {
-                var items = await e.DataView.GetStorageItemsAsync();
-                var paths = items.Select(i => i.Path).ToList();
-                if (paths.Count != 0)
-                    ViewModel.ImportCommand.Execute(paths);
-            }
+            // And pay attention to this proposal:
+            // https://github.com/microsoft/microsoft-ui-xaml/issues/2731
         }
     }
 }

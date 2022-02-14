@@ -4,13 +4,12 @@ using System.Windows.Input;
 
 namespace FAR.ViewModel
 {
-    internal class MainViewModel : ViewModelBase
+    internal class MainViewModel : ViewModelBase, IFilesDropped
     {
         public MainViewModel()
         {
             List = new List();
             RenameCommand = new DelegateCommand(Rename);
-            ImportCommand = new DelegateCommand(ImportFiles);
             DeleteCommand = new DelegateCommand(Todo);
             ClearCommand = new DelegateCommand(Todo);
         }
@@ -20,32 +19,31 @@ namespace FAR.ViewModel
 
         }
 
-        private void ImportFiles(object parameter)
-        {
-            if (parameter is List<string> list)
-            {
-                foreach (var file in list)
-                    Debug.WriteLine(file);
-            }
-            else
-            {
-                Debug.WriteLine($"Command ImportFiles: unsupported parameter {parameter}");
-            }
-        }
-
         private void Todo(object parameter)
         {
             // dummy
         }
 
+        public void OnFilesDropped(List<string> list)
+        {
+            foreach (var file in list)
+                Debug.WriteLine(file);
+        }
+
         public List List { get; private set; }
 
-        public ICommand RenameCommand { get; private set; }
+        public bool IsImportedRecursively
+        {
+            get { return isImportedRecursively; }
+            set { isImportedRecursively = value; OnPropertyChanged(); }
+        }
 
-        public ICommand ImportCommand { get; private set; }
+        public ICommand RenameCommand { get; private set; }
 
         public ICommand DeleteCommand { get; private set; }
 
         public ICommand ClearCommand { get; private set; }
+
+        private bool isImportedRecursively = false;
     }
 }

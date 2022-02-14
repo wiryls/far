@@ -48,7 +48,6 @@ namespace FAR.ViewModel
         public object Convert(object value, Type targetType, object parameter, string language)
         {
             return (value as Change)
-                .Where(x => x != null)
                 .Select(x => x.Type switch
                 {
                     Operation.Action.Retain => new Run { Text = x.Text },

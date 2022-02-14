@@ -12,12 +12,12 @@
             <vm:MainViewModel x:Name="ViewModel"/>
         </Grid.DataContext>
         <StackPanel x:Name="AppTitleBar" Grid.Row="0" Margin="4" Orientation="Horizontal">
-            <SplitButton Margin="4,0,0,0" AllowDrop="True" DragEnter="OnTestDropFile" Drop="OnDropFile">
+            <SplitButton Margin="4,0,0,0" vm:DropFilesBehaviorExtension.IsEnable="True">
                 <!-- TODO: write a FileOrFolderPicker -->
                 <SplitButton.Flyout>
                     <Flyout>
                         <StackPanel>
-                            <ToggleSwitch x:Uid="Recursion" IsOn="False"/>
+                            <ToggleSwitch x:Uid="Recursion" IsOn="{Binding IsImportedRecursively, Mode=TwoWay}"/>
                         </StackPanel>
                     </Flyout>
                 </SplitButton.Flyout>
@@ -48,10 +48,8 @@
             AutoGenerateColumns="False"
             IsReadOnly="True"
             CanUserReorderColumns="False"
-            AllowDrop="True"
             Background="Transparent"
-            DragEnter="OnTestDropFile"
-            Drop="OnDropFile">
+            vm:DropFilesBehaviorExtension.IsEnable="True">
             <!-- Background="Transparent" is necessary to make drag-and-drop works in empty area. -->
             <!-- datagrid: https://docs.microsoft.com/zh-cn/windows/communitytoolkit/getting-started -->
             <controls:DataGrid.Resources>
@@ -70,7 +68,7 @@
                 <controls:DataGridTemplateColumn x:Uid="View" Tag="View" MinWidth="256">
                     <controls:DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Margin="12,0" VerticalAlignment="Center" vm:TextBlockExtensions.BindableInlines="{Binding View, Converter={StaticResource ChangeConverter}}"/>
+                            <TextBlock Margin="12,0" VerticalAlignment="Center" vm:TextBlockExtension.BindableInlines="{Binding View, Converter={StaticResource ChangeConverter}}"/>
                             <!-- inlines: https://github.com/wiryls/far/blob/deprecated/wpf/MainWindow.xaml#L132 -->
                         </DataTemplate>
                     </controls:DataGridTemplateColumn.CellTemplate>

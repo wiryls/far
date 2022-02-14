@@ -50,7 +50,7 @@ namespace FAR
         }
     }
 
-    public class Operation
+    public struct Operation
     {
         public enum Action
         {
