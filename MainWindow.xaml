@@ -40,7 +40,7 @@
         <controls:DataGrid
             Grid.Row="2"
             Margin="8,4"
-            ItemsSource="{Binding List}"
+            ItemsSource="{Binding Items}"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch"
             HorizontalScrollBarVisibility="Visible"
@@ -48,6 +48,7 @@
             AutoGenerateColumns="False"
             IsReadOnly="True"
             CanUserReorderColumns="False"
+            CanUserSortColumns="True"
             Background="Transparent"
             vm:DropFilesBehaviorExtension.IsEnable="True">
             <!-- Background="Transparent" is necessary to make drag-and-drop works in empty area. -->

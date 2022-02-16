@@ -8,7 +8,7 @@ namespace FAR.ViewModel
     {
         public MainViewModel()
         {
-            List = new List();
+            Items = new Items();
             RenameCommand = new DelegateCommand(Rename);
             DeleteCommand = new DelegateCommand(Todo);
             ClearCommand = new DelegateCommand(Todo);
@@ -30,7 +30,7 @@ namespace FAR.ViewModel
                 Debug.WriteLine(file);
         }
 
-        public List List { get; private set; }
+        public Items Items { get; private set; }
 
         public bool IsImportedRecursively
         {

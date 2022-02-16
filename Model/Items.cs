@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace FAR
 {
-    public class List : ObservableCollection<Item>
+    public class Items : ObservableCollection<Item>
     {
-        public List() : base()
+        public Items() : base()
         {
             Add(new Item { Stat = Status.Todo, Path = "/user/bin", View = new Change { new Operation { Type = Operation.Action.Insert, Text = "nooo" } } });
             Add(new Item { Stat = Status.Fail, Path = "/user/local", View = new Change { new Operation { Type = Operation.Action.Insert, Text = "nooo" } } });
@@ -14,6 +14,7 @@ namespace FAR
             Add(new Item { Stat = Status.Done, Path = "/etc/apt", View = new Change { new Operation { Type = Operation.Action.Retain, Text = "nooo" } } });
             Add(new Item { Stat = Status.Fail, Path = "/etc", View = new Change { new Operation { Type = Operation.Action.Delete, Text = "nooo" } } });
             Add(new Item { Stat = Status.Lost, Path = "/user/local/bin", View = new Change { new Operation { Type = Operation.Action.Insert, Text = "nooo" }, new Operation { Type = Operation.Action.Delete, Text = "what" } } });
+
         }
     }
 
