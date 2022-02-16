@@ -133,10 +133,10 @@
     <value>Pattern</value>
   </data>
   <data name="Recursion.OffContent" xml:space="preserve">
-    <value>No Recursion</value>
+    <value>Recursive search disabled</value>
   </data>
   <data name="Recursion.OnContent" xml:space="preserve">
-    <value>Recursive Search</value>
+    <value>Recursive search</value>
   </data>
   <data name="Rename.AccessKey" xml:space="preserve">
     <value>R</value>

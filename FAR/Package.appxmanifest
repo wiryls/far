@@ -7,7 +7,7 @@
   IgnorableNamespaces="uap rescap">
 
   <Identity
-    Name="f72a3a02-eaeb-4aeb-9258-3153d67bc307"
+    Name="4b10bf72-af37-4242-a40f-2ced40696b13"
     Publisher="CN=II"
     Version="1.0.0.0" />
 
@@ -23,8 +23,8 @@
   </Dependencies>
 
   <Resources>
-	<Resource Language="en-US"/>
-	<Resource Language="zh-CN"/>
+    <Resource Language="en-US"/>
+    <Resource Language="zh-CN"/>
   </Resources>
 
   <Applications>
