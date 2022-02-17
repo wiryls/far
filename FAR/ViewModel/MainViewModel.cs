@@ -30,8 +30,6 @@ namespace Far.ViewModel
                 Debug.WriteLine(file);
         }
 
-        public Items Items { get; private set; }
-
         public bool IsImportedRecursively
         {
             get { return isImportedRecursively; }
@@ -43,6 +41,8 @@ namespace Far.ViewModel
         public ICommand DeleteCommand { get; private set; }
 
         public ICommand ClearCommand { get; private set; }
+
+        public Items Items { get; private set; }
 
         private bool isImportedRecursively = false;
     }
