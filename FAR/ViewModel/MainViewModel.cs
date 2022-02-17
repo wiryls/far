@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Windows.Input;
 
-namespace FAR.ViewModel
+namespace Far.ViewModel
 {
     internal class MainViewModel : ViewModelBase, IFilesDropped
     {

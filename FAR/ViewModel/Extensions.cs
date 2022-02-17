@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Windows.ApplicationModel.DataTransfer;
 
-namespace FAR.ViewModel
+namespace Far.ViewModel
 {
     public static class TextBlockExtension
     {

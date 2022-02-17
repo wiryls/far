@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace FAR.ViewModel
+namespace Far.ViewModel
 {
     internal abstract class ViewModelBase : INotifyPropertyChanged
     {
