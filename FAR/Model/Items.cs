@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using Fx.Diff;
+using Change = Fx.Diff.Diff;
 
 namespace Far
 {

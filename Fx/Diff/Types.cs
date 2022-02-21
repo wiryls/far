@@ -1,6 +1,4 @@
-﻿using System.Text.RegularExpressions;
-
-namespace Fx.Diff
+﻿namespace Fx.Diff
 {
     public struct Operation
     {
@@ -15,11 +13,11 @@ namespace Fx.Diff
         public string Text;
     }
 
-    public class Change : List<Operation>, IComparer<Change>
+    public class Diff : List<Operation>, IComparer<Diff>
     {
-        public int Compare(Change? x, Change? y)
+        public int Compare(Diff? x, Diff? y)
         {
-            static IEnumerable<char> toChars(Change? x) => x?
+            static IEnumerable<char> toChars(Diff? x) => x?
                 .Where(x => x.Type != Operation.Action.Delete)
                 .SelectMany(x => x.Text.AsEnumerable()) ?? Enumerable.Empty<char>();
 
@@ -28,16 +26,4 @@ namespace Fx.Diff
                 .FirstOrDefault(x => x != 0);
         }
     }
-
-    internal interface IMatcher
-    {
-
-    }
-
-    public class Differ
-    {
-        private string pattern;
-        private string template;
-    }
-
 }
