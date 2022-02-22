@@ -15,6 +15,15 @@
 
     public class Diff : List<Operation>, IComparer<Diff>
     {
+        public Diff() : base() { }
+
+        public Diff(int capacity) : base(capacity) { }
+
+        public void Add(Operation.Action action, string text)
+        {
+            Add(new Operation { Type = action, Text = text });
+        }
+
         public int Compare(Diff? x, Diff? y)
         {
             static IEnumerable<char> toChars(Diff? x) => x?
