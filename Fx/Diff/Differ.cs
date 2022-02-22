@@ -7,6 +7,36 @@ namespace Fx.Diff
         Diff Transform(string input);
     }
 
+    public class DifferCreator
+    {
+        public DifferCreator()
+        {
+            Pattern = string.Empty;
+            Template = string.Empty;
+            EnableRegexp = false;
+            EnableIgnoreCase = true;
+        }
+
+        public IDiffer Create()
+        {
+            if (string.IsNullOrEmpty(Pattern))
+                return new EmptyDiffer();
+
+            if (EnableRegexp)
+                return new RegexDiffer(Pattern, Template, EnableIgnoreCase);
+
+            return new PlainDiffer(Pattern, Template, EnableIgnoreCase);
+        }
+
+        public string Pattern { get; set; }
+
+        public string Template { get; set; }
+
+        public bool EnableRegexp { get; set; }
+
+        public bool EnableIgnoreCase { get; set; }
+    }
+
     internal class RegexDiffer : IDiffer
     {
         private readonly Regex pattern;
@@ -34,20 +64,20 @@ namespace Fx.Diff
 
                 var retain = input.Substring(index, match.Index);
                 if (retain.Length != 0)
-                    output.Add(Operation.Action.Retain, retain);
+                    output.Add(Action.Retain, retain);
 
                 var delete = input.Substring(match.Index, match.Length);
                 if (delete.Length != 0)
-                    output.Add(Operation.Action.Delete, delete);
+                    output.Add(Action.Delete, delete);
 
                 if (insert.Length != 0)
-                    output.Add(Operation.Action.Insert, insert);
+                    output.Add(Action.Insert, insert);
 
                 index = match.Index + match.Length;
             }
 
             if (index != input.Length)
-                output.Add(Operation.Action.Insert, input[index..]);
+                output.Add(Action.Insert, input[index..]);
 
             output.Capacity = output.Count;
             return output;
@@ -84,21 +114,32 @@ namespace Fx.Diff
                     break;
 
                 if (match != index)
-                    output.Add(Operation.Action.Retain, input.Substring(index, match));
+                    output.Add(Action.Retain, input.Substring(index, match));
 
-                output.Add(Operation.Action.Delete, pattern);
+                output.Add(Action.Delete, pattern);
 
                 if (template.Length != 0)
-                    output.Add(Operation.Action.Insert, template);
+                    output.Add(Action.Insert, template);
 
                 index = match + input.Length;
             }
 
             if (index != total)
-                output.Add(Operation.Action.Insert, input[index..]);
+                output.Add(Action.Insert, input[index..]);
 
             output.Capacity = output.Count;
             return output;
+        }
+    }
+
+    internal class EmptyDiffer : IDiffer
+    {
+        public Diff Transform(string input)
+        {
+            return new Diff(1)
+            {
+                { Action.Retain, input }
+            };
         }
     }
 }

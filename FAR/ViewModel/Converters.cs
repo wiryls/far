@@ -7,6 +7,7 @@ using System.Linq;
 using Windows.UI;
 using Windows.UI.Text;
 using Fx.Diff;
+using Action = Fx.Diff.Action;
 
 namespace Far.ViewModel
 {
@@ -94,9 +95,9 @@ namespace Far.ViewModel
             return (value as Diff)
                 .Select(x => x.Type switch
                 {
-                    Operation.Action.Retain => new Run { Text = x.Text },
-                    Operation.Action.Insert => new Run { Text = x.Text, Foreground = Insert, },
-                    Operation.Action.Delete => new Run { Text = x.Text, Foreground = Delete, TextDecorations = TextDecorations.Strikethrough },
+                    Action.Retain => new Run { Text = x.Text },
+                    Action.Insert => new Run { Text = x.Text, Foreground = Insert, },
+                    Action.Delete => new Run { Text = x.Text, Foreground = Delete, TextDecorations = TextDecorations.Strikethrough },
                     _ => null
                 })
                 .Where(x => x != null)

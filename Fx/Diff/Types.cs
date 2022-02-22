@@ -1,14 +1,14 @@
 ﻿namespace Fx.Diff
 {
+    public enum Action
+    {
+        Retain,
+        Insert,
+        Delete,
+    }
+
     public struct Operation
     {
-        public enum Action
-        {
-            Retain,
-            Insert,
-            Delete,
-        }
-
         public Action Type;
         public string Text;
     }
@@ -19,7 +19,7 @@
 
         public Diff(int capacity) : base(capacity) { }
 
-        public void Add(Operation.Action action, string text)
+        public void Add(Action action, string text)
         {
             Add(new Operation { Type = action, Text = text });
         }
@@ -27,12 +27,22 @@
         public int Compare(Diff? x, Diff? y)
         {
             static IEnumerable<char> toChars(Diff? x) => x?
-                .Where(x => x.Type != Operation.Action.Delete)
+                .Where(x => x.Type != Action.Delete)
                 .SelectMany(x => x.Text.AsEnumerable()) ?? Enumerable.Empty<char>();
 
             return Enumerable
                 .Zip(toChars(x), toChars(y), (l, r) => l - r)
                 .FirstOrDefault(x => x != 0);
+        }
+
+        public string Source
+        { 
+            get { return string.Concat(this.Where(x => x.Type != Action.Insert).Select(x => x.Text)); }
+        }
+
+        public string Target
+        {
+            get { return string.Concat(this.Where(x => x.Type != Action.Delete).Select(x => x.Text)); }
         }
     }
 }
