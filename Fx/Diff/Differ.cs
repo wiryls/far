@@ -45,7 +45,8 @@ namespace Fx.Diff
         public RegexDiffer(string pattern, string template, bool ignoreCase)
         {
             var o = (ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None)
-                | RegexOptions.Compiled;
+                | RegexOptions.Compiled
+                | RegexOptions.CultureInvariant;
 
             this.pattern = new Regex(pattern, o);
             this.template = template;
@@ -62,7 +63,7 @@ namespace Fx.Diff
                 if (string.Compare(input, match.Index, insert, 0, match.Length) == 0)
                     continue;
 
-                var retain = input.Substring(index, match.Index);
+                var retain = input[index..match.Index];
                 if (retain.Length != 0)
                     output.Add(Action.Retain, retain);
 
@@ -114,14 +115,14 @@ namespace Fx.Diff
                     break;
 
                 if (match != index)
-                    output.Add(Action.Retain, input.Substring(index, match));
+                    output.Add(Action.Retain, input[index..match]);
 
                 output.Add(Action.Delete, pattern);
 
                 if (template.Length != 0)
                     output.Add(Action.Insert, template);
 
-                index = match + input.Length;
+                index = match + pattern.Length;
             }
 
             if (index != total)
