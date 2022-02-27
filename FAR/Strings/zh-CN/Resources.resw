@@ -120,10 +120,10 @@
   <data name="CaseSensitive.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>区分大小写</value>
   </data>
-  <data name="MenuClearAll.Text" xml:space="preserve">
+  <data name="MenuClearAll.Label" xml:space="preserve">
     <value>移除全部</value>
   </data>
-  <data name="MenuClearSelected.Text" xml:space="preserve">
+  <data name="MenuClearSelected.Label" xml:space="preserve">
     <value>移除选中</value>
   </data>
   <data name="Path.Header" xml:space="preserve">

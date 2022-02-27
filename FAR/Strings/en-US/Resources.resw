@@ -123,10 +123,10 @@
   <data name="CaseSensitive.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Case sensitive</value>
   </data>
-  <data name="MenuClearAll.Text" xml:space="preserve">
+  <data name="MenuClearAll.Label" xml:space="preserve">
     <value>Clear all</value>
   </data>
-  <data name="MenuClearSelected.Text" xml:space="preserve">
+  <data name="MenuClearSelected.Label" xml:space="preserve">
     <value>Clear selected</value>
   </data>
   <data name="Path.Header" xml:space="preserve">
