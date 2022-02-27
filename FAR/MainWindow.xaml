@@ -50,6 +50,7 @@
             CanUserReorderColumns="False"
             CanUserSortColumns="True"
             Background="Transparent"
+            SelectedItem="1"
             vm:DropFilesBehaviorExtension.IsEnable="True">
             <!-- Background="Transparent" is necessary to make drag-and-drop works in empty area. -->
             <!-- datagrid: https://docs.microsoft.com/zh-cn/windows/communitytoolkit/getting-started -->
@@ -57,6 +58,12 @@
                 <vm:StatusConverter x:Key="StatusConverter"/>
                 <vm:ChangeConverter x:Key="ChangeConverter"/>
             </controls:DataGrid.Resources>
+            <controls:DataGrid.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem x:Uid="MenuClearSelected" Command="{Binding ClearSelectedCommand}"/>
+                    <MenuFlyoutItem x:Uid="MenuClearAll" Command="{Binding ClearAllCommand}"/>
+                </MenuFlyout>
+            </controls:DataGrid.ContextFlyout>
             <controls:DataGrid.Columns>
                 <controls:DataGridTemplateColumn x:Uid="Stat" Tag="Stat" CanUserResize="False">
                     <controls:DataGridTemplateColumn.CellTemplate>

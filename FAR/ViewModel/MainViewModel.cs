@@ -31,8 +31,8 @@ namespace Far.ViewModel
             differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
 
             RenameCommand = new DelegateCommand(Rename);
-            DeleteCommand = new DelegateCommand(Todo);
-            ClearCommand = new DelegateCommand(Todo);
+            ClearSelectedCommand = new DelegateCommand(Todo);
+            ClearAllCommand = new DelegateCommand(Todo);
             Items = new Items();
 
             OnFilesDropped(new List<string>
@@ -60,14 +60,15 @@ namespace Far.ViewModel
         private void Todo(object parameter)
         {
             // dummy
+            Debug.WriteLine("Todo");
         }
 
         public void OnFilesDropped(List<string> list)
         {
             foreach (var path in list)
             {
-                var dir = Path.GetDirectoryName(path) ?? string.Empty;
-                var name = Path.GetFileName(path) ?? string.Empty;
+                var name = Path.GetFileName(path);
+                var dir = Path.GetDirectoryName(path);
                 if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(dir))
                     Items.Add(dir, differ(name));
             }
@@ -105,9 +106,9 @@ namespace Far.ViewModel
 
         public ICommand RenameCommand { get; private set; }
 
-        public ICommand DeleteCommand { get; private set; }
+        public ICommand ClearSelectedCommand { get; private set; }
 
-        public ICommand ClearCommand { get; private set; }
+        public ICommand ClearAllCommand { get; private set; }
 
         public Items Items { get; private set; }
     }
