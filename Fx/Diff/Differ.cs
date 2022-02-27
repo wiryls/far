@@ -2,39 +2,27 @@
 
 namespace Fx.Diff
 {
-    public interface IDiffer
+    public delegate Diff Differ(string input);
+
+    public static class DifferCreator
     {
-        Diff Transform(string input);
+        public static Differ Create(string pattern, string template, bool enableIgnoreCase, bool enableRegex)
+        {
+            var differ = null as IDiffer;
+            if /**/ (string.IsNullOrEmpty(pattern))
+                differ = new EmptyDiffer();
+            else if (enableRegex)
+                differ = new RegexDiffer(pattern, template, enableIgnoreCase);
+            else
+                differ = new PlainDiffer(pattern, template, enableIgnoreCase);
+
+            return differ.Transform;
+        }
     }
 
-    public class DifferCreator
+    internal interface IDiffer
     {
-        public DifferCreator()
-        {
-            Pattern = string.Empty;
-            Template = string.Empty;
-            EnableRegexp = false;
-            EnableIgnoreCase = true;
-        }
-
-        public IDiffer Create()
-        {
-            if (string.IsNullOrEmpty(Pattern))
-                return new EmptyDiffer();
-
-            if (EnableRegexp)
-                return new RegexDiffer(Pattern, Template, EnableIgnoreCase);
-
-            return new PlainDiffer(Pattern, Template, EnableIgnoreCase);
-        }
-
-        public string Pattern { get; set; }
-
-        public string Template { get; set; }
-
-        public bool EnableRegexp { get; set; }
-
-        public bool EnableIgnoreCase { get; set; }
+        Diff Transform(string input);
     }
 
     internal class RegexDiffer : IDiffer
@@ -55,7 +43,7 @@ namespace Fx.Diff
         public Diff Transform(string input)
         {
             var matches = pattern.Matches(input);
-            var output = new Diff(1 + matches.Count * 3);
+            var output = new Diff(1 + 3 * matches.Count);
             var index = 0;
             foreach (Match match in matches)
             {
@@ -78,7 +66,7 @@ namespace Fx.Diff
             }
 
             if (index != input.Length)
-                output.Add(Action.Insert, input[index..]);
+                output.Add(Action.Retain, input[index..]);
 
             output.Capacity = output.Count;
             return output;
@@ -126,7 +114,7 @@ namespace Fx.Diff
             }
 
             if (index != total)
-                output.Add(Action.Insert, input[index..]);
+                output.Add(Action.Retain, input[index..]);
 
             output.Capacity = output.Count;
             return output;

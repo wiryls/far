@@ -11,7 +11,10 @@ namespace FxTests
         {
             var xss = new List<(string, string, List<(string, string)>)>
             {
-                ( "", "", new() { ( "", "" ) }),
+                ( "", "", new() {
+                    ( "", "" ),
+                    ( "?", "?" ) }
+                ),
                 ( "log", "ln", new() {
                     ( "ln(e) = 1", "ln(e) = 1" ),
                     ( "\tlog.d(\"?\")", "\tln.d(\"?\")" ),
@@ -44,6 +47,7 @@ namespace FxTests
 
             var differ = creator.Create();
             var output = differ.Transform(x.input);
+            Assert.AreEqual(x.input, output.Source);
             Assert.AreEqual(x.expected, output.Target);
         }
 
@@ -77,6 +81,7 @@ namespace FxTests
 
             var differ = creator.Create();
             var output = differ.Transform(x.input);
+            Assert.AreEqual(x.input, output.Source);
             Assert.AreEqual(x.expected, output.Target);
         }
     }

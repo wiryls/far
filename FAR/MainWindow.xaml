@@ -17,7 +17,7 @@
                 <SplitButton.Flyout>
                     <Flyout>
                         <StackPanel>
-                            <ToggleSwitch x:Uid="Recursion" IsOn="{Binding IsImportedRecursively, Mode=TwoWay}"/>
+                            <ToggleSwitch x:Uid="Recursion" IsOn="{Binding EnableRecursiveImport, Mode=TwoWay}"/>
                         </StackPanel>
                     </Flyout>
                 </SplitButton.Flyout>
@@ -25,14 +25,14 @@
             </SplitButton>
         </StackPanel>
         <Grid Grid.Row="1" Margin="4" Grid.RowDefinitions="Auto,Auto" Grid.ColumnDefinitions="*,Auto">
-            <TextBox x:Uid="Pattern" Grid.Row="0" Grid.Column="0" Margin="4"/>
-            <TextBox x:Uid="Template" Grid.Row="1" Grid.Column="0" Margin="4"/>
+            <TextBox x:Uid="Pattern" Grid.Row="0" Grid.Column="0" Margin="4" Text="{Binding Pattern, Mode=TwoWay}"/>
+            <TextBox x:Uid="Template" Grid.Row="1" Grid.Column="0" Margin="4" Text="{Binding Template, Mode=TwoWay}"/>
             <Button x:Uid="Rename" Grid.Row="1" Grid.Column="1" Margin="4" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
             <StackPanel Grid.Row="0" Grid.Column="1" Margin="4" Orientation="Horizontal">
-                <ToggleButton x:Uid="CaseSensitive" VerticalAlignment="Stretch" Margin="0,0,4,0">
+                <ToggleButton x:Uid="CaseSensitive" VerticalAlignment="Stretch" Margin="0,0,4,0" IsChecked="{Binding EnableCaseSensitive, Mode=TwoWay}">
                     <PathIcon Data="F0 M16,16z M0,0z M7.495,9.052L8.386,11.402 9.477,11.402 6.237,3 5.217,3 2,11.402 3.095,11.402 3.933,9.052 7.495,9.052z M5.811,4.453L5.855,4.588 7.173,8.162 4.255,8.162 5.562,4.588 5.606,4.453 5.644,4.297 5.676,4.145 5.697,4.019 5.72,4.019 5.744,4.145 5.773,4.297 5.811,4.453z M13.795,10.464L13.795,11.4 14.755,11.4 14.755,7.498C14.755,6.779 14.575,6.226 14.216,5.837 13.857,5.448 13.327,5.254 12.628,5.254 12.429,5.254 12.227,5.273 12.022,5.31A4.875,4.875,0,0,0,10.944,5.636A2.081,2.081,0,0,0,10.601,5.824L10.601,6.808C10.867,6.578,11.167,6.397,11.505,6.268A2.927,2.927,0,0,1,12.557,6.075C12.745,6.075,12.915,6.103,13.07,6.16A0.98,0.98,0,0,1,13.466,6.427C13.575,6.548 13.659,6.706 13.718,6.899 13.777,7.092 13.806,7.326 13.806,7.599L11.995,7.851C11.651,7.898,11.355,7.977,11.107,8.088A1.947,1.947,0,0,0,10.492,8.507A1.6,1.6,0,0,0,10.132,9.087A2.134,2.134,0,0,0,10.015,9.808C10.015,10.054 10.057,10.283 10.139,10.496 10.221,10.709 10.342,10.893 10.502,11.047 10.662,11.201 10.862,11.323 11.1,11.413 11.338,11.503 11.613,11.548 11.926,11.548 12.328,11.548 12.686,11.456 13.001,11.27 13.316,11.084 13.573,10.816 13.772,10.464L13.795,10.464z M11.667,8.721C11.843,8.657,12.068,8.607,12.341,8.572L13.806,8.367 13.806,8.976C13.806,9.222,13.765,9.451,13.683,9.664A1.727,1.727,0,0,1,13.34,10.221A1.573,1.573,0,0,1,12.816,10.593A1.63,1.63,0,0,1,12.148,10.728C11.961,10.728,11.795,10.703,11.653,10.652A1.03,1.03,0,0,1,11.296,10.441A0.896,0.896,0,0,1,11.076,10.125A1.005,1.005,0,0,1,11,9.732A1.6,1.6,0,0,1,11.055,9.292A0.739,0.739,0,0,1,11.257,8.958A1.16,1.16,0,0,1,11.667,8.721z"/>
                 </ToggleButton>
-                <ToggleButton x:Uid="UseRegex" VerticalAlignment="Stretch" Margin="4,0,0,0">
+                <ToggleButton x:Uid="UseRegex" VerticalAlignment="Stretch" Margin="4,0,0,0" IsChecked="{Binding EnableRegex, Mode=TwoWay}">
                     <PathIcon Data="M10.012 2h.976v3.113l2.56-1.557.486.885L11.47 6l2.564 1.559-.485.885-2.561-1.557V10h-.976V6.887l-2.56 1.557-.486-.885L9.53 6 6.966 4.441l.485-.885 2.561 1.557V2zM2 10h4v4H2v-4z"/>
                 </ToggleButton>
             </StackPanel>

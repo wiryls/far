@@ -6,14 +6,16 @@ namespace Far
 {
     public class Items : ObservableCollection<Item>
     {
-        public Items() : base()
+        public void Add(string dir, Change view)
         {
-            Add(new Item { Stat = Status.Todo, Path = "/user/bin", View = new Change { new Operation { Type = Action.Insert, Text = "nooo" } } });
-            Add(new Item { Stat = Status.Fail, Path = "/user/local", View = new Change { new Operation { Type = Action.Insert, Text = "nooo" } } });
-            Add(new Item { Stat = Status.Fail, Path = "/", View = new Change { new Operation { Type = Action.Retain, Text = "/nooo" } } });
-            Add(new Item { Stat = Status.Done, Path = "/etc/apt", View = new Change { new Operation { Type = Action.Retain, Text = "nooo" } } });
-            Add(new Item { Stat = Status.Fail, Path = "/etc", View = new Change { new Operation { Type = Action.Delete, Text = "nooo" } } });
-            Add(new Item { Stat = Status.Lost, Path = "/user/local/bin", View = new Change { new Operation { Type = Action.Insert, Text = "nooo" }, new Operation { Type = Action.Delete, Text = "what" } } });
+            Add(new Item
+            {
+                Stat = Status.Todo,
+                View = view,
+                Path = dir,
+                Source = view.Source,
+                Target = view.Target,
+            });
         }
     }
 

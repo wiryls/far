@@ -15,7 +15,7 @@ namespace Far.ViewModel
 
         protected virtual bool SetProperty<T>(ref T property, T value, [CallerMemberName] string name = "")
         {
-            var update = EqualityComparer<T>.Default.Equals(property, value);
+            var update = !EqualityComparer<T>.Default.Equals(property, value);
             if (update)
             {
                 property = value;
