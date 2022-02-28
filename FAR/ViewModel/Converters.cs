@@ -11,7 +11,7 @@ using Action = Fx.Diff.Action;
 
 namespace Far.ViewModel
 {
-    internal class StatusConverter : IValueConverter
+    public class StatusConverter : IValueConverter
     {
         // We may use a regexp:
         // - pattern: (.{66,66})
@@ -61,9 +61,8 @@ namespace Far.ViewModel
             "8.06 5.82 5.82 0 0 0-7.43-.74 6.06 6.06 0 0 0 .5 10.29 5.81 5.81 " +
             "0 0 0 3.92.58zM7.375 6h1.25V5h-1.25v1zm1.25 1v4h-1.25V7h1.25z";
 
-        public object Convert(object value, Type targetType, object parameter, string language)
-        {
-            return (Status)value switch
+        public object Convert(object value, Type targetType, object parameter, string language) =>
+            (Status)value switch
             {
                 Status.Todo => ToDo,
                 Status.Done => Done,
@@ -71,18 +70,15 @@ namespace Far.ViewModel
                 Status.Lost => Lost,
                 _ => ToDo,
             };
-        }
 
-        public object ConvertBack(object value, Type targetType, object parameter, string language)
-        {
-            return DependencyProperty.UnsetValue;
+        public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+            DependencyProperty.UnsetValue;
 
-            // Best practice when not implementing IValueConvert.ConvertBack
-            // https://stackoverflow.com/a/265544
-        }
+        // Best practice when not implementing IValueConvert.ConvertBack
+        // https://stackoverflow.com/a/265544
     }
 
-    internal class ChangeConverter : IValueConverter
+    public class ChangeConverter : IValueConverter
     {
         private static readonly Brush Insert = new SolidColorBrush(Color.FromArgb(0xFF, 0x00, 0x79, 0x47));
         private static readonly Brush Delete = new SolidColorBrush(Color.FromArgb(0xFF, 0xDC, 0x14, 0x3C));
@@ -90,28 +86,36 @@ namespace Far.ViewModel
         // SolidColorBrush Class
         // https://docs.microsoft.com/en-us/uwp/api/windows.ui.xaml.media.solidcolorbrush
 
-        public object Convert(object value, Type targetType, object parameter, string language)
-        {
-            return (value as Diff)
-                .Select(x => x.Type switch
-                {
-                    Action.Retain => new Run { Text = x.Text },
-                    Action.Insert => new Run { Text = x.Text, Foreground = Insert, },
-                    Action.Delete => new Run { Text = x.Text, Foreground = Delete, TextDecorations = TextDecorations.Strikethrough },
-                    _ => null
-                })
-                .Where(x => x != null)
-                ?? DependencyProperty.UnsetValue;
+        public object Convert(object value, Type targetType, object parameter, string language) =>
+            (value as Diff)
+            .Select(x => x.Type switch
+            {
+                Action.Retain => new Run { Text = x.Text },
+                Action.Insert => new Run { Text = x.Text, Foreground = Insert, },
+                Action.Delete => new Run { Text = x.Text, Foreground = Delete, TextDecorations = TextDecorations.Strikethrough },
+                _ => null
+            })
+            .Where(x => x != null)
+            ?? DependencyProperty.UnsetValue;
 
-            // References:
-            // https://docs.microsoft.com/en-us/dotnet/standard/linq/
-            // https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/operators/null-coalescing-operator
-        }
+        // References:
+        // https://docs.microsoft.com/en-us/dotnet/standard/linq/
+        // https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/operators/null-coalescing-operator
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)
-        {
-            return DependencyProperty.UnsetValue;
-        }
+            => DependencyProperty.UnsetValue;
+    }
+
+    public class MessageToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, string language) =>
+            value is string s && !string.IsNullOrEmpty(s)
+            ? Visibility.Visible
+            : Visibility.Collapsed
+            ;
+
+        public object ConvertBack(object value, Type targetType, object parameter, string language)
+            => DependencyProperty.UnsetValue;
     }
 
     // Converter

@@ -1,4 +1,5 @@
 ﻿using Fx.Diff;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -19,6 +20,8 @@ namespace Far.ViewModel
 
         private string template;
 
+        private string patternError;
+
         private Differ differ;
 
         public MainViewModel()
@@ -28,19 +31,13 @@ namespace Far.ViewModel
             enableRegex = false;
             pattern = string.Empty;
             template = string.Empty;
+            patternError = string.Empty;
             differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
 
+            Items = new Items();
             RenameCommand = new DelegateCommand(Rename);
             ClearSelectedCommand = new DelegateCommand(Todo);
-            ClearAllCommand = new DelegateCommand(Todo);
-            Items = new Items();
-
-            OnFilesDropped(new List<string>
-            {
-                "/user/bin",
-                "/user/local",
-                "/etc/apt"
-            });
+            ClearAllCommand = new DelegateCommand(Todo, o => Items.Count != 0);
         }
 
         private void UpdateDiffer<T>(ref T property, T value, [CallerMemberName] string name = "")
@@ -48,8 +45,13 @@ namespace Far.ViewModel
             if (SetProperty(ref property, value, name)) try
             {
                 differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
+                if (!string.IsNullOrEmpty(PatternError))
+                    PatternError = string.Empty;
             }
-            catch { }
+            catch (Exception e)
+            {
+                PatternError = e.Message;
+            }
         }
 
         private void Rename(object parameter)
@@ -104,12 +106,18 @@ namespace Far.ViewModel
             set => UpdateDiffer(ref template, value);
         }
 
+        public string PatternError
+        {
+            get => patternError;
+            set => SetProperty(ref patternError, value);
+        }
+
+        public Items Items { get; private set; }
+
         public ICommand RenameCommand { get; private set; }
 
         public ICommand ClearSelectedCommand { get; private set; }
 
         public ICommand ClearAllCommand { get; private set; }
-
-        public Items Items { get; private set; }
     }
 }

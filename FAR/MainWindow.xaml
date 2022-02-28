@@ -25,8 +25,14 @@
             </SplitButton>
         </StackPanel>
         <Grid Grid.Row="1" Margin="4" Grid.RowDefinitions="Auto,Auto" Grid.ColumnDefinitions="*,Auto">
-            <TextBox x:Uid="Pattern" Grid.Row="0" Grid.Column="0" Margin="4" Text="{Binding Pattern, Mode=TwoWay}"/>
-            <TextBox x:Uid="Template" Grid.Row="1" Grid.Column="0" Margin="4" Text="{Binding Template, Mode=TwoWay}"/>
+            <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnDefinitions="*,Auto">
+                <Grid.Resources>
+                    <vm:MessageToVisibilityConverter x:Key="VisibilityConverter"/>
+                </Grid.Resources>
+                <TextBox Grid.Column="0" x:Uid="Pattern" Margin="4" IsSpellCheckEnabled="False" Text="{Binding Pattern, Mode=TwoWay}"/>
+                <PathIcon Grid.Column="1" Margin="4,4,8,4" Foreground="PaleVioletRed" VerticalAlignment="Center" ToolTipService.ToolTip="{Binding PatternError}" Visibility="{Binding PatternError, Converter={StaticResource VisibilityConverter}}"  Data="M7.56 1h.88l6.54 12.26-.44.74H1.44L1 13.26 7.56 1zM8 2.28L2.28 13H13.7L8 2.28zM8.625 12v-1h-1.25v1h1.25zm-1.25-2V6h1.25v4h-1.25z"/>
+            </Grid>
+            <TextBox x:Uid="Template" Grid.Row="1" Grid.Column="0" Margin="4" IsSpellCheckEnabled="False" Text="{Binding Template, Mode=TwoWay}"/>
             <Button x:Uid="Rename" Grid.Row="1" Grid.Column="1" Margin="4" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
             <StackPanel Grid.Row="0" Grid.Column="1" Margin="4" Orientation="Horizontal">
                 <ToggleButton x:Uid="CaseSensitive" VerticalAlignment="Stretch" Margin="0,0,4,0" IsChecked="{Binding EnableCaseSensitive, Mode=TwoWay}">

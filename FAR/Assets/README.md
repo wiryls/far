@@ -11,3 +11,4 @@ The following icons are from [codicons](https://github.com/microsoft/vscode-codi
 - [`info.svg`](https://github.com/microsoft/vscode-codicons/blob/main/src/icons/info.svg)
 - [`pass.svg`](https://github.com/microsoft/vscode-codicons/blob/main/src/icons/pass.svg)
 - [`regex.svg`](https://github.com/microsoft/vscode-codicons/blob/main/src/icons/regex.svg)
+- [`warning.svg`](https://github.com/microsoft/vscode-codicons/blob/main/src/icons/warning.svg)

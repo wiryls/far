@@ -139,10 +139,10 @@
     <value>Pattern</value>
   </data>
   <data name="Recursion.OffContent" xml:space="preserve">
-    <value>Recursive search disabled</value>
+    <value>No recursive import</value>
   </data>
   <data name="Recursion.OnContent" xml:space="preserve">
-    <value>Recursive search</value>
+    <value>Import files recursively</value>
   </data>
   <data name="Rename.AccessKey" xml:space="preserve">
     <value>R</value>
