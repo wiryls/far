@@ -102,8 +102,8 @@ namespace Far.ViewModel
         // https://docs.microsoft.com/en-us/dotnet/standard/linq/
         // https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/operators/null-coalescing-operator
 
-        public object ConvertBack(object value, Type targetType, object parameter, string language)
-            => DependencyProperty.UnsetValue;
+        public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+            DependencyProperty.UnsetValue;
     }
 
     public class MessageToVisibilityConverter : IValueConverter
@@ -114,8 +114,17 @@ namespace Far.ViewModel
             : Visibility.Collapsed
             ;
 
-        public object ConvertBack(object value, Type targetType, object parameter, string language)
-            => DependencyProperty.UnsetValue;
+        public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+            DependencyProperty.UnsetValue;
+    }
+
+    public class VisibilityToBoolConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, string language) =>
+            value is Visibility v && v == Visibility.Visible;
+
+        public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+            value is bool v && v ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // Converter

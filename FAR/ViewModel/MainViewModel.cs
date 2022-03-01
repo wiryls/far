@@ -1,9 +1,9 @@
 ﻿using Fx.Diff;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Windows.Input;
 
 namespace Far.ViewModel
@@ -28,7 +28,7 @@ namespace Far.ViewModel
         {
             enableRecursiveImport = false;
             enableIgnoreCase = false;
-            enableRegex = false;
+            enableRegex = true;
             pattern = string.Empty;
             template = string.Empty;
             patternError = string.Empty;
@@ -48,7 +48,7 @@ namespace Far.ViewModel
                 if (!string.IsNullOrEmpty(PatternError))
                     PatternError = string.Empty;
             }
-            catch (Exception e)
+            catch (RegexParseException e)
             {
                 PatternError = e.Message;
             }
