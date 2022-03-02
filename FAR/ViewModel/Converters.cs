@@ -106,10 +106,22 @@ namespace Far.ViewModel
             DependencyProperty.UnsetValue;
     }
 
-    public class MessageToVisibilityConverter : IValueConverter
+    public class WarningToMessageConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, string language) =>
-            value is string s && !string.IsNullOrEmpty(s)
+            value is ValueTuple<string, bool> v
+            ? v.Item1
+            : DependencyProperty.UnsetValue
+            ;
+
+        public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+            DependencyProperty.UnsetValue;
+    }
+
+    public class WarningToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, string language) =>
+            value is ValueTuple<string, bool> v && !string.IsNullOrEmpty(v.Item1)
             ? Visibility.Visible
             : Visibility.Collapsed
             ;
@@ -118,13 +130,34 @@ namespace Far.ViewModel
             DependencyProperty.UnsetValue;
     }
 
-    public class VisibilityToBoolConverter : IValueConverter
+    public class WarningToIsCheckedConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, string language) =>
-            value is Visibility v && v == Visibility.Visible;
+            value is ValueTuple<string, bool> v
+            ? v.Item2
+            : DependencyProperty.UnsetValue
+            ;
 
         public object ConvertBack(object value, Type targetType, object parameter, string language) =>
-            value is bool v && v ? Visibility.Visible : Visibility.Collapsed;
+            value is bool v
+            ? (null as string, v)
+            : DependencyProperty.UnsetValue
+            ;
+    }
+
+    public class WarningToIsOpenConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, string language) =>
+            value is ValueTuple<string, bool> v
+            ? v.Item2 && !string.IsNullOrEmpty(v.Item1)
+            : DependencyProperty.UnsetValue
+            ;
+
+        public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+            value is bool v
+            ? (null as string, v)
+            : DependencyProperty.UnsetValue
+            ;
     }
 
     // Converter

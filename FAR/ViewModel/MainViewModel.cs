@@ -11,17 +11,11 @@ namespace Far.ViewModel
     internal class MainViewModel : ViewModelBase, IFilesDropped
     {
         private bool enableRecursiveImport;
-
         private bool enableIgnoreCase;
-
         private bool enableRegex;
-
         private string pattern;
-
         private string template;
-
-        private string patternError;
-
+        private (string, bool) warning;
         private Differ differ;
 
         public MainViewModel()
@@ -31,7 +25,7 @@ namespace Far.ViewModel
             enableRegex = true;
             pattern = string.Empty;
             template = string.Empty;
-            patternError = string.Empty;
+            warning = (string.Empty, true);
             differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
 
             Items = new Items();
@@ -45,12 +39,12 @@ namespace Far.ViewModel
             if (SetProperty(ref property, value, name)) try
             {
                 differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
-                if (!string.IsNullOrEmpty(PatternError))
-                    PatternError = string.Empty;
+                if (!string.IsNullOrEmpty(Warning.Item1))
+                    Warning = (string.Empty, Warning.Item2);
             }
             catch (RegexParseException e)
             {
-                PatternError = e.Message;
+                Warning = (e.Message, Warning.Item2);
             }
         }
 
@@ -106,10 +100,10 @@ namespace Far.ViewModel
             set => UpdateDiffer(ref template, value);
         }
 
-        public string PatternError
+        public (string, bool) Warning
         {
-            get => patternError;
-            set => SetProperty(ref patternError, value);
+            get => warning;
+            set => SetProperty(ref warning, value.Item1 is null ? (warning.Item1, value.Item2) : value);
         }
 
         public Items Items { get; private set; }
