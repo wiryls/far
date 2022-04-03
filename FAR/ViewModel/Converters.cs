@@ -14,8 +14,8 @@ namespace Far.ViewModel
     public class StatusConverter : IValueConverter
     {
         // We may use a regexp:
-        // - pattern: (.{66,66})
-        // - tempalte: 1"+\n"
+        // - pattern : ([^"]{10,10})
+        // - tempalte: $1"+\n"
         //
         // to split the following strings.
 

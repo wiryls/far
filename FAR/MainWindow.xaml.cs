@@ -13,7 +13,7 @@ namespace Far
     /// </summary>
     public sealed partial class MainWindow : Window
     {
-        private const string title = "FaR";
+        private const string title = "FAR";
         private const int width = 800;
         private const int height = 600;
 
