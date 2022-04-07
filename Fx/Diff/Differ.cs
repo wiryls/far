@@ -9,7 +9,7 @@ namespace Fx.Diff
         public static Differ Create(string pattern, string template, bool enableIgnoreCase, bool enableRegex)
         {
             var differ = null as IDiffer;
-            if /**/ (string.IsNullOrEmpty(pattern))
+            if /**/ (string.IsNullOrEmpty(pattern) || (!enableIgnoreCase && !enableRegex && pattern == template))
                 differ = new EmptyDiffer();
             else if (enableRegex)
                 differ = new RegexDiffer(pattern, template, enableIgnoreCase);
@@ -96,11 +96,14 @@ namespace Fx.Diff
             var index = 0;
             var total = input.Length;
 
-            while (index < total)
+            for (var match = 0; match < total; match += pattern.Length)
             {
-                var match = input.IndexOf(pattern, index, option);
+                match = input.IndexOf(pattern, match, option);
                 if (match == -1)
                     break;
+
+                if (string.Compare(input, match, template, 0, template.Length) == 0)
+                    continue;
 
                 if (match != index)
                     output.Add(Action.Retain, input[index..match]);
