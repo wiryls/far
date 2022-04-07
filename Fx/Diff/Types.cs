@@ -23,12 +23,17 @@
             Add(new Operation { Type = action, Text = text });
 
         public int Compare(Diff? x, Diff? y) => Enumerable
-            .Zip(RetainInsertToChars(x), RetainInsertToChars(y), (l, r) => l - r)
+            .Zip(ReservedToChars(x), ReservedToChars(y), (l, r) => l - r)
             .FirstOrDefault(x => x != 0);
 
         public string Source
-        { 
-            get => string.Concat(this.Where(x => x.Type != Action.Insert).Select(x => x.Text));
+        {
+            get => Count == 1 && this[0].Type == Action.Retain
+                ? this[0].Text
+                : Count == 0
+                ? string.Empty
+                : string.Concat(this.Where(x => x.Type != Action.Insert).Select(x => x.Text))
+                ;
         }
 
         public string Target
@@ -36,9 +41,8 @@
             get => string.Concat(this.Where(x => x.Type != Action.Delete).Select(x => x.Text));
         }
 
-        private static IEnumerable<char> RetainInsertToChars(Diff? x) => x?
+        private static IEnumerable<char> ReservedToChars(Diff? x) => x?
             .Where(x => x.Type != Action.Delete)
             .SelectMany(x => x.Text.AsEnumerable()) ?? Enumerable.Empty<char>();
-
     }
 }
