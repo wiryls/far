@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Fx.Diff;
 
-namespace FxTests
+namespace FxTests.Diff
 {
     [TestClass]
     public class DIfferTest
@@ -37,16 +37,8 @@ namespace FxTests
         [DynamicData(nameof(CaseDifferWithRegex), DynamicDataSourceType.Method)]
         public void TestDifferWithRegex((string pattern, string template, string input, string expected) x)
         {
-            var creator = new DifferCreator
-            {
-                Pattern = x.pattern,
-                Template = x.template,
-                EnableRegexp = true,
-                EnableIgnoreCase = false,
-            };
-
-            var differ = creator.Create();
-            var output = differ.Transform(x.input);
+            var differ = DifferCreator.Create(x.pattern, x.template, false, true);
+            var output = differ(x.input);
             Assert.AreEqual(x.input, output.Source);
             Assert.AreEqual(x.expected, output.Target);
         }
@@ -71,16 +63,8 @@ namespace FxTests
         [DynamicData(nameof(CaseDifferWithPlain), DynamicDataSourceType.Method)]
         public void TestDifferWithPlain((string pattern, string template, string input, string expected) x)
         {
-            var creator = new DifferCreator
-            {
-                Pattern = x.pattern,
-                Template = x.template,
-                EnableRegexp = false,
-                EnableIgnoreCase = false,
-            };
-
-            var differ = creator.Create();
-            var output = differ.Transform(x.input);
+            var differ = DifferCreator.Create(x.pattern, x.template, false, false);
+            var output = differ(x.input);
             Assert.AreEqual(x.input, output.Source);
             Assert.AreEqual(x.expected, output.Target);
         }
