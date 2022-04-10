@@ -39,7 +39,4 @@
   <ItemGroup>
     <ProjectReference Include="..\Fx\Fx.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Model\" />
-  </ItemGroup>
 </Project>

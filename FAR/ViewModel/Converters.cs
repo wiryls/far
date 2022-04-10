@@ -88,15 +88,16 @@ namespace Far.ViewModel
         // https://docs.microsoft.com/en-us/uwp/api/windows.ui.xaml.media.solidcolorbrush
 
         public object Convert(object value, Type targetType, object parameter, string language) =>
-            (value as Diff)
-            .Select(x => x.Type switch
-            {
+            (value is not Patch v)
+            ? null
+            : v.Changed
+            ? v.Select(x => x.Type switch {
                 Action.Retain => new Run { Text = x.Text },
                 Action.Insert => new Run { Text = x.Text, Foreground = Insert, },
                 Action.Delete => new Run { Text = x.Text, Foreground = Delete, TextDecorations = TextDecorations.Strikethrough },
-                _ => null
-            })
-            .Where(x => x != null)
+                _ => null })
+                .Where(x => x != null)
+            : Enumerable.Repeat<Run>(new() { Text = v.Target }, 1)
             ?? DependencyProperty.UnsetValue;
 
         // References:

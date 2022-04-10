@@ -4,6 +4,7 @@ using System.Linq;
 using System.IO;
 using Fx.List;
 using System;
+using System.Text;
 
 namespace FxTests.List
 {
@@ -141,6 +142,19 @@ namespace FxTests.List
 
             // References:
             // - shuffle: https://stackoverflow.com/a/108836
+        }
+
+        [TestMethod]
+        public void SpanConvertionTest()
+        {
+            var text = "hello world";
+            var span = text.AsSpan();
+            ReferenceEquals(text, span.ToString());
+
+            var buff = new StringBuilder(text);
+            text = buff.ToString();
+            span = text.AsSpan(0, buff.Length);
+            ReferenceEquals(text, span.ToString());
         }
     }
 }

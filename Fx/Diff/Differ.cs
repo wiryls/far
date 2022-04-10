@@ -2,7 +2,7 @@
 
 namespace Fx.Diff
 {
-    public delegate Diff Differ(string input);
+    public delegate Patch Differ(string input);
 
     public static class DifferCreator
     {
@@ -12,9 +12,9 @@ namespace Fx.Diff
             if /**/ (string.IsNullOrEmpty(pattern) || (!enableIgnoreCase && !enableRegex && pattern == template))
                 differ = new EmptyDiffer();
             else if (enableRegex)
-                differ = new Tidier<RegexDiffer>(new (pattern, template, enableIgnoreCase));
+                differ = new RegexDiffer(pattern, template, enableIgnoreCase);
             else
-                differ = new Tidier<PlainDiffer>(new (pattern, template, enableIgnoreCase));
+                differ = new PlainDiffer(pattern, template, enableIgnoreCase);
 
             return differ.Transform;
         }
@@ -22,30 +22,7 @@ namespace Fx.Diff
 
     internal interface IDiffer
     {
-        Diff Transform(string input);
-    }
-
-    internal class Tidier<T> : IDiffer where T : IDiffer
-    {
-        private readonly T differ;
-
-        public Tidier(T differ)
-        {
-            this.differ = differ;
-        }
-
-        public Diff Transform(string input)
-        {
-            var output = differ.Transform(input);
-            if (output.Count > 1)
-            {
-                if (output.Unchanged)
-                    output = new Diff(1) { { Action.Retain, input } };
-                else
-                    output.Capacity = output.Count;
-            }
-            return output;
-        }
+        Patch Transform(string input);
     }
 
     internal class RegexDiffer : IDiffer
@@ -63,10 +40,10 @@ namespace Fx.Diff
             this.template = template;
         }
 
-        public Diff Transform(string input)
+        public Patch Transform(string input)
         {
             var matches = pattern.Matches(input);
-            var output = new Diff(1 + 3 * matches.Count);
+            var build = new PatchBuilder(1 + 3 * matches.Count);
             var index = 0;
             foreach (Match match in matches)
             {
@@ -74,24 +51,24 @@ namespace Fx.Diff
                 if (string.Compare(input, match.Index, insert, 0, match.Length) == 0)
                     continue;
 
-                var retain = input[index..match.Index];
+                var retain = input.AsSpan(index, match.Index - index);
                 if (retain.Length != 0)
-                    output.Add(Action.Retain, retain);
+                    build.Retain(retain);
 
-                var delete = input.Substring(match.Index, match.Length);
+                var delete = input.AsSpan(match.Index, match.Length);
                 if (delete.Length != 0)
-                    output.Add(Action.Delete, delete);
+                    build.Delete(delete);
 
                 if (insert.Length != 0)
-                    output.Add(Action.Insert, insert);
+                    build.Insert(insert);
 
                 index = match.Index + match.Length;
             }
 
             if (index != input.Length)
-                output.Add(Action.Retain, input[index..]);
+                build.Retain(input.AsSpan(index));
 
-            return output;
+            return build.Build(input);
         }
     }
 
@@ -112,9 +89,9 @@ namespace Fx.Diff
                 : StringComparison.Ordinal;
         }
 
-        public Diff Transform(string input)
+        public Patch Transform(string input)
         {
-            var output = new Diff();
+            var build = new PatchBuilder();
             var index = 0;
             var total = input.Length;
 
@@ -128,28 +105,25 @@ namespace Fx.Diff
                     continue;
 
                 if (match != index)
-                    output.Add(Action.Retain, input[index..match]);
+                    build.Retain(input.AsSpan(index, match - index));
 
-                output.Add(Action.Delete, pattern);
+                build.Delete(pattern);
 
                 if (template.Length != 0)
-                    output.Add(Action.Insert, template);
+                    build.Insert(template);
 
                 index = match + pattern.Length;
             }
 
             if (index != total)
-                output.Add(Action.Retain, input[index..]);
+                build.Retain(input.AsSpan(index));
 
-            return output;
+            return build.Build(input);
         }
     }
 
     internal class EmptyDiffer : IDiffer
     {
-        public Diff Transform(string input) => new (1)
-        {
-            { Action.Retain, input }
-        };
+        public Patch Transform(string input) => new (input);
     }
 }
