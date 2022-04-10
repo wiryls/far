@@ -138,6 +138,9 @@ namespace FxTests.List
             }
 
             Assert.AreEqual(0, tree.PoolSize);
+
+            // References:
+            // - shuffle: https://stackoverflow.com/a/108836
         }
     }
 }

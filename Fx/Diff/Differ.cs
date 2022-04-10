@@ -12,9 +12,9 @@ namespace Fx.Diff
             if /**/ (string.IsNullOrEmpty(pattern) || (!enableIgnoreCase && !enableRegex && pattern == template))
                 differ = new EmptyDiffer();
             else if (enableRegex)
-                differ = new RegexDiffer(pattern, template, enableIgnoreCase);
+                differ = new Tidier<RegexDiffer>(new (pattern, template, enableIgnoreCase));
             else
-                differ = new PlainDiffer(pattern, template, enableIgnoreCase);
+                differ = new Tidier<PlainDiffer>(new (pattern, template, enableIgnoreCase));
 
             return differ.Transform;
         }
@@ -23,6 +23,29 @@ namespace Fx.Diff
     internal interface IDiffer
     {
         Diff Transform(string input);
+    }
+
+    internal class Tidier<T> : IDiffer where T : IDiffer
+    {
+        private readonly T differ;
+
+        public Tidier(T differ)
+        {
+            this.differ = differ;
+        }
+
+        public Diff Transform(string input)
+        {
+            var output = differ.Transform(input);
+            if (output.Count > 1)
+            {
+                if (output.Unchanged)
+                    output = new Diff(1) { { Action.Retain, input } };
+                else
+                    output.Capacity = output.Count;
+            }
+            return output;
+        }
     }
 
     internal class RegexDiffer : IDiffer
@@ -68,7 +91,6 @@ namespace Fx.Diff
             if (index != input.Length)
                 output.Add(Action.Retain, input[index..]);
 
-            output.Capacity = output.Count;
             return output;
         }
     }
@@ -119,19 +141,15 @@ namespace Fx.Diff
             if (index != total)
                 output.Add(Action.Retain, input[index..]);
 
-            output.Capacity = output.Count;
             return output;
         }
     }
 
     internal class EmptyDiffer : IDiffer
     {
-        public Diff Transform(string input)
+        public Diff Transform(string input) => new (1)
         {
-            return new Diff(1)
-            {
-                { Action.Retain, input }
-            };
-        }
+            { Action.Retain, input }
+        };
     }
 }

@@ -1,7 +1,10 @@
 ﻿using Fx.Diff;
+using Fx.List;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
@@ -17,6 +20,7 @@ namespace Far.ViewModel
         private string template;
         private (string, bool) warning;
         private Differ differ;
+        private readonly Tree tree;
 
         public MainViewModel()
         {
@@ -27,8 +31,9 @@ namespace Far.ViewModel
             template = string.Empty;
             warning = (string.Empty, true);
             differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
+            tree = new Tree();
 
-            Items = new Items();
+            Items = new ObservableCollection<Item>(tree);
             RenameCommand = new DelegateCommand(Rename);
             ClearSelectedCommand = new DelegateCommand(Todo);
             ClearAllCommand = new DelegateCommand(Todo, o => Items.Count != 0);
@@ -46,6 +51,11 @@ namespace Far.ViewModel
             {
                 Warning = (e.Message, Warning.Item2);
             }
+
+            foreach (var item in tree)
+            {
+                item.View = differ(item.Source);
+            }
         }
 
         private void Rename(object parameter)
@@ -61,12 +71,10 @@ namespace Far.ViewModel
 
         public void OnFilesDropped(List<string> list)
         {
-            foreach (var path in list)
+            foreach (var item in list.Select(x => tree.Add(x)).Where(x => x is not null))
             {
-                var name = Path.GetFileName(path);
-                var dir = Path.GetDirectoryName(path);
-                if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(dir))
-                    Items.Add(dir, differ(name));
+                item.View = differ(item.Source);
+                Items.Add(item);
             }
         }
 
@@ -106,7 +114,7 @@ namespace Far.ViewModel
             set => SetProperty(ref warning, value.Item1 is null ? (warning.Item1, value.Item2) : value);
         }
 
-        public Items Items { get; private set; }
+        public ObservableCollection<Item> Items { get; private set; }
 
         public ICommand RenameCommand { get; private set; }
 
