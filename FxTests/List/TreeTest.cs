@@ -1,7 +1,9 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using Fx.List;
+using System;
 
 namespace FxTests.List
 {
@@ -39,30 +41,103 @@ namespace FxTests.List
 
         [TestMethod]
         [DataRow(@"C:\")]
-        [DataRow(@"C:\Users\🌚\Downloads")]
-        public void BasicTreeTest(string path)
+        [DataRow(@"Z:\x\")]
+        public void TreeWithUnsupportedPathTest(string path)
         {
             var tree = new Tree();
             Assert.AreEqual(0, tree.Count());
+            Assert.AreEqual(0, tree.PoolSize);
+
+            var item = tree.Add(path);
+            Assert.IsNull(item);
+            Assert.AreEqual(0, tree.Count());
+            Assert.AreEqual(0, tree.PoolSize);
+        }
+
+        [TestMethod]
+        [DataRow(@"C:\Windows")]
+        [DataRow(@"C:\Users\🌚\Downloads")]
+        public void TreeWithOnePathTest(string path)
+        {
+            var tree = new Tree();
+            Assert.AreEqual(0, tree.Count());
+            Assert.AreEqual(0, tree.PoolSize);
 
             tree.Clear();
             Assert.AreEqual(0, tree.Count());
+            Assert.AreEqual(0, tree.PoolSize);
 
             var item = tree.Add(path);
             Assert.IsNotNull(item);
             Assert.AreEqual(Path.GetFileName(path), item.Source);
             Assert.AreEqual(Path.GetDirectoryName(path), item.Path);
             Assert.AreEqual(1, tree.Count());
+            Assert.AreEqual(1, tree.PoolSize);
 
             Assert.IsFalse(tree.Rename(item, Path.GetFileName(path)));
             Assert.IsTrue(tree.Rename(item, "?"));
             Assert.AreEqual(1, tree.Count());
+            Assert.AreEqual(1, tree.PoolSize);
 
             Assert.IsTrue(tree.Remove(item));
             Assert.AreEqual(0, tree.Count());
+            Assert.AreEqual(0, tree.PoolSize);
 
             tree.Clear();
             Assert.AreEqual(0, tree.Count());
+            Assert.AreEqual(0, tree.PoolSize);
+        }
+
+        public static IEnumerable<object[]> CaseTreeWithPaths()
+        {
+            var xss = new string[][]
+            {
+                new []
+                {
+                    @"C:\Users\🌚\Documents\The Witcher 3",
+                    @"C:\Users\🌚\Documents\GOG Galaxy\Screenshots",
+                    @"C:\Users\🌚\Documents\GOG Galaxy\Screenshots\Iconoclasts",
+                    @"C:\Users\🌚\Documents\GOG Galaxy\Screenshots\Hollow Knight",
+                },
+            };
+            foreach (var xs in xss)
+                yield return new object[] { xs };
+        }
+
+        [TestMethod]
+        [DynamicData(nameof(CaseTreeWithPaths), DynamicDataSourceType.Method)]
+        public void TreeWithPathsTest(string[] paths)
+        {
+            var tree = new Tree();
+            Assert.AreEqual(0, tree.Count());
+            Assert.AreEqual(0, tree.PoolSize);
+
+            var rand = new Random();
+            var list = new List<Item>(paths.Length);
+            foreach (var path in paths.OrderBy(_ => rand.Next()))
+            {
+                var item = tree.Add(path);
+                Assert.IsNotNull(item);
+
+                list.Add(item);
+                Assert.AreEqual(list.Count, tree.Count());
+            }
+
+            foreach (var path in paths.OrderBy(_ => rand.Next()))
+            {
+                Assert.IsNull(tree.Add(path));
+            }
+
+            Assert.AreEqual(list.Capacity, list.Count);
+            Assert.AreEqual(list.Capacity, tree.Count());
+
+            foreach (var (item, index) in list.OrderBy(_ => rand.Next()).Select((x, y) => (x, y)))
+            {
+                Assert.IsTrue(tree.Remove(item));
+                Assert.AreEqual(list.Count - 1 - index, tree.Count());
+            }
+
+            Assert.AreEqual(0, tree.PoolSize);
         }
     }
 }

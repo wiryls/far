@@ -5,22 +5,22 @@ using Fx.Diff;
 namespace FxTests.Diff
 {
     [TestClass]
-    public class DIfferTest
+    public class DifferTest
     {
         public static IEnumerable<object[]> CaseDifferWithRegex()
         {
-            var xss = new List<(string, string, List<(string, string)>)>
+            var xss = new (string, string, (string, string)[])[]
             {
-                ( "", "", new() {
+                ( "", "", new[] {
                     ( "", "" ),
                     ( "?", "?" ) }
                 ),
-                ( "log", "ln", new() {
+                ( "log", "ln", new[] {
                     ( "ln(e) = 1", "ln(e) = 1" ),
                     ( "\tlog.d(\"?\")", "\tln.d(\"?\")" ),
                     ( "log(😅) = 💧log(😄)", "ln(😅) = 💧ln(😄)" ) }
                 ),
-                ( @"^(.*)(\r?\n\1)+$", @"$1", new () {
+                ( @"^(.*)(\r?\n\1)+$", @"$1", new [] {
                     ( "だんご だんご だんご だんご だんご だんご 大家族\n"
                     + "だんご だんご だんご だんご だんご だんご 大家族"
                     , "だんご だんご だんご だんご だんご だんご 大家族" ),
@@ -45,10 +45,10 @@ namespace FxTests.Diff
 
         public static IEnumerable<object[]> CaseDifferWithPlain()
         {
-            var xss = new List<(string, string, List<(string, string)>)>
+            var xss = new (string, string, (string, string)[])[]
             {
-                ( "", "", new() { ( "", "" ) }),
-                ( "true", "false", new() {
+                ( "", "", new[] { ( "", "" ) }),
+                ( "true", "false", new[] {
                     ( "return true", "return false" ),
                     ( "if (true == false) {", "if (false == false) {" ) }
                 ),

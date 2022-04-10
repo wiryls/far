@@ -7,7 +7,7 @@ namespace Fx.List
     public class Tree : IEnumerable<Item>
     {
         private readonly Pool pool;
-        private readonly Turn turn;
+        private readonly SortedDictionary<string, ValueTuple<Tree?, Item?>> data;
         private readonly static char[] separators = new[]
         {
             Path.DirectorySeparatorChar,
@@ -21,14 +21,16 @@ namespace Fx.List
         private Tree(Pool pool)
         {
             this.pool = pool;
-            this.turn = new ();
+            this.data = new ();
         }
 
         /// <summary>
-        /// Add an absolute file path to Tree. The '\' at the end will be ignored.
+        /// Add an absolute file path to Tree.
+        ///
+        /// Root directories and paths with trailing '\' are not supported.
         /// </summary>
         /// <param name="path">an absolute file path</param>
-        /// <returns>item when succeed, or null if existed</returns>
+        /// <returns>item when succeed, or null if existed or filepath not supported</returns>
         public Item? Add(string path)
         {
             var name = Path.GetFileName(path);
@@ -39,16 +41,16 @@ namespace Fx.List
             var dirs = head.Split(separators, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
             var node = dirs.Aggregate(this, (cur, dir) => cur.Make(dir));
 
-            if (node.turn.TryGetValue(name, out var pair) is false)
+            if (node.data.TryGetValue(name, out var pair) is false)
             {
                 var item = CreateItem(head, name);
-                node.turn.Add(name, (null, item));
+                node.data.Add(name, (null, item));
                 return item;
             }
             else if (pair.Item2 is null)
             {
                 pair.Item2 = CreateItem(head, name);
-                node.turn[name] = pair;
+                node.data[name] = pair;
                 return pair.Item2;
             }
             else
@@ -71,13 +73,15 @@ namespace Fx.List
             if (view != item)
                 return false;
 
-            pool.Pop(item.Source);
+            pool.Pop(item.Path);
             if (node is not null)
-                tree.turn[name] = (node, null);
-            else if (tree.turn.Remove(name))
+                tree.data[name] = (node, null);
+            else if (tree.data.Remove(name))
                 foreach (var (t, n, c, i) in list.SkipLast(1).Reverse())
-                    if (c.turn.Count is 0 && i is null)
-                        t.turn.Remove(n);
+                    if (c.data.Count is 0 && i is null)
+                        t.data.Remove(n);
+                    else
+                        break;
 
             return true;
         }
@@ -95,28 +99,28 @@ namespace Fx.List
             if (item != from)
                 return false;
 
-            if (tree.turn.ContainsKey(to))
+            if (tree.data.ContainsKey(to))
                 return false;
 
-            if (tree.turn.Remove(name) is false)
+            if (tree.data.Remove(name) is false)
                 return false;
 
             item.Source = to;
-            tree.turn.Add(to, (node, item));
+            tree.data.Add(to, (node, item));
             return true;
         }
 
         public void Clear()
         {
             pool.Clear();
-            turn.Clear();
+            data.Clear();
         }
 
         public IEnumerator<Item> GetEnumerator()
         {
             var list = new List<IEnumerator<KeyValuePair<string, (Tree?, Item?)>>>
             {
-                turn.GetEnumerator()
+                data.GetEnumerator()
             };
 
             while (list.Count is not 0)
@@ -130,7 +134,7 @@ namespace Fx.List
                         yield return item;
 
                     if (tree is not null)
-                        list.Add(tree.turn.GetEnumerator());
+                        list.Add(tree.data.GetEnumerator());
                 }
                 else
                 {
@@ -142,6 +146,11 @@ namespace Fx.List
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        internal int PoolSize
+        {
+            get => pool?.Count ?? 0;
         }
 
         private Item CreateItem(string path, string name)
@@ -157,44 +166,39 @@ namespace Fx.List
             var tree = this;
             foreach (var dir in dirs.Append(name))
             {
-                if (tree.turn.TryGetValue(dir, out var pair))
+                if (tree.data.TryGetValue(dir, out var pair))
                 {
                     list.Add((tree, dir, pair.Item1, pair.Item2));
                     tree = pair.Item1;
                 }
                 if (tree is null)
                 {
-                    return false;
+                    break;
                 }
             }
 
-            return true;
+            return list.Capacity == list.Count;
         }
 
         private Tree Make(string name)
         {
-            if (turn.TryGetValue(name, out var pair))
+            if (data.TryGetValue(name, out var pair))
             {
                 var tree = pair.Item1 ?? new Tree(pool);
                 if (pair.Item1 == null)
                 {
                     pair.Item1 = tree;
-                    turn[name] = pair;
+                    data[name] = pair;
                 }
                 return tree;
             }
             else
             {
                 var tree = new Tree(pool);
-                turn.Add(name, (tree, null));
+                data.Add(name, (tree, null));
                 return tree;
             }
         }
-    }
-
-    internal class Turn : SortedDictionary<string, ValueTuple<Tree?, Item?>>
-    {
-
     }
 
     internal class Pool
@@ -236,6 +240,11 @@ namespace Fx.List
         public void Clear()
         {
             dict.Clear();
+        }
+
+        public int Count
+        {
+            get => dict.Count;
         }
     }
 }
