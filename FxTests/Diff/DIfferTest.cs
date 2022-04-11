@@ -38,7 +38,10 @@ namespace FxTests.Diff
         public void TestDifferWithRegex((string pattern, string template, string input, string expected) x)
         {
             var differ = DifferCreator.Create(x.pattern, x.template, false, true);
-            var output = differ(x.input);
+            Assert.AreEqual(x.pattern, differ.Pattern);
+            Assert.AreEqual(x.template, differ.Template);
+
+            var output = differ.Match(x.input);
             Assert.AreEqual(x.input, output.Source);
             Assert.AreEqual(x.expected, output.Target);
         }
@@ -64,7 +67,10 @@ namespace FxTests.Diff
         public void TestDifferWithPlain((string pattern, string template, string input, string expected) x)
         {
             var differ = DifferCreator.Create(x.pattern, x.template, false, false);
-            var output = differ(x.input);
+            Assert.AreEqual(x.pattern, differ.Pattern);
+            Assert.AreEqual(x.template, differ.Template);
+
+            var output = differ.Match(x.input);
             Assert.AreEqual(x.input, output.Source);
             Assert.AreEqual(x.expected, output.Target);
         }

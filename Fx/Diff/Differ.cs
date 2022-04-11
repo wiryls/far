@@ -2,32 +2,40 @@
 
 namespace Fx.Diff
 {
-    public delegate Patch Differ(string input);
+    public interface IDiffer
+    {
+        Patch Match(string input);
+
+        string Pattern { get; }
+
+        string Template { get; }
+    }
 
     public static class DifferCreator
     {
-        public static Differ Create(string pattern, string template, bool enableIgnoreCase, bool enableRegex)
+        public static IDiffer Create()
+        {
+            return new EmptyDiffer();
+        }
+
+        public static IDiffer Create(string pattern, string template, bool enableIgnoreCase, bool enableRegex)
         {
             var differ = null as IDiffer;
-            if /**/ (string.IsNullOrEmpty(pattern) || (!enableIgnoreCase && !enableRegex && pattern == template))
-                differ = new EmptyDiffer();
+            if /**/ (string.IsNullOrEmpty(pattern))
+                differ = new EmptyDiffer(template);
             else if (enableRegex)
                 differ = new RegexDiffer(pattern, template, enableIgnoreCase);
             else
                 differ = new PlainDiffer(pattern, template, enableIgnoreCase);
 
-            return differ.Transform;
+            return differ;
         }
     }
 
-    internal interface IDiffer
+    internal struct RegexDiffer : IDiffer
     {
-        Patch Transform(string input);
-    }
-
-    internal class RegexDiffer : IDiffer
-    {
-        private readonly Regex pattern;
+        private readonly Regex regex;
+        private readonly string pattern;
         private readonly string template;
 
         public RegexDiffer(string pattern, string template, bool ignoreCase)
@@ -36,19 +44,20 @@ namespace Fx.Diff
                 | RegexOptions.Compiled
                 | RegexOptions.CultureInvariant;
 
-            this.pattern = new Regex(pattern, o);
+            this.regex = new Regex(pattern, o);
+            this.pattern = pattern;
             this.template = template;
         }
 
-        public Patch Transform(string input)
+        public Patch Match(string input)
         {
-            var matches = pattern.Matches(input);
+            var matches = regex.Matches(input);
             var build = new PatchBuilder(1 + 3 * matches.Count);
             var index = 0;
             foreach (Match match in matches)
             {
                 var insert = match.Result(template);
-                if (string.Compare(input, match.Index, insert, 0, match.Length) == 0)
+                if (string.Compare(input, match.Index, insert, 0, match.Length) is 0)
                     continue;
 
                 var retain = input.AsSpan(index, match.Index - index);
@@ -65,14 +74,18 @@ namespace Fx.Diff
                 index = match.Index + match.Length;
             }
 
-            if (index != input.Length)
+            if (index is not 0 && index != input.Length)
                 build.Retain(input.AsSpan(index));
 
             return build.Build(input);
         }
+
+        public string Pattern { get => pattern; }
+
+        public string Template { get => template; }
     }
 
-    internal class PlainDiffer : IDiffer
+    internal struct PlainDiffer : IDiffer
     {
         private readonly string pattern;
         private readonly string template;
@@ -89,7 +102,7 @@ namespace Fx.Diff
                 : StringComparison.Ordinal;
         }
 
-        public Patch Transform(string input)
+        public Patch Match(string input)
         {
             var build = new PatchBuilder();
             var index = 0;
@@ -101,7 +114,7 @@ namespace Fx.Diff
                 if (match == -1)
                     break;
 
-                if (string.Compare(input, match, template, 0, template.Length) == 0)
+                if (string.Compare(input, match, template, 0, template.Length) is 0)
                     continue;
 
                 if (match != index)
@@ -115,15 +128,30 @@ namespace Fx.Diff
                 index = match + pattern.Length;
             }
 
-            if (index != total)
+            if (index is not 0 && index != total)
                 build.Retain(input.AsSpan(index));
 
             return build.Build(input);
         }
+
+        public string Pattern { get => pattern; }
+
+        public string Template { get => template; }
     }
 
-    internal class EmptyDiffer : IDiffer
+    internal struct EmptyDiffer : IDiffer
     {
-        public Patch Transform(string input) => new (input);
+        private readonly string pattern;
+
+        public EmptyDiffer(string pattern)
+        {
+            this.pattern = pattern;
+        }
+
+        public Patch Match(string input) => new (input, true);
+
+        public string Pattern { get => string.Empty; }
+
+        public string Template { get => pattern; }
     }
 }

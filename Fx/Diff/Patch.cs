@@ -20,22 +20,22 @@ namespace Fx.Diff
         private readonly string source;
         private readonly bool matched;
         private readonly bool changed;
-        private readonly Operation[] operations;
+        private readonly IReadOnlyCollection<Operation> operations;
+
+        internal Patch(string input, bool match = false)
+        {
+            source = input;
+            matched = match;
+            changed = false;
+            operations = Array.Empty<Operation>();
+        }
 
         internal Patch(string input, List<Operation> ops)
         {
             source = input;
             matched = ops.Count is not 0;
-            changed = ops.Any(x => x.Type is not Action.Retain) && !Enumerable.SequenceEqual(SourceChars(ops), TargetChars(ops));
+            changed = ops.Any(x => x.Type is not Action.Retain) && !Enumerable.SequenceEqual(ToSource(ops), ToTarget(ops));
             operations = changed ? ops.ToArray() : Array.Empty<Operation>();
-        }
-
-        internal Patch(string input)
-        {
-            source = input;
-            matched = true;
-            changed = false;
-            operations = Array.Empty<Operation>();
         }
 
         public bool Matched { get => matched; }
@@ -61,28 +61,31 @@ namespace Fx.Diff
         IEnumerator IEnumerable.GetEnumerator() =>
             GetEnumerator();
 
-        private static IEnumerable<char> SourceChars(IEnumerable<Operation> x) =>
+        private static IEnumerable<char> ToSource(IEnumerable<Operation> x) =>
             x.Where(x => x.Type is not Action.Insert).SelectMany(x => x.Text.AsEnumerable());
 
-        private static IEnumerable<char> TargetChars(IEnumerable<Operation> x) =>
+        private static IEnumerable<char> ToTarget(IEnumerable<Operation> x) =>
             x.Where(x => x.Type is not Action.Delete).SelectMany(x => x.Text.AsEnumerable());
     }
 
-    internal class PatchBuilder : List<Operation>
+    internal class PatchBuilder
     {
+        private readonly List<Operation> os;
+
         public PatchBuilder(int capacity = 1)
-            : base(capacity)
-        { }
+        {
+            os = new (capacity);
+        }
 
-        public void Retain(ReadOnlySpan<char> text) => Add(new() { Type = Action.Retain, Text = text.ToString() });
+        public void Retain(ReadOnlySpan<char> text) => os.Add(new() { Type = Action.Retain, Text = text.ToString() });
 
-        public void Insert(ReadOnlySpan<char> text) => Add(new() { Type = Action.Insert, Text = text.ToString() });
+        public void Insert(ReadOnlySpan<char> text) => os.Add(new() { Type = Action.Insert, Text = text.ToString() });
 
-        public void Delete(ReadOnlySpan<char> text) => Add(new() { Type = Action.Delete, Text = text.ToString() });
+        public void Delete(ReadOnlySpan<char> text) => os.Add(new() { Type = Action.Delete, Text = text.ToString() });
 
         // Note:
         // As span is probably better than string, I may optimize it someday.
 
-        public Patch Build(string source) => new (source, this);
+        public Patch Build(string source) => new (source, os);
     }
 }

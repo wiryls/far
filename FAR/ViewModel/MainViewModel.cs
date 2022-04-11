@@ -1,9 +1,9 @@
 ﻿using Fx.Diff;
 using Fx.List;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -18,9 +18,8 @@ namespace Far.ViewModel
         private bool enableRegex;
         private string pattern;
         private string template;
+
         private (string, bool) warning;
-        private Differ differ;
-        private readonly Tree tree;
 
         public MainViewModel()
         {
@@ -29,11 +28,12 @@ namespace Far.ViewModel
             enableRegex = true;
             pattern = string.Empty;
             template = string.Empty;
-            warning = (string.Empty, true);
-            differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
-            tree = new Tree();
 
-            Items = new ObservableCollection<Item>(tree);
+            warning = (string.Empty, true);
+            //differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
+
+            Items = new ObservableCollection<Item>();
+
             RenameCommand = new DelegateCommand(Rename);
             ClearSelectedCommand = new DelegateCommand(Todo);
             ClearAllCommand = new DelegateCommand(Todo, o => Items.Count != 0);
@@ -43,7 +43,8 @@ namespace Far.ViewModel
         {
             if (SetProperty(ref property, value, name)) try
             {
-                differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
+                // TODO:
+                // differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
                 if (!string.IsNullOrEmpty(Warning.Item1))
                     Warning = (string.Empty, Warning.Item2);
             }
@@ -52,10 +53,11 @@ namespace Far.ViewModel
                 Warning = (e.Message, Warning.Item2);
             }
 
-            foreach (var item in tree)
-            {
-                item.View = differ(item.Source);
-            }
+            // TODO:
+            //foreach (var item in tree)
+            //{
+            //    item.View = differ(item.Source);
+            //}
         }
 
         private void Rename(object parameter)
@@ -71,11 +73,12 @@ namespace Far.ViewModel
 
         public void OnFilesDropped(List<string> list)
         {
-            foreach (var item in list.Select(x => tree.Add(x)).Where(x => x is not null))
-            {
-                item.View = differ(item.Source);
-                Items.Add(item);
-            }
+            // TODO:
+            //foreach (var item in list.Select(x => tree.Add(x)).Where(x => x is not null))
+            //{
+            //    item.View = differ(item.Source);
+            //    Items.Add(item);
+            //}
         }
 
         public bool EnableRecursiveImport
@@ -121,5 +124,59 @@ namespace Far.ViewModel
         public ICommand ClearSelectedCommand { get; private set; }
 
         public ICommand ClearAllCommand { get; private set; }
+    }
+
+    internal class Items
+    {
+        private IDiffer                    differ;
+        private readonly Tree              source;
+        private ObservableCollection<Item> sorted;
+        private ObservableCollection<Item> viewed;
+
+        public Items()
+        {
+            differ = DifferCreator.Create();
+            source = new Tree();
+            sorted = new ObservableCollection<Item>(source);
+            viewed = sorted;
+        }
+
+        public bool Add(string path)
+        {
+            var item = source.Add(path);
+            if (item is null)
+                return false;
+
+            var view = differ.Match(item.Source);
+            item.View = view;
+
+            sorted.Add(item);
+            if (view.Changed)
+                viewed.Add(item);
+
+            return true;
+        }
+
+        public bool Remove(int index)
+        {
+
+
+            return false;
+        }
+
+        public void Rename()
+        {
+
+        }
+
+        public void Rediff(IDiffer differ)
+        {
+
+        }
+
+        public void Sort()
+        {
+
+        }
     }
 }
