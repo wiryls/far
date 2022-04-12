@@ -8,6 +8,7 @@ namespace Fx.List
         Done,
         Fail,
         Lost,
+        Gone,
     }
 
     public class Item

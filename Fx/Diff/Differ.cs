@@ -9,6 +9,8 @@ namespace Fx.Diff
         string Pattern { get; }
 
         string Template { get; }
+
+        bool Empty { get; }
     }
 
     public static class DifferCreator
@@ -20,7 +22,7 @@ namespace Fx.Diff
 
         public static IDiffer Create(string pattern, string template, bool enableIgnoreCase, bool enableRegex)
         {
-            var differ = null as IDiffer;
+            IDiffer differ;
             if /**/ (string.IsNullOrEmpty(pattern))
                 differ = new EmptyDiffer(template);
             else if (enableRegex)
@@ -83,6 +85,8 @@ namespace Fx.Diff
         public string Pattern { get => pattern; }
 
         public string Template { get => template; }
+
+        public bool Empty { get => false; }
     }
 
     internal struct PlainDiffer : IDiffer
@@ -137,6 +141,8 @@ namespace Fx.Diff
         public string Pattern { get => pattern; }
 
         public string Template { get => template; }
+
+        public bool Empty { get => false; }
     }
 
     internal struct EmptyDiffer : IDiffer
@@ -153,5 +159,7 @@ namespace Fx.Diff
         public string Pattern { get => string.Empty; }
 
         public string Template { get => pattern; }
+
+        public bool Empty { get => true; }
     }
 }

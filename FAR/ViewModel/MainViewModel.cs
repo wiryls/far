@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -126,19 +127,21 @@ namespace Far.ViewModel
         public ICommand ClearAllCommand { get; private set; }
     }
 
-    internal class Items
+    internal struct Items
     {
         private IDiffer                    differ;
         private readonly Tree              source;
-        private ObservableCollection<Item> sorted;
+        private List<Item>                 sorted;
+        private List<Item>                 wanted;
         private ObservableCollection<Item> viewed;
 
         public Items()
         {
             differ = DifferCreator.Create();
-            source = new Tree();
-            sorted = new ObservableCollection<Item>(source);
-            viewed = sorted;
+            source = new ();
+            sorted = new ();
+            wanted = new ();
+            viewed = new ();
         }
 
         public bool Add(string path)
@@ -149,9 +152,12 @@ namespace Far.ViewModel
 
             var view = differ.Match(item.Source);
             item.View = view;
-
             sorted.Add(item);
-            if (view.Changed)
+
+            if (item.View.Matched)
+                wanted.Add(item);
+
+            if (item.View.Changed)
                 viewed.Add(item);
 
             return true;
@@ -159,22 +165,77 @@ namespace Far.ViewModel
 
         public bool Remove(int index)
         {
+            if (viewed.Count <= index || index < 0)
+                return false;
 
+            var item = viewed[index];
+            item.Stat = Status.Gone;
 
-            return false;
+            viewed.RemoveAt(index);
+            source.Remove(item);
+            return true;
         }
 
-        public void Rename()
+        public void Clear()
         {
-
+            source.Clear();
+            sorted.Clear();
+            wanted.Clear();
+            viewed.Clear();
         }
 
-        public void Rediff(IDiffer differ)
+        public ObservableCollection<Item> Rename()
         {
+            if (differ.Empty is false)
+                return viewed;
 
+            foreach (var item in viewed)
+            {
+                var info = new FileInfo(Path.Combine(item.Path, item.Source));
+                if (info.Exists is false)
+                {
+                    item.Stat = Status.Lost;
+                    continue;
+                }
+
+                try
+                {
+                    // TODO: test it
+                    // info.MoveTo(Path.Combine(item.Path, item.Source));
+                    item.Stat = Status.Done;
+                }
+                catch (Exception)
+                {
+                    item.Stat = Status.Fail;
+                    continue;
+                }
+
+                if (source.Rename(item) is false)
+                {
+                    item.Stat = Status.Fail;
+                }
+            }
+
+            return viewed;
         }
 
-        public void Sort()
+        public void Differ(IDiffer target)
+        {
+            var listed = Equals(differ.GetType(), target.GetType()) && differ.Pattern == target.Pattern;
+            var list = listed ? wanted : sorted;
+
+            differ = target;
+
+            foreach (var item in list.Where(x => x.Stat is not Status.Gone))
+            {
+                item.View = differ.Match(item.Source);
+                // TODO:
+            }
+
+            // TODO:
+        }
+
+        public void Sort(/* by */)
         {
 
         }

@@ -15,11 +15,12 @@ namespace Far.ViewModel
     public class StatusConverter : IValueConverter
     {
         // We may use a regexp:
-        // - pattern : ([^"]{10,10})
+        // - pattern : ([^"]{65,65})
         // - tempalte: $1"+\n"
         //
         // to split the following strings.
 
+        // circle-large-outline.svg
         private const string ToDo = "M9.588 2.215A5.808 5.808 0 0 0 8 2c-.554 " +
             "0-1.082.073-1.588.215l-.006.002c-.514.141-.99.342-1.432.601A6.156" +
             " 6.156 0 0 0 2.82 4.98l-.002.004A5.967 5.967 0 0 0 2.21 6.41 5.98" +
@@ -39,6 +40,7 @@ namespace Far.ViewModel
             "-.704A6.808 6.808 0 0 1 8 1a6.8 6.8 0 0 1 1.86.253 6.899 6.899 0 " +
             "0 1 3.083 1.805 6.903 6.903 0 0 1 1.804 3.083C14.916 6.738 15 7.3" +
             "57 15 8s-.084 1.262-.253 1.86a6.9 6.9 0 0 1-.704 1.674z";
+        // pass.svg
         private const string Done = "M8.6 1c1.6.1 3.1.9 4.2 2 1.3 1.4 2 3.1 2 " +
             "5.1 0 1.6-.6 3.1-1.6 4.4-1 1.2-2.4 2.1-4 2.4-1.6.3-3.2.1-4.6-.7-1" +
             ".4-.8-2.5-2-3.1-3.5C.9 9.2.8 7.5 1.3 6c.5-1.6 1.4-2.9 2.8-3.8C5.4" +
@@ -47,6 +49,7 @@ namespace Far.ViewModel
             "1.8-1.9 1.9-2.3 3.3-.4 1.3-.4 2.7.2 4 .6 1.3 1.5 2.3 2.7 3 1.2.7 " +
             "2.6.9 3.9.6zM6.27 10.87h.71l4.56-4.56-.71-.71-4.2 4.21-1.92-1.92L" +
             "4 8.6l2.27 2.27z";
+        // error.svg
         private const string Fail = "M8.6 1c1.6.1 3.1.9 4.2 2 1.3 1.4 2 3.1 2 " +
             "5.1 0 1.6-.6 3.1-1.6 4.4-1 1.2-2.4 2.1-4 2.4-1.6.3-3.2.1-4.6-.7-1" +
             ".4-.8-2.5-2-3.1-3.5C.9 9.2.8 7.5 1.3 6c.5-1.6 1.4-2.9 2.8-3.8C5.4" +
@@ -55,7 +58,20 @@ namespace Far.ViewModel
             "1.8-1.9 1.9-2.3 3.3-.4 1.3-.4 2.7.2 4 .6 1.3 1.5 2.3 2.7 3 1.2.7 " +
             "2.6.9 3.9.6zM7.9 7.5L10.3 5l.7.7-2.4 2.5 2.4 2.5-.7.7-2.4-2.5-2.4" +
             " 2.5-.7-.7 2.4-2.5-2.4-2.5.7-.7 2.4 2.5z";
-        private const string Lost = "M8.568 1.031A6.8 6.8 0 0 1 12.76 3.05a7.0" +
+        // question.svg
+        private const string Lost = "M7.5 1a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0" +
+            "-13zm0 12a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11zm1.55-8.42a1.84 1" +
+            ".84 0 0 0-.61-.42A2.25 2.25 0 0 0 7.53 4a2.16 2.16 0 0 0-.88.17c-" +
+            ".239.1-.45.254-.62.45a1.89 1.89 0 0 0-.38.62 3 3 0 0 0-.15.72h1.2" +
+            "3a.84.84 0 0 1 .506-.741.72.72 0 0 1 .304-.049.86.86 0 0 1 .27 0 " +
+            ".64.64 0 0 1 .22.14.6.6 0 0 1 .16.22.73.73 0 0 1 .06.3c0 .173-.03" +
+            "7.343-.11.5a2.4 2.4 0 0 1-.27.46l-.35.42c-.12.13-.24.27-.35.41a2." +
+            "33 2.33 0 0 0-.27.45 1.18 1.18 0 0 0-.1.5v.66H8v-.49a.94.94 0 0 1" +
+            " .11-.42 3.09 3.09 0 0 1 .28-.41l.36-.44a4.29 4.29 0 0 0 .36-.48 " +
+            "2.59 2.59 0 0 0 .28-.55 1.91 1.91 0 0 0 .11-.64 2.18 2.18 0 0 0-." +
+            "1-.67 1.52 1.52 0 0 0-.35-.55zM6.8 9.83h1.17V11H6.8V9.83z";
+        // warning.svg
+        private const string Gone = "M8.568 1.031A6.8 6.8 0 0 1 12.76 3.05a7.0" +
             "6 7.06 0 0 1 .46 9.39 6.85 6.85 0 0 1-8.58 1.74 7 7 0 0 1-3.12-3." +
             "5 7.12 7.12 0 0 1-.23-4.71 7 7 0 0 1 2.77-3.79 6.8 6.8 0 0 1 4.50" +
             "8-1.149zM9.04 13.88a5.89 5.89 0 0 0 3.41-2.07 6.07 6.07 0 0 0-.4-" +
@@ -63,14 +79,14 @@ namespace Far.ViewModel
             "0 0 0 3.92.58zM7.375 6h1.25V5h-1.25v1zm1.25 1v4h-1.25V7h1.25z";
 
         public object Convert(object value, Type targetType, object parameter, string language) =>
-            (Status)value switch
-            {
+            value is Status status
+            ? status switch {
                 Status.Todo => ToDo,
                 Status.Done => Done,
                 Status.Fail => Fail,
                 Status.Lost => Lost,
-                _ => ToDo,
-            };
+                _ => Gone }
+            : Gone;
 
         public object ConvertBack(object value, Type targetType, object parameter, string language) =>
             DependencyProperty.UnsetValue;
@@ -88,7 +104,7 @@ namespace Far.ViewModel
         // https://docs.microsoft.com/en-us/uwp/api/windows.ui.xaml.media.solidcolorbrush
 
         public object Convert(object value, Type targetType, object parameter, string language) =>
-            (value is not Patch v)
+            value is not Patch v
             ? null
             : v.Changed
             ? v.Select(x => x.Type switch {

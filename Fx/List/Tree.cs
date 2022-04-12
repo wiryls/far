@@ -86,27 +86,28 @@ namespace Fx.List
             return true;
         }
 
-        public bool Rename(Item from, string to)
+        public bool Rename(Item item)
         {
-            if (pool.Has(from.Path) is false)
+            if (item.View.Changed is false || pool.Has(item.Path) is false)
                 return false;
 
-            var dirs = from.Path.Split(separators, StringSplitOptions.RemoveEmptyEntries);
-            if (Walk(dirs, from.Source, out var list) is false)
+            var dirs = item.Path.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+            if (Walk(dirs, item.Source, out var list) is false)
                 return false;
 
-            var (tree, name, node, item) = list[^1];
-            if (item != from)
+            var (tree, name, node, that) = list[^1];
+            if (that != item)
                 return false;
 
-            if (tree.data.ContainsKey(to))
+            var next = item.Target;
+            if (tree.data.ContainsKey(next))
                 return false;
 
             if (tree.data.Remove(name) is false)
                 return false;
 
-            item.Source = to;
-            tree.data.Add(to, (node, item));
+            that.Source = next;
+            tree.data.Add(next, (node, that));
             return true;
         }
 
