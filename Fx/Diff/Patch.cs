@@ -22,7 +22,7 @@ namespace Fx.Diff
         private readonly bool changed;
         private readonly IReadOnlyCollection<Operation> operations;
 
-        internal Patch(string input, bool match = false)
+        public Patch(string input, bool match = false)
         {
             source = input;
             matched = match;
@@ -30,7 +30,7 @@ namespace Fx.Diff
             operations = Array.Empty<Operation>();
         }
 
-        internal Patch(string input, List<Operation> ops)
+        public Patch(string input, List<Operation> ops)
         {
             source = input;
             matched = ops.Count is not 0;
@@ -84,7 +84,7 @@ namespace Fx.Diff
         public void Delete(ReadOnlySpan<char> text) => os.Add(new() { Type = Action.Delete, Text = text.ToString() });
 
         // Note:
-        // As span is probably better than string, I may optimize it someday.
+        // As span or memory may be better than string, I may optimize it someday.
 
         public Patch Build(string source) => new (source, os);
     }
