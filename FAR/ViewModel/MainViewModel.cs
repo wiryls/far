@@ -12,7 +12,7 @@ using System.Windows.Input;
 
 namespace Far.ViewModel
 {
-    internal class MainViewModel : ViewModelBase, IFilesDropped
+    public class MainViewModel : ViewModelBase, IFilesDropped
     {
         private bool enableRecursiveImport;
         private bool enableIgnoreCase;

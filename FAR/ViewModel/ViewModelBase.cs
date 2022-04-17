@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace Far.ViewModel
 {
-    internal abstract class ViewModelBase : INotifyPropertyChanged
+    public abstract class ViewModelBase : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
 

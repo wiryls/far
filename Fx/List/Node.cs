@@ -1,64 +1,87 @@
 ﻿namespace Fx.List
 {
-    public readonly struct Node
+    public class Node<T> : IComparable<Node<T>>
     {
-        private readonly string       path;
-        private readonly (int, int)   name;
-        private readonly (int, int)[] dirs;
-        private readonly static char[] separators = new[]
+        public Node(string name, Node<T>? parent = null)
         {
-            Path.DirectorySeparatorChar,
-            Path.AltDirectorySeparatorChar
-        };
-
-        public Node(string absolute)
-        {
-            var expect = absolute.Count(x => separators.Contains(x));
-            var buffer = new (int, int)[expect];
-
-            var count = 0;
-            var match = 0;
-            var total = absolute.Length;
-            while (match < total)
-            {
-                var found = absolute.IndexOfAny(separators, match);
-                if (found < match)
-                    break;
-
-                buffer[count++] = (match, found - match);
-                match = found + 1;
-            }
-
-            path = absolute;
-            name = (match, total - match);
-            dirs = buffer.Where(x => x.Item2 is 0).Any()
-                 ? buffer.Take(count).Where(x => x.Item2 is not 0).ToArray()
-                 : buffer;
+            Name = name;
+            Last = parent;
+            Used = false;
         }
 
-        public ReadOnlySpan<char> AbsolutePath => path;
+        public string Name { get; internal set; }
 
-        public ReadOnlySpan<char> Name => name.Item2 is 0
-            ? string.Empty.AsSpan()
-            : path.AsSpan(name.Item1, name.Item2);
+        public T? Data { get; internal set; }
 
-        public ReadOnlySpan<char> Directory => path.Length is 0
-            ? string.Empty.AsSpan()
-            : path.AsSpan(0, name.Item1)
-            ;
+        internal bool Used { get; set; }
 
-        public IEnumerable<ReadOnlyMemory<char>> Directories
+        internal Node<T>? Last { get; set; }
+
+        internal SortedSet<Node<T>>? Tree { get; set; }
+
+        public IEnumerable<string> Directories => Rise(Last).Reverse();
+
+        public bool Equals(Node<T> node) => Name == node.Name;
+
+        public int CompareTo(Node<T>? other) => Name.CompareTo(other?.Name);
+
+        public override int GetHashCode() => Name.GetHashCode();
+
+        public override bool Equals(object? o) => o is Node<T> node && Equals(node);
+
+        internal Node<T>? Step(IEnumerable<string> keys)
         {
-            get
-            {
-                var local = path;
-                return dirs.Select(x => local.AsMemory(x.Item1, x.Item2));
-            }
+            return Walk(this, keys, Step);
         }
 
-        // References for ReadOnlySpan and ReadOnlyMemory:
-        // https://docs.microsoft.com/en-us/dotnet/standard/memory-and-spans/memory-t-usage-guidelines
-        // https://stackoverflow.com/a/66447142
-        // https://blog.ndepend.com/improve-c-code-performance-with-spant/
+        internal Node<T>? Make(IEnumerable<string> keys)
+        {
+            return Walk(this, keys, Make);
+        }
+
+        internal static Node<T>? Step(Node<T> node, string name)
+        {
+            if (node.Tree is null)
+                return null;
+
+            var that = new Node<T>(name, node);
+            if (node.Tree.TryGetValue(that, out var next))
+                return next;
+
+            return null;
+        }
+
+        internal static Node<T>? Make(Node<T> node, string name)
+        {
+            if (node.Tree is null)
+                node.Tree = new();
+
+            var that = new Node<T>(name, node);
+            if (node.Tree.TryGetValue(that, out var next))
+                return next;
+
+            if (node.Tree.Add(that))
+                return that;
+
+            return null; // should never happend
+        }
+
+        private static Node<T>? Walk(Node<T> from, IEnumerable<string> keys, Func<Node<T>, string, Node<T>?> func)
+        {
+            var next = keys.GetEnumerator();
+            var node = from;
+            while (node is not null && next.MoveNext())
+                node = func(node, next.Current);
+            return node;
+        }
+
+        private static IEnumerable<string> Rise(Node<T>? node)
+        {
+            while (node is not null && string.IsNullOrEmpty(node.Name) is false)
+            {
+                yield return node.Name;
+                node = node.Last;
+            }
+        }
     }
 }

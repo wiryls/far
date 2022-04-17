@@ -61,6 +61,8 @@ namespace Fx.Diff
         IEnumerator IEnumerable.GetEnumerator() =>
             GetEnumerator();
 
+        public static readonly Patch Empty = new (string.Empty);
+
         private static IEnumerable<char> ToSource(IEnumerable<Operation> x) =>
             x.Where(x => x.Type is not Action.Insert).SelectMany(x => x.Text.AsEnumerable());
 

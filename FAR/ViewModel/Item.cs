@@ -1,12 +1,13 @@
 ﻿using Fx.Diff;
 using Fx.List;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Change = Fx.Diff.Patch;
-using Marker = Fx.List.Node;
+using Marker = Fx.List.Node<Far.ViewModel.Item>;
 
 namespace Far.ViewModel
 {
@@ -21,15 +22,22 @@ namespace Far.ViewModel
 
     public class Item
     {
-        private Status status;
-        private Marker marker;
-        private Change change;
+        private Status status = Status.Todo;
+        private Marker marker = Marker.Empty;
+        private Change change = Change.Empty;
 
-        public Item(Marker mark)
+        public Item Rediff(IDiffer differ)
         {
-            status = Status.Todo;
-            marker = mark;
-            change = new (mark.Name.ToString());
+            change = differ.Match(change.Source);
+            return this;
+        }
+
+        public bool Rename(Tree<Item> tree, string name, out IEnumerable<Marker> drop)
+        {
+            var done = tree.Rename(ref marker, name, out drop);
+            if (done)
+                change = new(marker.Name.ToString());
+            return done;
         }
 
         public Status Status
@@ -38,11 +46,7 @@ namespace Far.ViewModel
             set => status = value;
         }
 
-        public Change Preview
-        {
-            get => change;
-            set => change = value;
-        }
+        public Change Preview => change;
 
         public string Directory => marker.Directory.ToString();
 
@@ -51,13 +55,25 @@ namespace Far.ViewModel
         internal string Source => change.Source;
 
         internal string Target => change.Target;
+
+        public static bool Create(Tree<Item> tree, IDiffer diff, string path, out Item item)
+        {
+            item = new Item();
+            if (tree.Add(path, item) is Marker mark)
+            {
+                item.marker = mark;
+                item.change = diff.Match(mark.Name.ToString());
+                return true;
+            }
+            return false;
+        }
     }
 
     internal struct Items
     {
         // status
         private IDiffer differ;
-        private readonly Tree source;
+        private readonly Tree<Item> source;
         private ObservableCollection<Item> viewed;
 
         // buffer
@@ -79,18 +95,15 @@ namespace Far.ViewModel
 
         public bool Add(string path)
         {
-            if (source.Add(path) is not Marker mark)
+            if (Item.Create(source, differ, path, out var item) is false)
                 return false;
 
-            var item = new Item(mark);
-            var diff = differ.Match(item.Source);
-            item.Preview = diff;
             sorted.Add(item);
 
             if (item.Preview.Matched)
                 wanted.Add(item);
 
-            if (item.Preview.Changed || differ.Empty)
+            if (item.Preview.Changed || differ.IsEmpty)
                 viewed.Add(item);
 
             return true;
@@ -120,12 +133,26 @@ namespace Far.ViewModel
 
         public bool Rename()
         {
-            if (differ.Empty is false)
+            if (differ.IsEmpty is false)
                 return false;
 
+            var dropped = Enumerable.Empty<IEnumerable<Marker>>();
             foreach (var item in viewed)
             {
-                var info = new FileInfo(Path.Combine(item.Directory, item.Source));
+                var last = item.Marker.AbsolutePath.ToString();
+                var name = item.Target;
+                var next = Path.Join(item.Directory, name);
+
+                var info = null as FileInfo;
+                try
+                {
+                    info = new (last);
+                }
+                catch
+                {
+                    item.Status = Status.Fail;
+                    continue;
+                }
                 if (info.Exists is false)
                 {
                     item.Status = Status.Lost;
@@ -134,20 +161,33 @@ namespace Far.ViewModel
 
                 try
                 {
-                    // TODO: test it
-                    // info.MoveTo(Path.Combine(item.Path, item.Source));
-                    item.Status = Status.Done;
+                    // TODO:
+                    // info.MoveTo(next);
+                    Debug.WriteLine($"Rename '${item.Source}' to '${name}'");
                 }
-                catch (Exception)
+                catch
                 {
                     item.Status = Status.Fail;
                     continue;
                 }
 
-                //if (source.Rename(item) is false)
-                //{
-                //    item.Status = Status.Fail;
-                //}
+                if (item.Rename(source, name, out var drop) is false)
+                {
+                    item.Status = Status.Lost;
+                    continue;
+                }
+
+                item.Status = Status.Done;
+                if (drop is not null)
+                    dropped = dropped.Append(drop);
+            }
+
+            foreach (var node in dropped.SelectMany(x => x).Select(x => x.Value))
+            {
+                if (viewed.Remove(node))
+                    node.Status = Status.Gone;
+
+                Debug.WriteLine($"Remove '${node.Source}'");
             }
 
             return true;
@@ -157,9 +197,20 @@ namespace Far.ViewModel
         {
             if (update)
             {
-                sorted = sorted.Where(x => x.Status is not Status.Gone).ToList();
-                wanted = wanted.Where(x => x.Status is not Status.Gone).ToList();
+                sorted = sorted.Where(NotGone).ToList();
+                wanted = wanted.Where(NotGone).ToList();
                 update = false;
+                static bool NotGone(Item item) => item.Status is not Status.Gone;
+            }
+
+            if (target.IsEmpty)
+            {
+                viewed.Clear();
+                viewed = new (sorted);
+            }
+            else if (Equals(differ.GetType(), target.GetType()) && differ.Pattern == target.Pattern)
+            {
+
             }
 
             var listed
@@ -169,12 +220,11 @@ namespace Far.ViewModel
                 ;
 
             differ = target;
-            viewed
-                = differ.Empty
-                ? new(sorted)
-                : new(listed.Where(x => (x.Preview = target.Match(x.Source)).Changed))
-                ;
+            viewed.Clear();
+            foreach (var item in differ.IsEmpty ? sorted : listed.Where(x => x.Rediff(target).Preview.Changed))
+                viewed.Add(item);
 
+            wanted = viewed.ToList();
             return true;
         }
 

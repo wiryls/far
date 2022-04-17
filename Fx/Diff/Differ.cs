@@ -10,7 +10,7 @@ namespace Fx.Diff
 
         string Template { get; }
 
-        bool Empty { get; }
+        bool IsEmpty { get; }
     }
 
     public static class DifferCreator
@@ -86,7 +86,7 @@ namespace Fx.Diff
 
         public string Template { get => template; }
 
-        public bool Empty { get => false; }
+        public bool IsEmpty { get => false; }
     }
 
     internal struct PlainDiffer : IDiffer
@@ -142,7 +142,7 @@ namespace Fx.Diff
 
         public string Template { get => template; }
 
-        public bool Empty { get => false; }
+        public bool IsEmpty { get => false; }
     }
 
     internal struct EmptyDiffer : IDiffer
@@ -160,6 +160,6 @@ namespace Fx.Diff
 
         public string Template { get => pattern; }
 
-        public bool Empty { get => true; }
+        public bool IsEmpty { get => true; }
     }
 }

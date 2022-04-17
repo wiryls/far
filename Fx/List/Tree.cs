@@ -1,22 +1,17 @@
-﻿using System;
-using System.Collections;
-using System.Linq;
+﻿using System.Collections;
 using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("FxTests")]
 
 namespace Fx.List
 {
-    public class Tree : IEnumerable<Node>
+    public class Tree<T> : IEnumerable<Node<T>>
     {
-        private readonly SortedDictionary<string, ValueTuple<Tree?, Node?>> data;
-        
-        /// <summary>
-        /// Create a Tree of Nodes.
-        /// </summary>
-        public Tree()
+        private readonly Node<T> root = new (string.Empty);
+        private readonly static char[] separators = new[]
         {
-            data = new ();
-        }
+            Path.DirectorySeparatorChar,
+            Path.AltDirectorySeparatorChar
+        };
 
         /// <summary>
         /// Add an absolute file path to Tree.
@@ -25,35 +20,47 @@ namespace Fx.List
         /// </summary>
         /// <param name="path">an absolute file path</param>
         /// <returns>item when succeed, or null if existed or filepath not supported</returns>
-        public Node? Add(string path)
+        public Node<T>? Add(string path, T data)
         {
-            var node = new Node(path);
-            var name = node.Name.ToString();
+            var name = Path.GetFileName(path);
             if (string.IsNullOrEmpty(name))
                 return null;
 
-            var tree = node.Directories.Select(x => x.ToString()).Aggregate(this, (u, v) => u.Make(v));
-            if (tree.data.TryGetValue(name, out var pair) is false)
-                tree.data.Add(name, (null, node));
-            else if (pair.Item2 is null)
-                tree.data[name] = (pair.Item1, node);
-            else
+            var keys = Path.GetDirectoryName(path)?.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+            if (keys is null || keys.Length == 0)
                 return null;
 
+            var node = root.Make(keys.Append(name));
+            if (node is null || node.Used)
+                return null;
+
+            node.Data = data;
+            node.Used = true;
             return node;
         }
 
         /// <summary>
         /// Remove a item from tree
         /// </summary>
-        /// <param name="item">item to removed</param>
+        /// <param name="node">item to removed</param>
         /// <returns>true if done, otherwise not found</returns>
-        public bool Remove(Node item)
+        public bool Remove(Node<T> node)
         {
-            if (Locate(item, out var list) is false)
+            if (node.Data is null)
                 return false;
 
-            Remove(list);
+            var rise = node.Last;
+            node.Last = null;
+            node.Data = default;
+            node.Used = false;
+
+            var last = rise;
+            while (last is not null && last.Used is false && last.Tree?.Count is 0 && last.Tree.Remove(last))
+            {
+                rise = last.Last;
+                last.Last = null;
+                last = rise;
+            }
             return true;
         }
 
@@ -61,51 +68,46 @@ namespace Fx.List
         /// Rename a item with a new name. If target name is aleady exists, remove it
         /// and its children, populate them all into `drop`.
         /// </summary>
-        /// <param name="item">item to rename</param>
+        /// <param name="node">item to rename</param>
         /// <param name="name">the new name</param>
-        /// <param name="drop">any node that be overwritten</param>
-        /// <returns></returns>
-        public bool Rename(ref Node item, string name, out IEnumerable<Node> drop)
+        /// <param name="drop">all nodes that be overwritten</param>
+        /// <returns>true if succeed, otherwise false</returns>
+        public bool Rename(Node<T> node, string name, out IEnumerable<Node<T>>? drop)
         {
-            drop = Enumerable.Empty<Node>();
-            if (item.Name.Equals(name.AsSpan(), StringComparison.Ordinal))
+            drop = null;
+            if (node.Name.Equals(name))
                 return false; // new name == old name
 
-            var that = new Node(Path.Join(item.Directory, name));
-            var what = that.Name.ToString();
-            if (string.IsNullOrEmpty(what))
-                return false; // new name is empty
+            var last = node.Last;
+            var tree = last?.Tree;
+            if (tree is null)
+                return false;
 
-            if (Locate(item, out var list) is false)
-                return false; // cannot find old node
+            var that = new Node<T>(name, last);
+            if (tree.TryGetValue(that, out var oops) && tree.Remove(oops))
+                drop = Walk(oops);
 
-            var tree = list[^1].Item1;
-            var copy = list[^1].Item3;
+            if (tree.Remove(node) is false)
+                return false;
 
-            if (tree.data.TryGetValue(what, out var pair))
-                tree.data[what] = (copy, that);
-            else
-                tree.data.Add(what, (copy, that));
+            node.Name = name;
+            if (tree.Add(node) is false)
+                return false; // should never happend
 
-            Remove(list);
-
-            if (pair.Item2 is Node node)
-                drop = drop.Append(node);
-            if (pair.Item1 is Tree next)
-                drop = drop.Concat(Walk(next));
-
-            item = that;
             return true;
         }
 
+        /// <summary>
+        /// Remove all nodes.
+        /// </summary>
         public void Clear()
         {
-            data.Clear();
+            root.Tree?.Clear();
         }
 
-        public IEnumerator<Node> GetEnumerator()
+        public IEnumerator<Node<T>> GetEnumerator()
         {
-            return Walk(this).GetEnumerator();
+            return Walk(root).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -113,86 +115,32 @@ namespace Fx.List
             return GetEnumerator();
         }
 
-        private static IEnumerable<Node> Walk(Tree it)
+        private static IEnumerable<Node<T>> Walk(Node<T> it)
         {
-            var list = new List<IEnumerator<KeyValuePair<string, ValueTuple<Tree?, Node?>>>>
-            {
-                it.data.GetEnumerator()
-            };
+            if (it.Used)
+                yield return it;
 
+            if (it.Tree is null)
+                yield break;
+
+            var list = new List<SortedSet<Node<T>>.Enumerator> { it.Tree.GetEnumerator() };
             while (list.Count is not 0)
             {
                 var last = list.Last();
                 if (last.MoveNext())
                 {
-                    var (tree, item) = last.Current.Value;
+                    var node = last.Current;
 
-                    if (item is Node o)
-                        yield return o;
+                    if (node.Used)
+                        yield return node;
 
-                    if (tree is not null)
-                        list.Add(tree.data.GetEnumerator());
+                    if (node.Tree is not null)
+                        list.Add(node.Tree.GetEnumerator());
                 }
                 else
                 {
                     list.RemoveAt(list.Count - 1);
                 }
-            }
-        }
-
-        private bool Locate(Node item, out List<(Tree, string, Tree?, Node?)> position)
-        {
-            // construct ValueTuple of (tree, child name, child tree, child item)
-
-            var tree = this;
-            var dirs = item.Directories.Select(x => x.ToString()).ToArray();
-            position = new (dirs.Length + 1);
-            foreach (var dir in dirs.Append(item.Name.ToString()))
-            {
-                if (tree.data.TryGetValue(dir, out var pair))
-                {
-                    position.Add((tree, dir, pair.Item1, pair.Item2));
-                    tree = pair.Item1;
-                }
-                if (tree is null)
-                {
-                    break;
-                }
-            }
-
-            return position.Capacity == position.Count;
-        }
-
-        private static void Remove(List<(Tree, string, Tree?, Node?)> list)
-        {
-            var (tree, name, next, _) = list[^1];
-            if (next is not null)
-                tree.data[name] = (next, null);
-            else if (tree.data.Remove(name))
-                foreach (var (t, n, c, i) in list.SkipLast(1).Reverse())
-                    if (c.data.Count is 0 && i is null)
-                        t.data.Remove(n);
-                    else
-                        break;
-        }
-
-        private Tree Make(string name)
-        {
-            if (data.TryGetValue(name, out var pair))
-            {
-                var tree = pair.Item1 ?? new Tree();
-                if (pair.Item1 == null)
-                {
-                    pair.Item1 = tree;
-                    data[name] = pair;
-                }
-                return tree;
-            }
-            else
-            {
-                var tree = new Tree();
-                data.Add(name, (tree, null));
-                return tree;
             }
         }
     }
