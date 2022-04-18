@@ -2,7 +2,6 @@
 using Fx.List;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -23,7 +22,7 @@ namespace Far.ViewModel
     public class Item
     {
         private Status status = Status.Todo;
-        private Marker marker = Marker.Empty;
+        private Marker marker = null;
         private Change change = Change.Empty;
 
         public Item Rediff(IDiffer differ)
@@ -34,7 +33,7 @@ namespace Far.ViewModel
 
         public bool Rename(Tree<Item> tree, string name, out IEnumerable<Marker> drop)
         {
-            var done = tree.Rename(ref marker, name, out drop);
+            var done = tree.Rename(marker, name, out drop);
             if (done)
                 change = new(marker.Name.ToString());
             return done;
@@ -48,7 +47,7 @@ namespace Far.ViewModel
 
         public Change Preview => change;
 
-        public string Directory => marker.Directory.ToString();
+        public string Directory => Path.Join(marker.Directories.ToArray());
 
         internal Marker Marker => marker;
 
@@ -62,9 +61,11 @@ namespace Far.ViewModel
             if (tree.Add(path, item) is Marker mark)
             {
                 item.marker = mark;
-                item.change = diff.Match(mark.Name.ToString());
+                item.change = diff.Match(mark.Name);
                 return true;
             }
+
+            item = null;
             return false;
         }
     }
@@ -139,14 +140,14 @@ namespace Far.ViewModel
             var dropped = Enumerable.Empty<IEnumerable<Marker>>();
             foreach (var item in viewed)
             {
-                var last = item.Marker.AbsolutePath.ToString();
-                var name = item.Target;
+                var dirs = item.Directory;
+                var name = item.Marker.Name;
                 var next = Path.Join(item.Directory, name);
 
                 var info = null as FileInfo;
                 try
                 {
-                    info = new (last);
+                    info = new (Path.Join(item.Directory, name));
                 }
                 catch
                 {
@@ -182,7 +183,7 @@ namespace Far.ViewModel
                     dropped = dropped.Append(drop);
             }
 
-            foreach (var node in dropped.SelectMany(x => x).Select(x => x.Value))
+            foreach (var node in dropped.SelectMany(x => x).Select(x => x.Data))
             {
                 if (viewed.Remove(node))
                     node.Status = Status.Gone;
@@ -200,31 +201,30 @@ namespace Far.ViewModel
                 sorted = sorted.Where(NotGone).ToList();
                 wanted = wanted.Where(NotGone).ToList();
                 update = false;
+
                 static bool NotGone(Item item) => item.Status is not Status.Gone;
             }
 
+            viewed.Clear();
             if (target.IsEmpty)
             {
-                viewed.Clear();
-                viewed = new (sorted);
+                foreach (var item in sorted)
+                    viewed.Add(item.Rediff(target));
             }
             else if (Equals(differ.GetType(), target.GetType()) && differ.Pattern == target.Pattern)
             {
-
+                foreach (var item in wanted.Where(x => x.Rediff(target).Preview.Changed))
+                    viewed.Add(item);
+            }
+            else
+            {
+                wanted.Clear();
+                wanted.AddRange(sorted.Where(x => x.Rediff(target).Preview.Matched));
+                foreach (var item in wanted.Where(x => x.Preview.Changed))
+                    viewed.Add(item);
             }
 
-            var listed
-                = Equals(differ.GetType(), target.GetType()) && differ.Pattern == target.Pattern
-                ? wanted
-                : sorted
-                ;
-
             differ = target;
-            viewed.Clear();
-            foreach (var item in differ.IsEmpty ? sorted : listed.Where(x => x.Rediff(target).Preview.Changed))
-                viewed.Add(item);
-
-            wanted = viewed.ToList();
             return true;
         }
 

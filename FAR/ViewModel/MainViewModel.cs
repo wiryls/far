@@ -33,7 +33,6 @@ namespace Far.ViewModel
 
             warning = (string.Empty, true);
             items = new Items();
-            //Items = items.View;
 
             RenameCommand = new DelegateCommand(Rename);
             ClearSelectedCommand = new DelegateCommand(Todo);
@@ -56,7 +55,6 @@ namespace Far.ViewModel
 
             if (differ is not null && items.Differ(differ))
             {
-                //Items = items.View;
                 OnPropertyChanged("Items");
             }
         }
