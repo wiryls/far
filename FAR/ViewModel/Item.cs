@@ -2,6 +2,7 @@
 using Fx.List;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -19,11 +20,13 @@ namespace Far.ViewModel
         Gone,
     }
 
-    public class Item
+    public class Item // : INotifyPropertyChanged
     {
         private Status status = Status.Todo;
         private Marker marker = null;
         private Change change = Change.Empty;
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public Item Rediff(IDiffer differ)
         {
@@ -35,7 +38,9 @@ namespace Far.ViewModel
         {
             var done = tree.Rename(marker, name, out drop);
             if (done)
+            {
                 change = new(marker.Name.ToString());
+            }
             return done;
         }
 
@@ -75,7 +80,7 @@ namespace Far.ViewModel
         // status
         private IDiffer differ;
         private readonly Tree<Item> source;
-        private ObservableCollection<Item> viewed;
+        private readonly ObservableCollection<Item> viewed;
 
         // buffer
         private List<Item> sorted;

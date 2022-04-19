@@ -55,7 +55,7 @@ namespace Far.ViewModel
 
             if (differ is not null && items.Differ(differ))
             {
-                OnPropertyChanged("Items");
+                //OnPropertyChanged("Items");
             }
         }
 

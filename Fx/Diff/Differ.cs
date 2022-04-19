@@ -112,13 +112,14 @@ namespace Fx.Diff
             var index = 0;
             var total = input.Length;
 
+            // assume pattern.Length is not zero.
             for (var match = 0; match < total; match += pattern.Length)
             {
                 match = input.IndexOf(pattern, match, option);
                 if (match == -1)
                     break;
 
-                if (string.Compare(input, match, template, 0, template.Length) is 0)
+                if (string.Compare(input, match, template, 0, pattern.Length) is 0)
                     continue;
 
                 if (match != index)
