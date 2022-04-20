@@ -4,8 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
@@ -32,7 +30,7 @@ namespace Far.ViewModel
             template = string.Empty;
 
             warning = (string.Empty, true);
-            items = new Items();
+            items = new ();
 
             RenameCommand = new DelegateCommand(Rename);
             ClearSelectedCommand = new DelegateCommand(Todo);
@@ -53,10 +51,8 @@ namespace Far.ViewModel
                 Warning = (e.Message, Warning.Item2);
             }
 
-            if (differ is not null && items.Differ(differ))
-            {
-                //OnPropertyChanged("Items");
-            }
+            if (differ is not null)
+                items.Differ(differ);
         }
 
         private void Rename(object parameter)

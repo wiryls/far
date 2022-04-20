@@ -40,7 +40,7 @@
                 <!-- https://github.com/microsoft/microsoft-ui-xaml/issues/179 -->
                 <!-- https://docs.microsoft.com/windows/apps/design/controls/dialogs-and-flyouts/teaching-tip#is-this-the-right-control -->
             </Grid>
-            <TextBox x:Uid="Template" Grid.Row="1" Grid.Column="0" IsSpellCheckEnabled="False" Text="{Binding Template, Mode=TwoWay}"/>
+            <TextBox x:Uid="Template" Grid.Row="1" Grid.Column="0" IsSpellCheckEnabled="False" Text="{Binding Template, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
             <Button x:Uid="Rename" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
             <StackPanel Grid.Row="0" Grid.Column="1" Spacing="8" Orientation="Horizontal">
                 <ToggleButton x:Uid="CaseSensitive" VerticalAlignment="Stretch" IsChecked="{Binding EnableCaseSensitive, Mode=TwoWay}">
@@ -90,7 +90,7 @@
                         </DataTemplate>
                     </controls:DataGridTemplateColumn.CellTemplate>
                 </controls:DataGridTemplateColumn>
-                <controls:DataGridTemplateColumn x:Uid="View" Tag="View" MinWidth="256">
+                <controls:DataGridTemplateColumn x:Uid="View" Tag="View" MinWidth="256" Width="*">
                     <controls:DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Margin="12,0" VerticalAlignment="Center" vm:TextBlockExtension.BindableInlines="{Binding Preview, Converter={StaticResource ChangeConverter}}"/>
@@ -98,7 +98,7 @@
                         </DataTemplate>
                     </controls:DataGridTemplateColumn.CellTemplate>
                 </controls:DataGridTemplateColumn>
-                <controls:DataGridTextColumn x:Uid="Path" Tag="Path" MinWidth="256" Width="*" Binding="{Binding Directory}"/>
+                <controls:DataGridTextColumn x:Uid="Path" Tag="Path" MinWidth="256" Binding="{Binding Directory}"/>
             </controls:DataGrid.Columns>
         </controls:DataGrid>
     </Grid>

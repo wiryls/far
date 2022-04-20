@@ -125,7 +125,7 @@ namespace Fx.Diff
                 if (match != index)
                     build.Retain(input.AsSpan(index, match - index));
 
-                build.Delete(pattern);
+                build.Delete(input.AsSpan(match, pattern.Length));
 
                 if (template.Length != 0)
                     build.Insert(template);

@@ -2,7 +2,6 @@
 using Fx.List;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -20,17 +19,20 @@ namespace Far.ViewModel
         Gone,
     }
 
-    public class Item // : INotifyPropertyChanged
+    public class Item : ViewModelBase
     {
         private Status status = Status.Todo;
         private Marker marker = null;
         private Change change = Change.Empty;
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        private Item()
+        {
+            // empty
+        }
 
         public Item Rediff(IDiffer differ)
         {
-            change = differ.Match(change.Source);
+            SetProperty(ref change, differ.Match(change.Source), nameof(Preview));
             return this;
         }
 
@@ -38,16 +40,14 @@ namespace Far.ViewModel
         {
             var done = tree.Rename(marker, name, out drop);
             if (done)
-            {
-                change = new(marker.Name.ToString());
-            }
+                SetProperty(ref change, new (marker.Name), nameof(Preview));
             return done;
         }
 
         public Status Status
         {
             get => status;
-            set => status = value;
+            set => SetProperty(ref status, value);
         }
 
         public Change Preview => change;
@@ -59,6 +59,10 @@ namespace Far.ViewModel
         internal string Source => change.Source;
 
         internal string Target => change.Target;
+
+        internal bool Changed => change.Changed;
+
+        internal bool Matched => change.Matched;
 
         public static bool Create(Tree<Item> tree, IDiffer diff, string path, out Item item)
         {
@@ -73,6 +77,9 @@ namespace Far.ViewModel
             item = null;
             return false;
         }
+
+        // References:
+        // https://stackoverflow.com/a/46038091
     }
 
     internal struct Items
@@ -85,18 +92,16 @@ namespace Far.ViewModel
         // buffer
         private List<Item> sorted;
         private List<Item> wanted;
-        private bool update;
+        private bool remove;
 
         public Items()
         {
-            //var i = new System.ComponentModel.BindingList<Item>();
-
             differ = DifferCreator.Create();
             source = new();
             viewed = new();
             sorted = new();
             wanted = new();
-            update = false;
+            remove = false;
         }
 
         public bool Add(string path)
@@ -106,10 +111,10 @@ namespace Far.ViewModel
 
             sorted.Add(item);
 
-            if (item.Preview.Matched)
+            if (item.Matched)
                 wanted.Add(item);
 
-            if (item.Preview.Changed || differ.IsEmpty)
+            if (item.Changed || differ.IsEmpty)
                 viewed.Add(item);
 
             return true;
@@ -125,7 +130,7 @@ namespace Far.ViewModel
 
             viewed.RemoveAt(index);
             source.Remove(item.Marker);
-            update = true;
+            remove = true;
             return true;
         }
 
@@ -201,11 +206,11 @@ namespace Far.ViewModel
 
         public bool Differ(IDiffer target)
         {
-            if (update)
+            if (remove)
             {
                 sorted = sorted.Where(NotGone).ToList();
                 wanted = wanted.Where(NotGone).ToList();
-                update = false;
+                remove = false;
 
                 static bool NotGone(Item item) => item.Status is not Status.Gone;
             }
@@ -218,14 +223,14 @@ namespace Far.ViewModel
             }
             else if (Equals(differ.GetType(), target.GetType()) && differ.Pattern == target.Pattern)
             {
-                foreach (var item in wanted.Where(x => x.Rediff(target).Preview.Changed))
+                foreach (var item in wanted.Where(x => x.Rediff(target).Changed))
                     viewed.Add(item);
             }
             else
             {
                 wanted.Clear();
-                wanted.AddRange(sorted.Where(x => x.Rediff(target).Preview.Matched));
-                foreach (var item in wanted.Where(x => x.Preview.Changed))
+                wanted.AddRange(sorted.Where(x => x.Rediff(target).Matched));
+                foreach (var item in wanted.Where(x => x.Changed))
                     viewed.Add(item);
             }
 
