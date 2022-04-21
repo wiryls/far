@@ -4,3 +4,4 @@ bin
 obj
 *.user
 **/Properties/launchSettings.json
+TestResults

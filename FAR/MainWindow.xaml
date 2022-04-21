@@ -93,7 +93,7 @@
                 <controls:DataGridTemplateColumn x:Uid="View" Tag="View" MinWidth="256" Width="*">
                     <controls:DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Margin="12,0" VerticalAlignment="Center" vm:TextBlockExtension.BindableInlines="{Binding Preview, Converter={StaticResource ChangeConverter}}"/>
+                            <TextBlock Margin="12,0" VerticalAlignment="Center" vm:TextBlockExtension.BindableInlines="{Binding Preview, Converter={StaticResource ChangeConverter}}" ToolTipService.ToolTip="{Binding Preview.Target}"/>
                             <!-- inlines: https://github.com/wiryls/far/blob/deprecated/wpf/MainWindow.xaml#L132 -->
                         </DataTemplate>
                     </controls:DataGridTemplateColumn.CellTemplate>

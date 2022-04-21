@@ -52,13 +52,13 @@ namespace Far.ViewModel
 
         public Change Preview => change;
 
-        public string Directory => Path.Join(marker.Directories.ToArray());
+        public string Directory => Path.Join(marker.Directories.ToArray()); // inefficiently
+
+        public string Source => change.Source;
+
+        internal string Target => change.Target; // inefficiently
 
         internal Marker Marker => marker;
-
-        internal string Source => change.Source;
-
-        internal string Target => change.Target;
 
         internal bool Changed => change.Changed;
 
@@ -128,10 +128,9 @@ namespace Far.ViewModel
             var item = viewed[index];
             item.Status = Status.Gone;
 
-            viewed.RemoveAt(index);
-            source.Remove(item.Marker);
             remove = true;
-            return true;
+            viewed.RemoveAt(index);
+            return source.Remove(item.Marker);
         }
 
         public void Clear()
@@ -151,13 +150,13 @@ namespace Far.ViewModel
             foreach (var item in viewed)
             {
                 var dirs = item.Directory;
-                var name = item.Marker.Name;
-                var next = Path.Join(item.Directory, name);
+                var name = item.Target;
+                var that = Path.Join(dirs, name);
 
                 var info = null as FileInfo;
                 try
                 {
-                    info = new (Path.Join(item.Directory, name));
+                    info = new (Path.Join(dirs, item.Source));
                 }
                 catch
                 {
@@ -173,7 +172,7 @@ namespace Far.ViewModel
                 try
                 {
                     // TODO:
-                    // info.MoveTo(next);
+                    // info.MoveTo(that);
                     Debug.WriteLine($"Rename '${item.Source}' to '${name}'");
                 }
                 catch

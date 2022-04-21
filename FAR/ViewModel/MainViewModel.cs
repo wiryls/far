@@ -1,12 +1,9 @@
 ﻿using Fx.Diff;
-using Fx.List;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using System.Windows.Input;
 
 namespace Far.ViewModel
 {
@@ -34,7 +31,7 @@ namespace Far.ViewModel
 
             RenameCommand = new DelegateCommand(Rename);
             ClearSelectedCommand = new DelegateCommand(Todo);
-            ClearAllCommand = new DelegateCommand(Todo, o => Items.Count != 0);
+            ClearAllCommand = new DelegateCommand(ClearAll, o => Items.Count is not 0 /* TODO: */);
         }
 
         private void UpdateDiffer<T>(ref T property, T value, [CallerMemberName] string name = "")
@@ -60,6 +57,11 @@ namespace Far.ViewModel
 
         }
 
+        private void ClearAll(object parameter)
+        {
+            items.Clear();
+        }
+
         private void Todo(object parameter)
         {
             // dummy
@@ -69,6 +71,7 @@ namespace Far.ViewModel
         public void OnFilesDropped(List<string> list)
         {
             list.ForEach(item => items.Add(item));
+
             //if (list.Aggregate(false, (value, path) => items.Add(path) || value))
             //{
             //    Items = null;
@@ -112,15 +115,12 @@ namespace Far.ViewModel
             set => SetProperty(ref warning, value.Item1 is null ? (warning.Item1, value.Item2) : value);
         }
 
-        public ObservableCollection<Item> Items
-        {
-            get => items.View;
-        }
+        public ObservableCollection<Item> Items => items.View;
 
-        public ICommand RenameCommand { get; private set; }
+        public DelegateCommand RenameCommand { get; private set; }
 
-        public ICommand ClearSelectedCommand { get; private set; }
+        public DelegateCommand ClearSelectedCommand { get; private set; }
 
-        public ICommand ClearAllCommand { get; private set; }
+        public DelegateCommand ClearAllCommand { get; private set; }
     }
 }

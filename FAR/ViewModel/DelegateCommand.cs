@@ -3,7 +3,7 @@ using System.Windows.Input;
 
 namespace Far.ViewModel
 {
-    internal class DelegateCommand : ICommand
+    public class DelegateCommand : ICommand
     {
         private readonly Action<object> execute;
         private readonly Predicate<object> canExecute;
