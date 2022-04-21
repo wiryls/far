@@ -105,6 +105,8 @@ namespace Fx.List
             root.Tree?.Clear();
         }
 
+        public bool IsEmpty => root.Tree is null || root.Tree.Count is 0;
+
         public IEnumerator<Node<T>> GetEnumerator()
         {
             return Walk(root).GetEnumerator();

@@ -244,6 +244,8 @@ namespace Far.ViewModel
             return false;
         }
 
-        public ObservableCollection<Item> View { get => viewed; }
+        public ObservableCollection<Item> View => viewed;
+
+        public bool IsEmpty => source.IsEmpty;
     }
 }

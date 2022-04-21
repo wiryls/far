@@ -63,7 +63,7 @@
             CanUserReorderColumns="False"
             CanUserSortColumns="True"
             Background="Transparent"
-            SelectedItem="1"
+            SelectedIndex="{Binding Selected, Mode=TwoWay}"
             SelectionMode="Extended"
             vm:DropFilesBehaviorExtension.IsEnable="True">
             <!-- Background="Transparent" is necessary to make drag-and-drop works in empty area. -->
