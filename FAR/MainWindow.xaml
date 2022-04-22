@@ -12,7 +12,7 @@
             <vm:MainViewModel x:Name="ViewModel"/>
         </Grid.DataContext>
         <StackPanel x:Name="AppTitleBar" Grid.Row="0" Orientation="Horizontal">
-            <SplitButton vm:DropFilesBehaviorExtension.IsEnable="True" IsHitTestVisible="True">
+            <SplitButton vm:DropFilesBehaviorExtension.Command="{Binding AddItemsCommand}" IsHitTestVisible="True">
                 <!-- TODO: write a FileOrFolderPicker -->
                 <SplitButton.Flyout>
                     <Flyout>
@@ -63,9 +63,9 @@
             CanUserReorderColumns="False"
             CanUserSortColumns="True"
             Background="Transparent"
-            SelectedIndex="{Binding Selected, Mode=TwoWay}"
             SelectionMode="Extended"
-            vm:DropFilesBehaviorExtension.IsEnable="True">
+            vm:DropFilesBehaviorExtension.Command="{Binding AddItemsCommand}"
+            vm:DataGridBehaviorExtension.SelectCommand="{Binding SelectCommand}">
             <!-- Background="Transparent" is necessary to make drag-and-drop works in empty area. -->
             <!-- datagrid: https://docs.microsoft.com/windows/communitytoolkit/getting-started -->
             <controls:DataGrid.Resources>

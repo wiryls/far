@@ -1,4 +1,5 @@
 ﻿using Fx.Diff;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -7,7 +8,9 @@ using System.Text.RegularExpressions;
 
 namespace Far.ViewModel
 {
-    public class MainViewModel : ViewModelBase, IFilesDropped
+    using DelegateCommand = DelegateCommand<object, object>;
+    
+    public class MainViewModel : ViewModelBase
     {
         private bool enableRecursiveImport;
         private bool enableIgnoreCase;
@@ -17,6 +20,7 @@ namespace Far.ViewModel
 
         private (string, bool) warning;
         private readonly Items items;
+        private int count;
 
         public MainViewModel()
         {
@@ -28,10 +32,13 @@ namespace Far.ViewModel
 
             warning = (string.Empty, true);
             items = new();
+            count = 0;
 
-            RenameCommand = new DelegateCommand(Rename);
-            ClearSelectedCommand = new DelegateCommand(Todo);
-            ClearAllCommand = new DelegateCommand(ClearAll, o => items.IsEmpty is false);
+            AddItemsCommand = new (AddItem);
+            SelectCommand = new (x => UpdateSelection(x.Item1 , x.Item2));
+            RenameCommand = new (_ => Rename());
+            ClearSelectedCommand = new (_ => ClearSelected(), _ => count is not 0);
+            ClearAllCommand = new (_ => ClearAll(), _ => items.IsEmpty is false);
         }
 
         private void UpdateDiffer<T>(ref T property, T value, [CallerMemberName] string name = "")
@@ -52,33 +59,47 @@ namespace Far.ViewModel
                 items.Differ(differ);
         }
 
-        private void Rename(object parameter)
+        private void Rename()
         {
-
+            Debug.WriteLine("Todo");
         }
 
-        private void ClearAll(object parameter)
+        private void ClearAll()
         {
             items.Clear();
             ClearAllCommand.RaiseCanExecuteChanged();
         }
 
-        private void Todo(object parameter)
+        private void ClearSelected()
         {
-            // dummy
             Debug.WriteLine("Todo");
         }
 
-        public void OnFilesDropped(List<string> list)
+        private void AddItem(IEnumerable<string> list)
         {
-            list.ForEach(item => items.Add(item));
-            ClearAllCommand.RaiseCanExecuteChanged();
+            var empty = items.IsEmpty;
+            foreach (var item in list)
+                items.Add(item);
 
-            //if (list.Aggregate(false, (value, path) => items.Add(path) || value))
-            //{
-            //    Items = null;
-            //    Items = items.View;
-            //}
+            if (empty)
+                ClearAllCommand.RaiseCanExecuteChanged();
+        }
+
+        private void UpdateSelection(IEnumerable<Item> added, IEnumerable<Item> removed)
+        {
+            var number = count;
+            foreach (var item in removed)
+            {
+                count--;
+                item.Selected = false;
+            }
+            foreach (var item in added)
+            {
+                count++;
+                item.Selected = true;
+            }
+            if (number is 0 != count is 0)
+                ClearSelectedCommand.RaiseCanExecuteChanged();
         }
 
         public bool EnableRecursiveImport
@@ -117,14 +138,17 @@ namespace Far.ViewModel
             set => SetProperty(ref warning, value.Item1 is null ? (warning.Item1, value.Item2) : value);
         }
 
-        public object Selected { get; set; }
-
         public ObservableCollection<Item> Items => items.View;
+
+        public DelegateCommand<IEnumerable<string>, object> AddItemsCommand { get; private set; }
+
+        public DelegateCommand<ValueTuple<IEnumerable<Item>, IEnumerable<Item>>, object> SelectCommand { get; private set; }
 
         public DelegateCommand RenameCommand { get; private set; }
 
         public DelegateCommand ClearSelectedCommand { get; private set; }
 
         public DelegateCommand ClearAllCommand { get; private set; }
+
     }
 }

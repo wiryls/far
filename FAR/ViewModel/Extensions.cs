@@ -1,9 +1,11 @@
-﻿using Microsoft.UI.Xaml;
+﻿using CommunityToolkit.WinUI.UI.Controls;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Input;
 using Windows.ApplicationModel.DataTransfer;
 
 namespace Far.ViewModel
@@ -42,54 +44,54 @@ namespace Far.ViewModel
         }
     }
 
-    public interface IFilesDropped
+    public static class DropFilesBehaviorExtension
     {
-        void OnFilesDropped(List<string> files);
-    }
-
-    public class DropFilesBehaviorExtension
-    {
-        public static readonly DependencyProperty IsEnableProperty = DependencyProperty.RegisterAttached
+        public static readonly DependencyProperty CommandProperty = DependencyProperty.RegisterAttached
         (
-            "IsEnable",
-            typeof(bool),
+            "Command",
+            typeof(ICommand),
             typeof(DropFilesBehaviorExtension),
-            new PropertyMetadata(default(bool), OnIsEnableChanged)
+            new PropertyMetadata(default(ICommand), OnCommandChanged)
         );
-        public static bool GetIsEnable(DependencyObject element)
+
+        public static ICommand GetCommand(DependencyObject element)
         {
-            return (bool)element.GetValue(IsEnableProperty);
+            return element.GetValue(CommandProperty) as ICommand;
         }
 
-        public static void SetIsEnable(DependencyObject element, bool value)
+        public static void SetCommand(DependencyObject element, ICommand value)
         {
-            element.SetValue(IsEnableProperty, value);
+            element.SetValue(CommandProperty, value);
         }
 
-        private static void OnIsEnableChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is not FrameworkElement target)
                 throw new InvalidOperationException("target should be FrameworkElement");
 
-            if (e.NewValue is not bool allow)
-                throw new InvalidOperationException("value should be bool");
+            if (e.OldValue == e.NewValue)
+                return;
 
-            if (target.AllowDrop = allow)
+            if (e.OldValue is ICommand prev)
             {
-                target.Drop += OnDrop;
-                target.DragEnter += OnDragEnter;
+                target.AllowDrop = false;
+                target.Drop -= prev.OnDrop;
+                target.DragEnter -= prev.OnDragEnter;
             }
-            else
+
+            if (e.NewValue is ICommand next)
             {
-                target.Drop -= OnDrop;
-                target.DragEnter -= OnDragEnter;
+                target.Drop += next.OnDrop;
+                target.DragEnter += next.OnDragEnter;
+                target.AllowDrop = true;
             }
         }
 
-        private static void OnDragEnter(object sender, DragEventArgs e)
+        private static void OnDragEnter(this ICommand command, object sender, DragEventArgs e)
         {
             if (e.DataView.Contains(StandardDataFormats.StorageItems) &&
-                e.AllowedOperations.HasFlag(DataPackageOperation.Link))
+                e.AllowedOperations.HasFlag(DataPackageOperation.Link) &&
+                command.CanExecute(sender))
             {
                 e.AcceptedOperation = DataPackageOperation.Link;
                 e.DragUIOverride.IsCaptionVisible = false;
@@ -101,24 +103,62 @@ namespace Far.ViewModel
             // https://stackoverflow.com/a/1863819
         }
 
-        private static async void OnDrop(object sender, DragEventArgs e)
+        private static async void OnDrop(this ICommand command, object sender, DragEventArgs e)
         {
             if (sender is not FrameworkElement target)
-                throw new InvalidOperationException("sender should be FrameworkElement");
+                throw new InvalidOperationException($"target should be {nameof(FrameworkElement)}");
 
-            if (target.DataContext is not IFilesDropped handler)
-                throw new InvalidOperationException("DataContext (ViewModel) should implement IFilesDropped");
-
-            if (e.DataView.Contains(StandardDataFormats.StorageItems))
+            if (e.DataView.Contains(StandardDataFormats.StorageItems) &&
+                command.CanExecute(sender))
             {
                 var items = await e.DataView.GetStorageItemsAsync();
-                var paths = items.Select(i => i.Path).ToList();
-                if (paths.Count != 0)
-                    handler.OnFilesDropped(paths);
+                command.Execute(items.Select(i => i.Path));
             }
         }
 
         // Reference: Handle drag-and-drop without violating MVVM principals:
         // https://stackoverflow.com/a/65266427
+        // https://www.damirscorner.com/blog/posts/20130624-BindingEventsToViewModelMethodsInWindowsStoreApps.html
+    }
+
+    public static class DataGridBehaviorExtension
+    {
+        public static readonly DependencyProperty SelectCommandProperty = DependencyProperty.RegisterAttached
+        (
+            "SelectCommand",
+            typeof(ICommand),
+            typeof(DataGridBehaviorExtension),
+            new PropertyMetadata(default(ICommand), OnSelectCommandChanged)
+        );
+
+        public static ICommand GetSelectCommand(DependencyObject element)
+        {
+            return element.GetValue(SelectCommandProperty) as ICommand;
+        }
+
+        public static void SetSelectCommand(DependencyObject element, ICommand value)
+        {
+            element.SetValue(SelectCommandProperty, value);
+        }
+
+        private static void OnSelectCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not DataGrid target)
+                throw new InvalidOperationException($"target should be {nameof(DataGrid)}");
+
+            if (e.OldValue == e.NewValue)
+                return;
+
+            if (e.OldValue is ICommand prev)
+                target.SelectionChanged -= prev.OnSelectionChanged;
+
+            if (e.NewValue is ICommand next)
+                target.SelectionChanged += next.OnSelectionChanged;
+        }
+
+        private static void OnSelectionChanged(this ICommand command, object sender, SelectionChangedEventArgs e)
+        {
+            command.Execute((e.AddedItems.Cast<Item>(), e.RemovedItems.Cast<Item>()));
+        }
     }
 }

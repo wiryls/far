@@ -27,7 +27,7 @@ namespace Far.ViewModel
 
         private Item()
         {
-            // empty
+            Selected = false;
         }
 
         public Item Rediff(IDiffer differ)
@@ -63,6 +63,8 @@ namespace Far.ViewModel
         internal bool Changed => change.Changed;
 
         internal bool Matched => change.Matched;
+
+        internal bool Selected { get; set; }
 
         public static bool Create(Tree<Item> tree, IDiffer diff, string path, out Item item)
         {

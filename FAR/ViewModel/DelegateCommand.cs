@@ -3,14 +3,14 @@ using System.Windows.Input;
 
 namespace Far.ViewModel
 {
-    public class DelegateCommand : ICommand
+    public class DelegateCommand<A, P> : ICommand
     {
-        private readonly Action<object> execute;
-        private readonly Predicate<object> canExecute;
+        private readonly Action<A> execute;
+        private readonly Predicate<P> canExecute;
 
         public event EventHandler CanExecuteChanged;
 
-        public DelegateCommand(Action<object> execute, Predicate<object> canExecute = null)
+        public DelegateCommand(Action<A> execute, Predicate<P> canExecute = null)
         {
             this.execute = execute;
             this.canExecute = canExecute;
@@ -23,15 +23,25 @@ namespace Far.ViewModel
 
         void ICommand.Execute(object parameter)
         {
-            execute(parameter);
+            if (parameter is null)
+                execute.Invoke(default);
+           else  if (parameter is A value)
+                execute.Invoke(value);
         }
 
         bool ICommand.CanExecute(object parameter)
         {
-            return canExecute?.Invoke(parameter) ?? true;
+            return canExecute is null
+                ? true
+                : parameter is null
+                ? canExecute.Invoke(default)
+                : parameter is P value
+                ? canExecute.Invoke(value)
+                : false
+                ;
         }
 
-        // references:
+        // References:
         //
         // [How to implement a reusable ICommand]
         // (http://wpftutorial.net/DelegateCommand.html)
