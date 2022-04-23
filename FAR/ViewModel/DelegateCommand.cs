@@ -28,7 +28,7 @@ namespace Far.ViewModel
             else if (parameter is A value)
                 execute.Invoke(value);
             else
-                throw new ArgumentException($"parameter should be {nameof(A)}");
+                throw new ArgumentException($"parameter should be {typeof(A).Name}");
         }
 
         bool ICommand.CanExecute(object parameter)
@@ -39,7 +39,7 @@ namespace Far.ViewModel
                 ? canExecute.Invoke(default)
                 : parameter is P value
                 ? canExecute.Invoke(value)
-                : throw new ArgumentException($"parameter should be {nameof(P)}");
+                : throw new ArgumentException($"parameter should be {typeof(P).Name}");
             ;
         }
 

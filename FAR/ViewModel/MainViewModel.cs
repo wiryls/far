@@ -39,7 +39,7 @@ namespace Far.ViewModel
             SortCommand = new (x => SortItems(x.Item1, x.Item2), null);
             ClearSelectedCommand = new (_ => ClearSelectedItems(), _ => count is not 0);
             ClearAllCommand = new (_ => ClearAllItems(), _ => items.IsEmpty is false);
-            RenameCommand = new (_ => RenameItems(), _ => items.View.Count is not 0);
+            RenameCommand = new (_ => RenameItems(), _ => items.IsRenamable);
         }
 
         private void AddItem(IEnumerable<string> list)
@@ -108,18 +108,23 @@ namespace Far.ViewModel
         {
             var differ = null as IDiffer;
             if (SetProperty(ref property, value, name)) try
-                {
-                    differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
-                    if (!string.IsNullOrEmpty(Warning.Item1))
-                        Warning = (string.Empty, Warning.Item2);
-                }
-                catch (RegexParseException e)
-                {
-                    Warning = (e.Message, Warning.Item2);
-                }
+            {
+                differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
+                if (!string.IsNullOrEmpty(Warning.Item1))
+                    Warning = (string.Empty, Warning.Item2);
+            }
+            catch (RegexParseException e)
+            {
+                Warning = (e.Message, Warning.Item2);
+            }
 
             if (differ is not null)
+            {
                 items.Differ(differ);
+                Debug.Print($"{differ.IsEmpty}");
+
+                RenameCommand.RaiseCanExecuteChanged();
+            }
         }
 
         public bool EnableRecursiveImport

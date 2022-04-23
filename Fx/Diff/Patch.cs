@@ -9,10 +9,16 @@ namespace Fx.Diff
         Delete,
     }
 
-    public struct Operation
+    public readonly struct Operation
     {
-        public Action Type;
-        public string Text;
+        public readonly Action Type;
+        public readonly string Text;
+
+        public Operation(Action type, string text)
+        {
+            Type = type;
+            Text = text;
+        }
     }
 
     public readonly struct Patch : IComparer<Patch>, IEnumerable<Operation>
@@ -79,11 +85,11 @@ namespace Fx.Diff
             os = new (capacity);
         }
 
-        public void Retain(ReadOnlySpan<char> text) => os.Add(new() { Type = Action.Retain, Text = text.ToString() });
+        public void Retain(ReadOnlySpan<char> text) => os.Add(new (Action.Retain, text.ToString()));
 
-        public void Insert(ReadOnlySpan<char> text) => os.Add(new() { Type = Action.Insert, Text = text.ToString() });
+        public void Insert(ReadOnlySpan<char> text) => os.Add(new (Action.Insert, text.ToString()));
 
-        public void Delete(ReadOnlySpan<char> text) => os.Add(new() { Type = Action.Delete, Text = text.ToString() });
+        public void Delete(ReadOnlySpan<char> text) => os.Add(new (Action.Delete, text.ToString()));
 
         // Note:
         // As span or memory may be better than string, I may optimize it someday.

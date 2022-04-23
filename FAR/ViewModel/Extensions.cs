@@ -124,6 +124,7 @@ namespace Far.ViewModel
     public static class DataGridBehaviorExtension
     {
         #region command select
+
         public static readonly DependencyProperty SelectCommandProperty = DependencyProperty.RegisterAttached
         (
             "SelectCommand",

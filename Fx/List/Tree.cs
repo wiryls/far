@@ -102,7 +102,7 @@ namespace Fx.List
         /// </summary>
         public void Clear()
         {
-            root.Tree?.Clear();
+            root.Tree = null;
         }
 
         public bool IsEmpty => root.Tree is null || root.Tree.Count is 0;

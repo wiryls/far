@@ -88,7 +88,7 @@ namespace Far.ViewModel
         // https://stackoverflow.com/a/46038091
     }
 
-    internal struct Items
+    internal class Items
     {
         public enum OrderBy
         {
@@ -309,9 +309,10 @@ namespace Far.ViewModel
             return true;
         }
 
-        public bool Differ(IDiffer target)
+        public void Differ(IDiffer target)
         {
             viewed.Clear();
+
             if (target.IsEmpty)
             {
                 sorted.Clean();
@@ -333,7 +334,6 @@ namespace Far.ViewModel
             }
 
             differ = target;
-            return true;
         }
 
         public void Sort(OrderBy order, bool isAscending)
@@ -357,6 +357,8 @@ namespace Far.ViewModel
         public ObservableCollection<Item> View => viewed;
 
         public bool IsEmpty => source.IsEmpty;
+
+        public bool IsRenamable => !differ.IsEmpty && viewed.Count is not 0;
 
         // References:
         // https://docs.microsoft.com/windows/communitytoolkit/controls/datagrid_guidance/group_sort_filter
