@@ -59,7 +59,7 @@ namespace Fx.Diff
             foreach (Match match in matches)
             {
                 var insert = match.Result(template);
-                if (string.Compare(input, match.Index, insert, 0, match.Length) is 0)
+                if (input.AsSpan(match.Index, match.Length).Equals(insert.AsSpan(), StringComparison.Ordinal))
                     continue;
 
                 var retain = input.AsSpan(index, match.Index - index);

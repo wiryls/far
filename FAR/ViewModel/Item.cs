@@ -33,15 +33,16 @@ namespace Far.ViewModel
 
         public Item Rediff(IDiffer differ)
         {
-            SetProperty(ref change, differ.Match(change.Source), nameof(Preview));
+            if (SetProperty(ref change, differ.Match(change.Source), nameof(Preview)))
+                OnPropertyChanged(nameof(Description));
             return this;
         }
 
         public bool Rename(Tree<Item> tree, string name, out IEnumerable<Marker> drop)
         {
             var done = tree.Rename(marker, name, out drop);
-            if (done)
-                SetProperty(ref change, new (marker.Name), nameof(Preview));
+            if (done && SetProperty(ref change, new(marker.Name), nameof(Preview)))
+                OnPropertyChanged(nameof(Description));
             return done;
         }
 
@@ -52,6 +53,8 @@ namespace Far.ViewModel
         }
 
         public Change Preview => change;
+
+        public string Description => change.Changed ? $"{change.Source}\n{change.Target}" : change.Source;
 
         public string Directory => Path.Join(marker.Directories.ToArray()); // inefficiently
 
@@ -354,5 +357,8 @@ namespace Far.ViewModel
         public ObservableCollection<Item> View => viewed;
 
         public bool IsEmpty => source.IsEmpty;
+
+        // References:
+        // https://docs.microsoft.com/windows/communitytoolkit/controls/datagrid_guidance/group_sort_filter
     }
 }

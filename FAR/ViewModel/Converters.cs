@@ -97,8 +97,8 @@ namespace Far.ViewModel
 
     public class ChangeConverter : IValueConverter
     {
-        private static readonly Brush Insert = new SolidColorBrush(Color.FromArgb(0xFF, 0x07, 0x96, 0x2F));
-        private static readonly Brush Delete = new SolidColorBrush(Color.FromArgb(0xFF, 0xC4, 0x0B, 0x54));
+        private static readonly Brush Insert = new SolidColorBrush(Color.FromArgb(0xFF, 0x00, 0x80, 0x00));
+        private static readonly Brush Delete = new SolidColorBrush(Color.FromArgb(0xFF, 0xFD, 0xC5, 0xB6));
 
         // SolidColorBrush Class
         // https://docs.microsoft.com/en-us/uwp/api/windows.ui.xaml.media.solidcolorbrush

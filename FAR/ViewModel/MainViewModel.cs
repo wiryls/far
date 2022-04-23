@@ -37,9 +37,9 @@ namespace Far.ViewModel
             AddCommand = new (AddItem);
             SelectCommand = new (x => SelectItems(x.Item1 , x.Item2));
             SortCommand = new (x => SortItems(x.Item1, x.Item2), null);
-            RenameCommand = new (_ => RenameItems());
             ClearSelectedCommand = new (_ => ClearSelectedItems(), _ => count is not 0);
             ClearAllCommand = new (_ => ClearAllItems(), _ => items.IsEmpty is false);
+            RenameCommand = new (_ => RenameItems(), _ => items.View.Count is not 0);
         }
 
         private void AddItem(IEnumerable<string> list)
@@ -49,7 +49,10 @@ namespace Far.ViewModel
                 items.Add(item);
 
             if (empty)
+            {
                 ClearAllCommand.RaiseCanExecuteChanged();
+                RenameCommand.RaiseCanExecuteChanged();
+            }
         }
 
         private void SelectItems(IEnumerable<Item> added, IEnumerable<Item> removed)
@@ -91,12 +94,14 @@ namespace Far.ViewModel
             items.RemoveSelected();
             ClearSelectedCommand.RaiseCanExecuteChanged();
             ClearAllCommand.RaiseCanExecuteChanged();
+            RenameCommand.RaiseCanExecuteChanged();
         }
 
         private void ClearAllItems()
         {
             items.Clear();
             ClearAllCommand.RaiseCanExecuteChanged();
+            RenameCommand.RaiseCanExecuteChanged();
         }
 
         private void UpdateDiffer<T>(ref T property, T value, [CallerMemberName] string name = "")
@@ -161,11 +166,10 @@ namespace Far.ViewModel
 
         public DelegateCommand<ValueTuple<string, bool>, object> SortCommand { get; private set; }
 
-        public DelegateCommand RenameCommand { get; private set; }
-
         public DelegateCommand ClearSelectedCommand { get; private set; }
 
         public DelegateCommand ClearAllCommand { get; private set; }
 
+        public DelegateCommand RenameCommand { get; private set; }
     }
 }
