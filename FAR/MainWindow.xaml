@@ -12,8 +12,8 @@
             <vm:MainViewModel x:Name="ViewModel"/>
         </Grid.DataContext>
         <StackPanel x:Name="AppTitleBar" Grid.Row="0" Orientation="Horizontal">
-            <SplitButton vm:DropFilesBehaviorExtension.Command="{Binding AddCommand}" IsHitTestVisible="True">
-                <!-- TODO: write a FileOrFolderPicker -->
+            <SplitButton vm:DropFilesBehaviorExtension.Command="{Binding AddCommand}">
+                <!-- TODO: wait for the official support of FileOrFolderPicker -->
                 <SplitButton.Flyout>
                     <Flyout>
                         <StackPanel>

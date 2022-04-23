@@ -94,7 +94,6 @@ namespace Far.ViewModel
 
         public DelegateCommand RenameCommand { get; private set; }
 
-
         private void AddItems(IEnumerable<(string Name, bool IsFolder)> list)
         {
             var notEmptyAnyMore = items.IsEmpty;
@@ -134,6 +133,7 @@ namespace Far.ViewModel
                         }
                         catch (Exception e)
                         {
+                            // TODO: we'd better display some error messages.
                             Debug.Print(e.Message);
                         }
                         if (next)
@@ -199,15 +199,15 @@ namespace Far.ViewModel
         {
             var differ = null as IDiffer;
             if (SetProperty(ref property, value, name)) try
-                {
-                    differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
-                    if (!string.IsNullOrEmpty(Warning.Item1))
-                        Warning = (string.Empty, Warning.Item2);
-                }
-                catch (RegexParseException e)
-                {
-                    Warning = (e.Message, Warning.Item2);
-                }
+            {
+                differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
+                if (!string.IsNullOrEmpty(Warning.Item1))
+                    Warning = (string.Empty, Warning.Item2);
+            }
+            catch (RegexParseException e)
+            {
+                Warning = (e.Message, Warning.Item2);
+            }
 
             if (differ is not null)
             {

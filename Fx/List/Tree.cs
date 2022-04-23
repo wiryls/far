@@ -125,23 +125,24 @@ namespace Fx.List
             if (it.Tree is null)
                 yield break;
 
-            var list = new List<SortedSet<Node<T>>.Enumerator> { it.Tree.GetEnumerator() };
-            while (list.Count is not 0)
+            var nodes = new Stack<SortedSet<Node<T>>.Enumerator>();
+            nodes.Push(it.Tree.GetEnumerator());
+            while (nodes.Count is not 0)
             {
-                var last = list.Last();
-                if (last.MoveNext())
+                var current = nodes.Peek();
+                if (current.MoveNext())
                 {
-                    var node = last.Current;
+                    var node = current.Current;
 
                     if (node.Used)
                         yield return node;
 
                     if (node.Tree is not null)
-                        list.Add(node.Tree.GetEnumerator());
+                        nodes.Push(node.Tree.GetEnumerator());
                 }
                 else
                 {
-                    list.RemoveAt(list.Count - 1);
+                    nodes.Pop();
                 }
             }
         }
