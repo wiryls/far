@@ -1,5 +1,7 @@
 ﻿using Fx.Diff;
 using Fx.List;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -86,24 +88,65 @@ namespace Far.ViewModel
 
     internal struct Items
     {
+        private struct ItemList : IEnumerable<Item>
+        {
+            private List<Item> data;
+
+            public ItemList()
+            {
+                data = new ();
+                Outdate = false;
+            }
+
+            public void Add(Item item)
+            {
+                data.Add(item);
+            }
+
+            public void Add(IEnumerable<Item> items)
+            {
+                data.AddRange(items);
+            }
+
+            public void Clear()
+            {
+                data.Clear();
+                Outdate = false;
+            }
+
+            public void Clean()
+            {
+                if (Outdate)
+                {
+                    data = data.Where(x => x.Status is not Status.Gone).ToList();
+                    Outdate = false;
+                }
+            }
+
+            public IEnumerator<Item> GetEnumerator() => data.GetEnumerator();
+
+            IEnumerator IEnumerable.GetEnumerator() => data.GetEnumerator();
+
+            public bool Outdate { private get; set; }
+
+        }
+
         // status
         private IDiffer differ;
         private readonly Tree<Item> source;
         private readonly ObservableCollection<Item> viewed;
 
         // buffer
-        private List<Item> sorted;
-        private List<Item> wanted;
-        private bool remove;
+        private ItemList sorted;
+        private ItemList wanted;
 
         public Items()
         {
             differ = DifferCreator.Create();
-            source = new();
-            viewed = new();
-            sorted = new();
-            wanted = new();
-            remove = false;
+            source = new ();
+            viewed = new ();
+            sorted = new ();
+            wanted = new ();
         }
 
         public bool Add(string path)
@@ -122,17 +165,38 @@ namespace Far.ViewModel
             return true;
         }
 
-        public bool Remove(int index)
+        public void RemoveSelected()
         {
-            if (viewed.Count <= index || index < 0)
-                return false;
+            var count = 0;
+            var total = viewed.Count;
+            foreach (var item in viewed.Where(x => x.Selected))
+            {
+                item.Status = Status.Gone;
+                if (source.Remove(item.Marker))
+                    count++;
+            }
 
-            var item = viewed[index];
-            item.Status = Status.Gone;
+            if (count is 0)
+                return;
 
-            remove = true;
-            viewed.RemoveAt(index);
-            return source.Remove(item.Marker);
+            sorted.Outdate = true;
+            wanted.Outdate = true;
+            viewed.Clear();
+            if (count == total)
+                return;
+
+            if (differ.IsEmpty)
+            {
+                sorted.Clean();
+                foreach (var item in sorted)
+                    viewed.Add(item);
+            }
+            else
+            {
+                wanted.Clean();
+                foreach (var item in wanted.Where(x => x.Changed))
+                    viewed.Add(item);
+            }
         }
 
         public void Clear()
@@ -207,30 +271,23 @@ namespace Far.ViewModel
 
         public bool Differ(IDiffer target)
         {
-            if (remove)
-            {
-                sorted = sorted.Where(NotGone).ToList();
-                wanted = wanted.Where(NotGone).ToList();
-                remove = false;
-
-                static bool NotGone(Item item) => item.Status is not Status.Gone;
-            }
-
             viewed.Clear();
             if (target.IsEmpty)
             {
+                sorted.Clean();
                 foreach (var item in sorted)
                     viewed.Add(item.Rediff(target));
             }
             else if (Equals(differ.GetType(), target.GetType()) && differ.Pattern == target.Pattern)
             {
+                wanted.Clean();
                 foreach (var item in wanted.Where(x => x.Rediff(target).Changed))
                     viewed.Add(item);
             }
             else
             {
                 wanted.Clear();
-                wanted.AddRange(sorted.Where(x => x.Rediff(target).Matched));
+                wanted.Add(sorted.Where(x => x.Rediff(target).Matched));
                 foreach (var item in wanted.Where(x => x.Changed))
                     viewed.Add(item);
             }

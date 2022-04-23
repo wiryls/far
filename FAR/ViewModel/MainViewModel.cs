@@ -72,7 +72,9 @@ namespace Far.ViewModel
 
         private void ClearSelected()
         {
-            Debug.WriteLine("Todo");
+            items.RemoveSelected();
+            ClearSelectedCommand.RaiseCanExecuteChanged();
+            ClearAllCommand.RaiseCanExecuteChanged();
         }
 
         private void AddItem(IEnumerable<string> list)
