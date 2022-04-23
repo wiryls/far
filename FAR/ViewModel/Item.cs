@@ -179,6 +179,7 @@ namespace Far.ViewModel
         // buffer
         private ItemList sorted;
         private ItemList wanted;
+        private bool     rename; // if the last operation is Rename
 
         public Items()
         {
@@ -187,6 +188,7 @@ namespace Far.ViewModel
             viewed = new ();
             sorted = new ();
             wanted = new ();
+            rename = false;
         }
 
         public bool Add(string path)
@@ -201,6 +203,9 @@ namespace Far.ViewModel
 
             if (item.Changed || differ.IsEmpty)
                 viewed.Add(item);
+
+            if (rename)
+                Differ(differ);
 
             return true;
         }
@@ -245,6 +250,7 @@ namespace Far.ViewModel
             sorted.Clear();
             wanted.Clear();
             viewed.Clear();
+            rename = false;
         }
 
         public bool Rename()
@@ -277,9 +283,7 @@ namespace Far.ViewModel
 
                 try
                 {
-                    // TODO:
-                    // info.MoveTo(that);
-                    Debug.WriteLine($"Rename '${item.Source}' to '${name}'");
+                    info.MoveTo(that);
                 }
                 catch
                 {
@@ -306,11 +310,19 @@ namespace Far.ViewModel
                 Debug.WriteLine($"Remove '${node.Source}'");
             }
 
+            rename = true;
             return true;
         }
 
         public void Differ(IDiffer target)
         {
+            if (rename)
+            {
+                rename = false;
+                foreach (var item in viewed)
+                    item.Status = Status.Todo;
+            }
+
             viewed.Clear();
 
             if (target.IsEmpty)
@@ -358,7 +370,7 @@ namespace Far.ViewModel
 
         public bool IsEmpty => source.IsEmpty;
 
-        public bool IsRenamable => !differ.IsEmpty && viewed.Count is not 0;
+        public bool IsRenamable => rename is false && differ.IsEmpty is false && viewed.Count is not 0;
 
         // References:
         // https://docs.microsoft.com/windows/communitytoolkit/controls/datagrid_guidance/group_sort_filter

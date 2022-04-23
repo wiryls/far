@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
 
 namespace Far.ViewModel
 {
@@ -112,7 +113,10 @@ namespace Far.ViewModel
                 command.CanExecute(sender))
             {
                 var items = await e.DataView.GetStorageItemsAsync();
-                command.Execute(items.Select(i => i.Path));
+
+                command.Execute(items
+                    .Where(i => i.IsOfType(StorageItemTypes.File) || i.IsOfType(StorageItemTypes.Folder))
+                    .Select(i => (i.Path, i.IsOfType(StorageItemTypes.Folder))));
             }
         }
 

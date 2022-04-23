@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
@@ -20,7 +22,7 @@ namespace Far.ViewModel
 
         private (string, bool) warning;
         private readonly Items items;
-        private int count;
+        private int selection;
 
         public MainViewModel()
         {
@@ -32,99 +34,14 @@ namespace Far.ViewModel
 
             warning = (string.Empty, true);
             items = new();
-            count = 0;
+            selection = 0;
 
-            AddCommand = new (AddItem);
+            AddCommand = new (AddItems);
             SelectCommand = new (x => SelectItems(x.Item1 , x.Item2));
-            SortCommand = new (x => SortItems(x.Item1, x.Item2), null);
-            ClearSelectedCommand = new (_ => ClearSelectedItems(), _ => count is not 0);
+            SortCommand = new (x => SortItems(x.Item1, x.Item2));
+            ClearSelectedCommand = new (_ => ClearSelectedItems(), _ => selection is not 0);
             ClearAllCommand = new (_ => ClearAllItems(), _ => items.IsEmpty is false);
             RenameCommand = new (_ => RenameItems(), _ => items.IsRenamable);
-        }
-
-        private void AddItem(IEnumerable<string> list)
-        {
-            var empty = items.IsEmpty;
-            foreach (var item in list)
-                items.Add(item);
-
-            if (empty)
-            {
-                ClearAllCommand.RaiseCanExecuteChanged();
-                RenameCommand.RaiseCanExecuteChanged();
-            }
-        }
-
-        private void SelectItems(IEnumerable<Item> added, IEnumerable<Item> removed)
-        {
-            var number = count;
-            foreach (var item in removed)
-            {
-                count--;
-                item.Selected = false;
-            }
-            foreach (var item in added)
-            {
-                count++;
-                item.Selected = true;
-            }
-            if (number is 0 != count is 0)
-                ClearSelectedCommand.RaiseCanExecuteChanged();
-        }
-
-        private void SortItems(string tag, bool ascending)
-        {
-            var order = tag switch
-            {
-                "Stat" => Items.OrderBy.ByStat,
-                "View" => Items.OrderBy.ByView,
-                "Path" => Items.OrderBy.ByPath,
-                _ => throw new ArgumentException($"unknown tag '{tag}'"),
-            };
-            items.Sort(order, ascending);
-        }
-
-        private void RenameItems()
-        {
-            Debug.WriteLine("Todo");
-        }
-
-        private void ClearSelectedItems()
-        {
-            items.RemoveSelected();
-            ClearSelectedCommand.RaiseCanExecuteChanged();
-            ClearAllCommand.RaiseCanExecuteChanged();
-            RenameCommand.RaiseCanExecuteChanged();
-        }
-
-        private void ClearAllItems()
-        {
-            items.Clear();
-            ClearAllCommand.RaiseCanExecuteChanged();
-            RenameCommand.RaiseCanExecuteChanged();
-        }
-
-        private void UpdateDiffer<T>(ref T property, T value, [CallerMemberName] string name = "")
-        {
-            var differ = null as IDiffer;
-            if (SetProperty(ref property, value, name)) try
-            {
-                differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
-                if (!string.IsNullOrEmpty(Warning.Item1))
-                    Warning = (string.Empty, Warning.Item2);
-            }
-            catch (RegexParseException e)
-            {
-                Warning = (e.Message, Warning.Item2);
-            }
-
-            if (differ is not null)
-            {
-                items.Differ(differ);
-                Debug.Print($"{differ.IsEmpty}");
-
-                RenameCommand.RaiseCanExecuteChanged();
-            }
         }
 
         public bool EnableRecursiveImport
@@ -165,7 +82,7 @@ namespace Far.ViewModel
 
         public ObservableCollection<Item> ItemList => items.View;
 
-        public DelegateCommand<IEnumerable<string>, object> AddCommand { get; private set; }
+        public DelegateCommand<IEnumerable<ValueTuple<string, bool>>, object> AddCommand { get; private set; }
 
         public DelegateCommand<ValueTuple<IEnumerable<Item>, IEnumerable<Item>>, object> SelectCommand { get; private set; }
 
@@ -176,5 +93,127 @@ namespace Far.ViewModel
         public DelegateCommand ClearAllCommand { get; private set; }
 
         public DelegateCommand RenameCommand { get; private set; }
+
+
+        private void AddItems(IEnumerable<(string Name, bool IsFolder)> list)
+        {
+            var notEmptyAnyMore = items.IsEmpty;
+
+            if (EnableRecursiveImport)
+            {
+                foreach (var item in WalkThrough(list))
+                    items.Add(item);
+            }
+            else
+            {
+                foreach (var item in list.Select(x => x.Name))
+                    items.Add(item);
+            }
+
+            if (notEmptyAnyMore)
+            {
+                ClearAllCommand.RaiseCanExecuteChanged();
+                RenameCommand.RaiseCanExecuteChanged();
+            }
+
+            static IEnumerable<string> WalkThrough(IEnumerable<(string Name, bool IsFolder)> list)
+            {
+                foreach (var (path, isFolder) in list)
+                {
+                    yield return path;
+                    if (isFolder is false)
+                        continue;
+
+                    var walk = Directory.EnumerateFileSystemEntries(path, "*", SearchOption.AllDirectories).GetEnumerator();
+                    var next = true;
+                    while (next)
+                    {
+                        try
+                        {
+                            next = walk.MoveNext();
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.Print(e.Message);
+                        }
+                        if (next)
+                        {
+                            yield return walk.Current;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void SelectItems(IEnumerable<Item> added, IEnumerable<Item> removed)
+        {
+            var number = selection;
+            foreach (var item in removed)
+            {
+                selection--;
+                item.Selected = false;
+            }
+            foreach (var item in added)
+            {
+                selection++;
+                item.Selected = true;
+            }
+            if (number is 0 != selection is 0)
+                ClearSelectedCommand.RaiseCanExecuteChanged();
+        }
+
+        private void SortItems(string tag, bool ascending)
+        {
+            var order = tag switch
+            {
+                "Stat" => Items.OrderBy.ByStat,
+                "View" => Items.OrderBy.ByView,
+                "Path" => Items.OrderBy.ByPath,
+                _ => throw new ArgumentException($"unknown tag '{tag}'"),
+            };
+            items.Sort(order, ascending);
+        }
+
+        private void RenameItems()
+        {
+            if (items.Rename())
+                RenameCommand.RaiseCanExecuteChanged();
+        }
+
+        private void ClearSelectedItems()
+        {
+            items.RemoveSelected();
+            ClearSelectedCommand.RaiseCanExecuteChanged();
+            ClearAllCommand.RaiseCanExecuteChanged();
+            RenameCommand.RaiseCanExecuteChanged();
+        }
+
+        private void ClearAllItems()
+        {
+            items.Clear();
+            ClearAllCommand.RaiseCanExecuteChanged();
+            RenameCommand.RaiseCanExecuteChanged();
+        }
+
+        private void UpdateDiffer<T>(ref T property, T value, [CallerMemberName] string name = "")
+        {
+            var differ = null as IDiffer;
+            if (SetProperty(ref property, value, name)) try
+                {
+                    differ = DifferCreator.Create(pattern, template, enableIgnoreCase, enableRegex);
+                    if (!string.IsNullOrEmpty(Warning.Item1))
+                        Warning = (string.Empty, Warning.Item2);
+                }
+                catch (RegexParseException e)
+                {
+                    Warning = (e.Message, Warning.Item2);
+                }
+
+            if (differ is not null)
+            {
+                items.Differ(differ);
+                RenameCommand.RaiseCanExecuteChanged();
+            }
+        }
     }
 }
