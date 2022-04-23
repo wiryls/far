@@ -123,6 +123,7 @@ namespace Far.ViewModel
 
     public static class DataGridBehaviorExtension
     {
+        #region command select
         public static readonly DependencyProperty SelectCommandProperty = DependencyProperty.RegisterAttached
         (
             "SelectCommand",
@@ -149,16 +150,75 @@ namespace Far.ViewModel
             if (e.OldValue == e.NewValue)
                 return;
 
-            if (e.OldValue is ICommand prev)
-                target.SelectionChanged -= prev.OnSelectionChanged;
+            if (e.OldValue is ICommand o)
+                target.SelectionChanged -= o.OnSelectionChanged;
 
-            if (e.NewValue is ICommand next)
-                target.SelectionChanged += next.OnSelectionChanged;
+            if (e.NewValue is ICommand n)
+                target.SelectionChanged += n.OnSelectionChanged;
         }
 
         private static void OnSelectionChanged(this ICommand command, object sender, SelectionChangedEventArgs e)
         {
+            // (IEnumerable<Item>, IEnumerable<Item>)
             command.Execute((e.AddedItems.Cast<Item>(), e.RemovedItems.Cast<Item>()));
         }
+
+        #endregion
+
+        #region command sort
+
+        public static readonly DependencyProperty SortCommandProperty = DependencyProperty.RegisterAttached
+        (
+            "SortCommand",
+            typeof(ICommand),
+            typeof(DataGridBehaviorExtension),
+            new PropertyMetadata(default(ICommand), OnSortCommandChanged)
+        );
+
+        public static ICommand GetSortCommand(DependencyObject element)
+        {
+            return element.GetValue(SortCommandProperty) as ICommand;
+        }
+
+        public static void SetSortCommand(DependencyObject element, ICommand value)
+        {
+            element.SetValue(SortCommandProperty, value);
+        }
+
+        private static void OnSortCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not DataGrid target)
+                throw new InvalidOperationException($"target should be {nameof(DataGrid)}");
+
+            if (e.OldValue == e.NewValue)
+                return;
+
+            if (e.OldValue is ICommand o)
+                target.Sorting -= o.OnSorted;
+
+            if (e.NewValue is ICommand n)
+                target.Sorting += n.OnSorted;
+        }
+
+        private static void OnSorted(this ICommand command, object sender, DataGridColumnEventArgs e)
+        {
+            if (sender is not DataGrid target)
+                throw new InvalidOperationException($"target should be {nameof(DataGrid)}");
+
+            var dir = e.Column.SortDirection; // current
+            foreach (var column in target.Columns)
+                column.SortDirection = null;
+
+            e.Column.SortDirection // next
+                = dir is null || dir is DataGridSortDirection.Descending
+                ? DataGridSortDirection.Ascending
+                : DataGridSortDirection.Descending
+                ;
+
+            // (string, bool)
+            command.Execute((e.Column.Tag.ToString(), e.Column.SortDirection is DataGridSortDirection.Ascending));
+        }
+
+        #endregion
     }
 }

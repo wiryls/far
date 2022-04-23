@@ -12,7 +12,7 @@
             <vm:MainViewModel x:Name="ViewModel"/>
         </Grid.DataContext>
         <StackPanel x:Name="AppTitleBar" Grid.Row="0" Orientation="Horizontal">
-            <SplitButton vm:DropFilesBehaviorExtension.Command="{Binding AddItemsCommand}" IsHitTestVisible="True">
+            <SplitButton vm:DropFilesBehaviorExtension.Command="{Binding AddCommand}" IsHitTestVisible="True">
                 <!-- TODO: write a FileOrFolderPicker -->
                 <SplitButton.Flyout>
                     <Flyout>
@@ -53,18 +53,18 @@
         </Grid>
         <controls:DataGrid
             Grid.Row="2"
-            ItemsSource="{Binding Items}"
+            ItemsSource="{Binding ItemList}"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch"
             HorizontalScrollBarVisibility="Visible"
             VerticalScrollBarVisibility="Visible"
             AutoGenerateColumns="False"
             IsReadOnly="True"
-            CanUserReorderColumns="False"
             CanUserSortColumns="True"
             Background="Transparent"
             SelectionMode="Extended"
-            vm:DropFilesBehaviorExtension.Command="{Binding AddItemsCommand}"
+            vm:DropFilesBehaviorExtension.Command="{Binding AddCommand}"
+            vm:DataGridBehaviorExtension.SortCommand="{Binding SortCommand}"
             vm:DataGridBehaviorExtension.SelectCommand="{Binding SelectCommand}">
             <!-- Background="Transparent" is necessary to make drag-and-drop works in empty area. -->
             <!-- datagrid: https://docs.microsoft.com/windows/communitytoolkit/getting-started -->
@@ -98,7 +98,7 @@
                         </DataTemplate>
                     </controls:DataGridTemplateColumn.CellTemplate>
                 </controls:DataGridTemplateColumn>
-                <controls:DataGridTextColumn x:Uid="Path" Tag="Path" MinWidth="256" Binding="{Binding Directory}"/>
+                <controls:DataGridTextColumn x:Uid="Path" Tag="Path" MinWidth="256" Width="*" Binding="{Binding Directory}"/>
             </controls:DataGrid.Columns>
         </controls:DataGrid>
     </Grid>

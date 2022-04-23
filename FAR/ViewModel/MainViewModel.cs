@@ -34,11 +34,69 @@ namespace Far.ViewModel
             items = new();
             count = 0;
 
-            AddItemsCommand = new (AddItem);
-            SelectCommand = new (x => UpdateSelection(x.Item1 , x.Item2));
-            RenameCommand = new (_ => Rename());
-            ClearSelectedCommand = new (_ => ClearSelected(), _ => count is not 0);
-            ClearAllCommand = new (_ => ClearAll(), _ => items.IsEmpty is false);
+            AddCommand = new (AddItem);
+            SelectCommand = new (x => SelectItems(x.Item1 , x.Item2));
+            SortCommand = new (x => SortItems(x.Item1, x.Item2), null);
+            RenameCommand = new (_ => RenameItems());
+            ClearSelectedCommand = new (_ => ClearSelectedItems(), _ => count is not 0);
+            ClearAllCommand = new (_ => ClearAllItems(), _ => items.IsEmpty is false);
+        }
+
+        private void AddItem(IEnumerable<string> list)
+        {
+            var empty = items.IsEmpty;
+            foreach (var item in list)
+                items.Add(item);
+
+            if (empty)
+                ClearAllCommand.RaiseCanExecuteChanged();
+        }
+
+        private void SelectItems(IEnumerable<Item> added, IEnumerable<Item> removed)
+        {
+            var number = count;
+            foreach (var item in removed)
+            {
+                count--;
+                item.Selected = false;
+            }
+            foreach (var item in added)
+            {
+                count++;
+                item.Selected = true;
+            }
+            if (number is 0 != count is 0)
+                ClearSelectedCommand.RaiseCanExecuteChanged();
+        }
+
+        private void SortItems(string tag, bool ascending)
+        {
+            var order = tag switch
+            {
+                "Stat" => Items.OrderBy.ByStat,
+                "View" => Items.OrderBy.ByView,
+                "Path" => Items.OrderBy.ByPath,
+                _ => throw new ArgumentException($"unknown tag '{tag}'"),
+            };
+            items.Sort(order, ascending);
+        }
+
+        private void RenameItems()
+        {
+            Debug.WriteLine("Todo");
+        }
+
+        private void ClearSelectedItems()
+        {
+            items.RemoveSelected();
+            ClearSelectedCommand.RaiseCanExecuteChanged();
+            ClearAllCommand.RaiseCanExecuteChanged();
+        }
+
+        private void ClearAllItems()
+        {
+            items.Clear();
+            ClearAllCommand.RaiseCanExecuteChanged();
         }
 
         private void UpdateDiffer<T>(ref T property, T value, [CallerMemberName] string name = "")
@@ -57,51 +115,6 @@ namespace Far.ViewModel
 
             if (differ is not null)
                 items.Differ(differ);
-        }
-
-        private void Rename()
-        {
-            Debug.WriteLine("Todo");
-        }
-
-        private void ClearAll()
-        {
-            items.Clear();
-            ClearAllCommand.RaiseCanExecuteChanged();
-        }
-
-        private void ClearSelected()
-        {
-            items.RemoveSelected();
-            ClearSelectedCommand.RaiseCanExecuteChanged();
-            ClearAllCommand.RaiseCanExecuteChanged();
-        }
-
-        private void AddItem(IEnumerable<string> list)
-        {
-            var empty = items.IsEmpty;
-            foreach (var item in list)
-                items.Add(item);
-
-            if (empty)
-                ClearAllCommand.RaiseCanExecuteChanged();
-        }
-
-        private void UpdateSelection(IEnumerable<Item> added, IEnumerable<Item> removed)
-        {
-            var number = count;
-            foreach (var item in removed)
-            {
-                count--;
-                item.Selected = false;
-            }
-            foreach (var item in added)
-            {
-                count++;
-                item.Selected = true;
-            }
-            if (number is 0 != count is 0)
-                ClearSelectedCommand.RaiseCanExecuteChanged();
         }
 
         public bool EnableRecursiveImport
@@ -140,11 +153,13 @@ namespace Far.ViewModel
             set => SetProperty(ref warning, value.Item1 is null ? (warning.Item1, value.Item2) : value);
         }
 
-        public ObservableCollection<Item> Items => items.View;
+        public ObservableCollection<Item> ItemList => items.View;
 
-        public DelegateCommand<IEnumerable<string>, object> AddItemsCommand { get; private set; }
+        public DelegateCommand<IEnumerable<string>, object> AddCommand { get; private set; }
 
         public DelegateCommand<ValueTuple<IEnumerable<Item>, IEnumerable<Item>>, object> SelectCommand { get; private set; }
+
+        public DelegateCommand<ValueTuple<string, bool>, object> SortCommand { get; private set; }
 
         public DelegateCommand RenameCommand { get; private set; }
 

@@ -1,6 +1,5 @@
 ﻿using Fx.Diff;
 using Fx.List;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -88,6 +87,13 @@ namespace Far.ViewModel
 
     internal struct Items
     {
+        public enum OrderBy
+        {
+            ByStat,
+            ByView,
+            ByPath,
+        }
+
         private struct ItemList : IEnumerable<Item>
         {
             private List<Item> data;
@@ -112,6 +118,37 @@ namespace Far.ViewModel
             {
                 data.Clear();
                 Outdate = false;
+            }
+
+            public void Sort(OrderBy order, bool isAscending)
+            {
+                Clean();
+                data.Sort(order switch
+                {
+                    OrderBy.ByStat => isAscending
+                        ? (l, r) => l.Status - r.Status
+                        : (r, l) => l.Status - r.Status,
+                    OrderBy.ByPath => isAscending
+                        ? (l, r) => CompareStrings(l.Marker.Directories, r.Marker.Directories)
+                        : (r, l) => CompareStrings(l.Marker.Directories, r.Marker.Directories),
+                    _ => isAscending
+                        ? (l, r) => string.Compare(l.Marker.Name, r.Marker.Name)
+                        : (r, l) => string.Compare(l.Marker.Name, r.Marker.Name),
+
+                });
+
+                static int CompareStrings(IEnumerable<string> l, IEnumerable<string> r)
+                {
+                    var lhs = l.GetEnumerator();
+                    var rhs = r.GetEnumerator();
+                    while (lhs.MoveNext() && rhs.MoveNext())
+                    {
+                        var res = string.Compare(lhs.Current, rhs.Current);
+                        if (res != 0)
+                            return res;
+                    }
+                    return rhs.MoveNext() ? -1 : 0;
+                }
             }
 
             public void Clean()
@@ -296,11 +333,22 @@ namespace Far.ViewModel
             return true;
         }
 
-        public bool Sort(/* by */)
+        public void Sort(OrderBy order, bool isAscending)
         {
-            // TODO:
-
-            return false;
+            sorted.Sort(order, isAscending);
+            viewed.Clear();
+            if (differ.IsEmpty)
+            {
+                foreach (var item in sorted)
+                    viewed.Add(item);
+            }
+            else
+            {
+                wanted.Clear();
+                wanted.Add(sorted.Where(x => x.Matched));
+                foreach (var item in wanted.Where(x => x.Changed))
+                    viewed.Add(item);
+            }
         }
 
         public ObservableCollection<Item> View => viewed;
