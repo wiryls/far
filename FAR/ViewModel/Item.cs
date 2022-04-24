@@ -54,7 +54,7 @@ namespace Far.ViewModel
 
         public Change Preview => change;
 
-        public string Description => change.Changed ? $"{change.Source}\n{change.Target}" : change.Source;
+        public string Description => change.Changed ? $"{change.Source} → {change.Target}" : change.Source;
 
         public string Directory => Path.Join(marker.Directories.ToArray()); // inefficiently
 
@@ -88,57 +88,64 @@ namespace Far.ViewModel
         // https://stackoverflow.com/a/46038091
     }
 
-    internal class Items
+    internal class ItemList
     {
         public enum OrderBy
         {
-            ByStat,
-            ByView,
-            ByPath,
+            Stat,
+            View,
+            Path,
         }
 
-        private struct ItemList : IEnumerable<Item>
+        private class Items : IEnumerable<Item>
         {
             private List<Item> data;
 
-            public ItemList()
+            public Items()
             {
                 data = new ();
                 Outdate = false;
             }
 
-            public void Add(Item item)
+            public Items Add(Item item)
             {
                 data.Add(item);
+                return this;
             }
 
-            public void Add(IEnumerable<Item> items)
+            public Items Add(IEnumerable<Item> items)
             {
                 data.AddRange(items);
+                return this;
             }
 
-            public void Clear()
+            public Items Reset(List<Item> list = null)
             {
-                data.Clear();
+                if (list is null)
+                    data.Clear();
+                else
+                    data = list;
+
                 Outdate = false;
+                return this;
             }
 
-            public void Sort(OrderBy order, bool isAscending)
+            public Items Sort(OrderBy order, bool isAscending)
             {
                 Clean();
                 data.Sort(order switch
                 {
-                    OrderBy.ByStat => isAscending
+                    OrderBy.Stat => isAscending
                         ? (l, r) => l.Status - r.Status
                         : (r, l) => l.Status - r.Status,
-                    OrderBy.ByPath => isAscending
+                    OrderBy.Path => isAscending
                         ? (l, r) => CompareStrings(l.Marker.Directories, r.Marker.Directories)
                         : (r, l) => CompareStrings(l.Marker.Directories, r.Marker.Directories),
                     _ => isAscending
                         ? (l, r) => string.Compare(l.Marker.Name, r.Marker.Name)
                         : (r, l) => string.Compare(l.Marker.Name, r.Marker.Name),
-
                 });
+                return this;
 
                 static int CompareStrings(IEnumerable<string> l, IEnumerable<string> r)
                 {
@@ -154,13 +161,14 @@ namespace Far.ViewModel
                 }
             }
 
-            public void Clean()
+            public Items Clean()
             {
                 if (Outdate)
                 {
                     data = data.Where(x => x.Status is not Status.Gone).ToList();
                     Outdate = false;
                 }
+                return this;
             }
 
             public IEnumerator<Item> GetEnumerator() => data.GetEnumerator();
@@ -177,11 +185,11 @@ namespace Far.ViewModel
         private readonly ObservableCollection<Item> viewed;
 
         // buffer
-        private ItemList sorted;
-        private ItemList wanted;
-        private bool     rename; // if the last operation is Rename
+        private readonly Items sorted;
+        private readonly Items wanted;
+        private bool           rename; // if the last operation is Rename
 
-        public Items()
+        public ItemList()
         {
             differ = DifferCreator.Create();
             source = new ();
@@ -201,7 +209,7 @@ namespace Far.ViewModel
             if (item.Matched)
                 wanted.Add(item);
 
-            if (item.Changed || differ.IsEmpty)
+            if (differ.Strategy is Strategy.None || item.Changed)
                 viewed.Add(item);
 
             if (rename)
@@ -230,32 +238,24 @@ namespace Far.ViewModel
             if (count == total)
                 return;
 
-            if (differ.IsEmpty)
-            {
-                sorted.Clean();
-                foreach (var item in sorted)
-                    viewed.Add(item);
-            }
+            if (differ.Strategy is Strategy.None)
+                sorted.Clean().AddTo(viewed);
             else
-            {
-                wanted.Clean();
-                foreach (var item in wanted.Where(x => x.Changed))
-                    viewed.Add(item);
-            }
+                wanted.Clean().Where(x => x.Changed).AddTo(viewed);
         }
 
         public void Clear()
         {
             source.Clear();
-            sorted.Clear();
-            wanted.Clear();
+            sorted.Reset();
+            wanted.Reset();
             viewed.Clear();
             rename = false;
         }
 
         public bool Rename()
         {
-            if (differ.IsEmpty is false)
+            if (differ.Strategy is not Strategy.None)
                 return false;
 
             var dropped = Enumerable.Empty<IEnumerable<Marker>>();
@@ -325,25 +325,27 @@ namespace Far.ViewModel
 
             viewed.Clear();
 
-            if (target.IsEmpty)
-            {
-                sorted.Clean();
-                foreach (var item in sorted)
-                    viewed.Add(item.Rediff(target));
-            }
-            else if (Equals(differ.GetType(), target.GetType()) && differ.Pattern == target.Pattern)
-            {
-                wanted.Clean();
-                foreach (var item in wanted.Where(x => x.Rediff(target).Changed))
-                    viewed.Add(item);
-            }
+            if (target.Strategy is Strategy.None)
+                sorted
+                    .Clean()
+                    .Select(x => x.Rediff(target))
+                    .AddTo(viewed);
+            else if (differ.Strategy == target.Strategy && differ.Pattern == target.Pattern)
+                wanted
+                    .Clean()
+                    .Where(x => x.Rediff(target).Changed)
+                    .AddTo(viewed);
+            else if (differ.Strategy is Strategy.Normal && target.Strategy is Strategy.Normal && target.Pattern.StartsWith(differ.Pattern))
+                wanted
+                    .Reset(wanted.Where(x => x.Rediff(target).Matched).ToList())
+                    .Where(x => x.Changed)
+                    .AddTo(viewed);
             else
-            {
-                wanted.Clear();
-                wanted.Add(sorted.Where(x => x.Rediff(target).Matched));
-                foreach (var item in wanted.Where(x => x.Changed))
-                    viewed.Add(item);
-            }
+                wanted
+                    .Reset()
+                    .Add(sorted.Where(x => x.Rediff(target).Matched))
+                    .Where(x => x.Changed)
+                    .AddTo(viewed);
 
             differ = target;
         }
@@ -352,27 +354,31 @@ namespace Far.ViewModel
         {
             sorted.Sort(order, isAscending);
             viewed.Clear();
-            if (differ.IsEmpty)
-            {
-                foreach (var item in sorted)
-                    viewed.Add(item);
-            }
+            if (differ.Strategy is Strategy.None)
+                sorted.AddTo(viewed);
             else
-            {
-                wanted.Clear();
-                wanted.Add(sorted.Where(x => x.Matched));
-                foreach (var item in wanted.Where(x => x.Changed))
-                    viewed.Add(item);
-            }
+                wanted.Reset().Add(sorted.Where(x => x.Matched)).Where(x => x.Changed).AddTo(viewed);
         }
 
         public ObservableCollection<Item> View => viewed;
 
         public bool IsEmpty => source.IsEmpty;
 
-        public bool IsRenamable => rename is false && differ.IsEmpty is false && viewed.Count is not 0;
+        public bool IsRenamable
+            => rename is false
+            && differ.Strategy is not Strategy.None
+            && viewed.Count is not 0;
 
         // References:
         // https://docs.microsoft.com/windows/communitytoolkit/controls/datagrid_guidance/group_sort_filter
+    }
+
+    internal static class EnumerableExtension
+    {
+        internal static void AddTo<T>(this IEnumerable<T> it, ICollection<T> that)
+        {
+            foreach(var one in it)
+                that.Add(one);
+        }
     }
 }

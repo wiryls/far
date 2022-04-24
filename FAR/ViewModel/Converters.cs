@@ -7,7 +7,6 @@ using System.Linq;
 using Windows.UI;
 using Windows.UI.Text;
 using Fx.Diff;
-using Fx.List;
 using Action = Fx.Diff.Action;
 
 namespace Far.ViewModel

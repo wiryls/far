@@ -2,6 +2,13 @@
 
 namespace Fx.Diff
 {
+    public enum Strategy
+    {
+        None,
+        Normal,
+        Regexp,
+    }
+
     public interface IDiffer
     {
         Patch Match(string input);
@@ -10,7 +17,7 @@ namespace Fx.Diff
 
         string Template { get; }
 
-        bool IsEmpty { get; }
+        Strategy Strategy { get; }
     }
 
     public static class DifferCreator
@@ -34,7 +41,7 @@ namespace Fx.Diff
         }
     }
 
-    internal struct RegexDiffer : IDiffer
+    internal readonly struct RegexDiffer : IDiffer
     {
         private readonly Regex regex;
         private readonly string pattern;
@@ -82,14 +89,14 @@ namespace Fx.Diff
             return build.Build(input);
         }
 
-        public string Pattern { get => pattern; }
+        string IDiffer.Pattern => pattern;
 
-        public string Template { get => template; }
+        string IDiffer.Template => template;
 
-        public bool IsEmpty { get => false; }
+        Strategy IDiffer.Strategy => Strategy.Regexp;
     }
 
-    internal struct PlainDiffer : IDiffer
+    internal readonly struct PlainDiffer : IDiffer
     {
         private readonly string pattern;
         private readonly string template;
@@ -139,14 +146,14 @@ namespace Fx.Diff
             return build.Build(input);
         }
 
-        public string Pattern { get => pattern; }
+        string IDiffer.Pattern => pattern;
 
-        public string Template { get => template; }
+        string IDiffer.Template => template;
 
-        public bool IsEmpty { get => false; }
+        Strategy IDiffer.Strategy => Strategy.Normal;
     }
 
-    internal struct EmptyDiffer : IDiffer
+    internal readonly struct EmptyDiffer : IDiffer
     {
         private readonly string pattern;
 
@@ -157,10 +164,10 @@ namespace Fx.Diff
 
         public Patch Match(string input) => new (input, true);
 
-        public string Pattern { get => string.Empty; }
+        string IDiffer. Pattern => string.Empty;
 
-        public string Template { get => pattern; }
+        string IDiffer. Template => pattern;
 
-        public bool IsEmpty { get => true; }
+        Strategy IDiffer. Strategy => Strategy.None;
     }
 }

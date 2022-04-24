@@ -21,7 +21,7 @@ namespace Far.ViewModel
         private string template;
 
         private (string, bool) warning;
-        private readonly Items items;
+        private readonly ItemList items;
         private int selection;
 
         public MainViewModel()
@@ -166,9 +166,9 @@ namespace Far.ViewModel
         {
             var order = tag switch
             {
-                "Stat" => Items.OrderBy.ByStat,
-                "View" => Items.OrderBy.ByView,
-                "Path" => Items.OrderBy.ByPath,
+                "Stat" => ViewModel.ItemList.OrderBy.Stat,
+                "View" => ViewModel.ItemList.OrderBy.View,
+                "Path" => ViewModel.ItemList.OrderBy.Path,
                 _ => throw new ArgumentException($"unknown tag '{tag}'"),
             };
             items.Sort(order, ascending);
