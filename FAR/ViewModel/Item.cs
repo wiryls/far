@@ -1,5 +1,6 @@
 ﻿using Fx.Diff;
 using Fx.List;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -41,7 +42,7 @@ namespace Far.ViewModel
         public bool Rename(Tree<Item> tree, string name, out IEnumerable<Marker> drop)
         {
             var done = tree.Rename(marker, name, out drop);
-            if (done && SetProperty(ref change, new(marker.Name), nameof(Preview)))
+            if (done && SetProperty(ref change, new (marker.Name), nameof(Preview)))
                 OnPropertyChanged(nameof(Description));
             return done;
         }
@@ -267,27 +268,17 @@ namespace Far.ViewModel
             {
                 var dirs = item.Directory;
                 var name = item.Target;
-                var that = Path.Join(dirs, name);
+                var prev = Path.Join(dirs, item.Source);
+                var next = Path.Join(dirs, name);
 
-                var info = null as FileInfo;
                 try
                 {
-                    info = new (Path.Join(dirs, item.Source));
+                    Directory.Move(prev, next);
                 }
-                catch
-                {
-                    item.Status = Status.Fail;
-                    continue;
-                }
-                if (info.Exists is false)
+                catch (DirectoryNotFoundException e)
                 {
                     item.Status = Status.Lost;
                     continue;
-                }
-
-                try
-                {
-                    info.MoveTo(that);
                 }
                 catch
                 {
@@ -324,7 +315,8 @@ namespace Far.ViewModel
             {
                 rename = false;
                 foreach (var item in viewed)
-                    item.Status = Status.Todo;
+                    if (item.Status is Status.Done)
+                        item.Status = Status.Todo;
             }
 
             viewed.Clear();
@@ -360,6 +352,10 @@ namespace Far.ViewModel
             viewed.Clear();
             if (differ.Strategy is Strategy.None)
                 sorted
+                    .AddTo(viewed);
+            else if (rename)
+                sorted
+                    .Where(x => x.Status is not Status.Todo)
                     .AddTo(viewed);
             else
                 wanted

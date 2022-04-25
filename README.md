@@ -1,8 +1,14 @@
 # Find And Rename
 
-TODO:
+## Preview
 
-- File or directory picker
-- Async action
-- Error report
+
+
+## TODO
+
+- README.md
+- Async tasks
+- Error reports
 - Avoid renaming to empty
+- Custom titleBar
+- File or directory picker
