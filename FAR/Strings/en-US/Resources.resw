@@ -138,11 +138,17 @@
   <data name="Pattern.PlaceholderText" xml:space="preserve">
     <value>Pattern</value>
   </data>
+  <data name="PickFolder.OffContent" xml:space="preserve">
+    <value>Pick files</value>
+  </data>
+  <data name="PickFolder.OnContent" xml:space="preserve">
+    <value>Pick directories</value>
+  </data>
   <data name="Recursion.OffContent" xml:space="preserve">
-    <value>No recursive import</value>
+    <value>Import directly</value>
   </data>
   <data name="Recursion.OnContent" xml:space="preserve">
-    <value>Import files recursively</value>
+    <value>Import recursively</value>
   </data>
   <data name="Rename.AccessKey" xml:space="preserve">
     <value>R</value>

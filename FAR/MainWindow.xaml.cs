@@ -1,6 +1,11 @@
 ﻿using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Windows.Storage.Pickers;
 using WinRT.Interop;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -51,6 +56,40 @@ namespace Far
             // https://github.com/microsoft/microsoft-ui-xaml/issues/6353#issuecomment-991837288
             // And pay attention to this proposal:
             // https://github.com/microsoft/microsoft-ui-xaml/issues/2731
+        }
+
+        private async void PickFilesOrFolders(SplitButton sender, SplitButtonClickEventArgs args)
+        {
+            // TODO: wait for the official brand new file-or-folder-picker
+            // https://github.com/microsoft/WindowsAppSDK/issues/88
+
+            if (SwitchPickFolder.IsOn)
+            {
+                var picker = new FolderPicker();
+                picker.FileTypeFilter.Add("*");
+
+                var handle = WindowNative.GetWindowHandle(this);
+                InitializeWithWindow.Initialize(picker, handle);
+
+                var picked = await picker.PickSingleFolderAsync();
+                if (picked is not null)
+                    ViewModel.AddCommand.Execute(Enumerable.Repeat((picked.Path, true), 1));
+            }
+            else
+            {
+                var picker = new FileOpenPicker();
+                picker.FileTypeFilter.Add("*");
+
+                var handle = WindowNative.GetWindowHandle(this);
+                InitializeWithWindow.Initialize(picker, handle);
+
+                var picked = await picker.PickMultipleFilesAsync();
+                if (picked is not null && picked.Count > 0)
+                    ViewModel.AddCommand.Execute(picked.Select(x => (x.Path, false)));
+            }
+
+            // References: https://github.com/microsoft/WindowsAppSDK/issues/1188
+            // https://github.com/microsoft/WindowsAppSDK/issues/1188
         }
     }
 }

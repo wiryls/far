@@ -12,11 +12,11 @@
             <vm:MainViewModel x:Name="ViewModel"/>
         </Grid.DataContext>
         <StackPanel x:Name="AppTitleBar" Grid.Row="0" Orientation="Horizontal">
-            <SplitButton vm:DropFilesBehaviorExtension.Command="{Binding AddCommand}">
-                <!-- TODO: wait for the official support of FileOrFolderPicker -->
+            <SplitButton vm:DropFilesBehaviorExtension.Command="{Binding AddCommand}" Click="PickFilesOrFolders">
                 <SplitButton.Flyout>
                     <Flyout>
                         <StackPanel>
+                            <ToggleSwitch x:Uid="PickFolder" x:Name="SwitchPickFolder"/>
                             <ToggleSwitch x:Uid="Recursion" IsOn="{Binding EnableRecursiveImport, Mode=TwoWay}"/>
                         </StackPanel>
                     </Flyout>
@@ -96,7 +96,7 @@
                             <TextBlock Margin="12,0" VerticalAlignment="Center" vm:TextBlockExtension.BindableInlines="{Binding Preview, Converter={StaticResource ChangeConverter}}">
                             <!-- inlines: https://github.com/wiryls/far/blob/deprecated/wpf/MainWindow.xaml#L132 -->
                                 <ToolTipService.ToolTip>
-                                    <ToolTip Content="{Binding Description}" />
+                                    <ToolTip Content="{Binding Description}"/>
                                 </ToolTipService.ToolTip>
                             </TextBlock>
                         </DataTemplate>

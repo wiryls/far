@@ -14,14 +14,18 @@ namespace Far.ViewModel
     
     public class MainViewModel : ViewModelBase
     {
+        // options
         private bool enableRecursiveImport;
         private bool enableIgnoreCase;
         private bool enableRegex;
+
+        // items
         private string pattern;
         private string template;
-
-        private (string, bool) warning;
         private readonly ItemList items;
+
+        // tips
+        private (string, bool) warning;
         private int selection;
 
         public MainViewModel()
@@ -29,11 +33,12 @@ namespace Far.ViewModel
             enableRecursiveImport = false;
             enableIgnoreCase = false;
             enableRegex = true;
+
             pattern = string.Empty;
             template = string.Empty;
+            items = new();
 
             warning = (string.Empty, true);
-            items = new();
             selection = 0;
 
             AddCommand = new (AddItems);

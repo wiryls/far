@@ -21,7 +21,7 @@ namespace Far.ViewModel
             CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        void ICommand.Execute(object parameter)
+        public void Execute(object parameter)
         {
             if (parameter is null)
                 execute.Invoke(default);
@@ -31,7 +31,7 @@ namespace Far.ViewModel
                 throw new ArgumentException($"parameter should be {typeof(A).Name}");
         }
 
-        bool ICommand.CanExecute(object parameter)
+        public bool CanExecute(object parameter)
         {
             return canExecute is null
                 ? true
