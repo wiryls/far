@@ -259,7 +259,7 @@ namespace Far.ViewModel
 
         public bool Rename()
         {
-            if (differ.Strategy is not Strategy.None)
+            if (differ.Strategy is Strategy.None)
                 return false;
 
             var dropped = Enumerable.Empty<IEnumerable<Marker>>();

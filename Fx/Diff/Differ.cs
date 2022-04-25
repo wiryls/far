@@ -83,7 +83,7 @@ namespace Fx.Diff
                 index = match.Index + match.Length;
             }
 
-            if (index is not 0 && index != input.Length)
+            if (matches.Count is not 0 && index != input.Length)
                 build.Retain(input.AsSpan(index));
 
             return build.Build(input);
@@ -118,6 +118,7 @@ namespace Fx.Diff
             var build = new PatchBuilder();
             var index = 0;
             var total = input.Length;
+            var found = false;
 
             // assume pattern.Length is not zero.
             for (var match = 0; match < total; match += pattern.Length)
@@ -126,7 +127,10 @@ namespace Fx.Diff
                 if (match == -1)
                     break;
 
-                if (string.Compare(input, match, template, 0, pattern.Length) is 0)
+                if (found is false)
+                    found = true;
+
+                if (string.Compare(input, match, template, 0, template.Length) is 0)
                     continue;
 
                 if (match != index)
@@ -140,7 +144,7 @@ namespace Fx.Diff
                 index = match + pattern.Length;
             }
 
-            if (index is not 0 && index != total)
+            if (found && index != total)
                 build.Retain(input.AsSpan(index));
 
             return build.Build(input);

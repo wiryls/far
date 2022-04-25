@@ -5,4 +5,4 @@ TODO:
 - File or directory picker
 - Async action
 - Error report
-- Rename to none
+- Avoid renaming to empty
