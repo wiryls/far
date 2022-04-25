@@ -147,17 +147,21 @@ namespace Far.ViewModel
                 });
                 return this;
 
-                static int CompareStrings(IEnumerable<string> l, IEnumerable<string> r)
+                static int CompareStrings(IEnumerable<string> lhs, IEnumerable<string> rhs)
                 {
-                    var lhs = l.GetEnumerator();
-                    var rhs = r.GetEnumerator();
-                    while (lhs.MoveNext() && rhs.MoveNext())
+                    var l = lhs.GetEnumerator();
+                    var r = rhs.GetEnumerator();
+                    while (true)
                     {
-                        var res = string.Compare(lhs.Current, rhs.Current);
-                        if (res != 0)
-                            return res;
+                        var u = l.MoveNext();
+                        var v = r.MoveNext();
+                        if (u is false || v is false)
+                            return u ? 1 : v ? -1 : 0; // (int)u - (int)v
+
+                        var c = string.Compare(l.Current, r.Current);
+                        if (c != 0)
+                            return c;
                     }
-                    return rhs.MoveNext() ? -1 : 0;
                 }
             }
 
@@ -206,7 +210,7 @@ namespace Far.ViewModel
 
             sorted.Add(item);
 
-            if (item.Matched)
+            if (differ.Strategy is not Strategy.None && item.Matched)
                 wanted.Add(item);
 
             if (differ.Strategy is Strategy.None || item.Changed)
@@ -355,9 +359,14 @@ namespace Far.ViewModel
             sorted.Sort(order, isAscending);
             viewed.Clear();
             if (differ.Strategy is Strategy.None)
-                sorted.AddTo(viewed);
+                sorted
+                    .AddTo(viewed);
             else
-                wanted.Reset().Add(sorted.Where(x => x.Matched)).Where(x => x.Changed).AddTo(viewed);
+                wanted
+                    .Reset()
+                    .Add(sorted.Where(x => x.Matched))
+                    .Where(x => x.Changed)
+                    .AddTo(viewed);
         }
 
         public ObservableCollection<Item> View => viewed;
