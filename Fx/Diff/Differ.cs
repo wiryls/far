@@ -130,7 +130,7 @@ namespace Fx.Diff
                 if (found is false)
                     found = true;
 
-                if (string.Compare(input, match, template, 0, template.Length) is 0)
+                if (template.AsSpan().Equals(input.AsSpan(match, pattern.Length), StringComparison.Ordinal))
                     continue;
 
                 if (match != index)

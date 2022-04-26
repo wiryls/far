@@ -60,6 +60,7 @@
             VerticalScrollBarVisibility="Visible"
             AutoGenerateColumns="False"
             IsReadOnly="True"
+            IsTabStop="False"
             CanUserSortColumns="True"
             Background="Transparent"
             SelectionMode="Extended"
@@ -67,6 +68,7 @@
             vm:DataGridBehaviorExtension.SortCommand="{Binding SortCommand}"
             vm:DataGridBehaviorExtension.SelectCommand="{Binding SelectCommand}">
             <!-- note: Background="Transparent" is necessary to make drag-and-drop works in empty area. -->
+            <!-- note: IsTabStop="False" is used to avoid some potential bugs. -->
             <!-- datagrid: https://docs.microsoft.com/windows/communitytoolkit/getting-started -->
             <controls:DataGrid.Resources>
                 <vm:StatusConverter x:Key="StatusConverter"/>

@@ -275,7 +275,7 @@ namespace Far.ViewModel
                 {
                     Directory.Move(prev, next);
                 }
-                catch (DirectoryNotFoundException e)
+                catch (DirectoryNotFoundException)
                 {
                     item.Status = Status.Lost;
                     continue;
@@ -285,7 +285,6 @@ namespace Far.ViewModel
                     item.Status = Status.Fail;
                     continue;
                 }
-
                 if (item.Rename(source, name, out var drop) is false)
                 {
                     item.Status = Status.Lost;
