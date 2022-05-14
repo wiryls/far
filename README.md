@@ -4,6 +4,14 @@
 
 ![preview](docs/preview.gif)
 
+## Build
+
+1. Setup [WinUI3](https://docs.microsoft.com/en-us/windows/apps/windows-app-sdk/set-up-your-development-environment).
+2. Clone this repository `git clone https://github.com/wiryls/far.git`.
+3. Open `FAR.sln` with Visual Studio 2022.
+
+> Make sure `Microsoft.WindowsAppSDK`'s version (defined in `Far\Far.csproj`) matches to yours.
+
 ## TODO
 
 - README.md
